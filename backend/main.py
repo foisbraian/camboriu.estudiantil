@@ -46,21 +46,28 @@ else:
 
 @app.post("/login")
 def login(body: LoginBody):
-    role = (body.role or "admin").lower()
-    admin_pass = os.getenv("ADMIN_PASSWORD", "Graciasburgos2026")
-    validator_pass = os.getenv("VALIDATOR_PASSWORD", "CamboriuValidator2026")
+    admin_pass = os.getenv("ADMIN_PASSWORD", "Graciasburgos2026").strip()
+    validator_pass = os.getenv("VALIDATOR_PASSWORD", "CamboriuValidator2026").strip()
 
-    if role == "admin":
-        if body.password == admin_pass:
-            return {"auth": True, "token": "admin_granted", "role": "admin"}
-        raise HTTPException(status_code=401, detail="Contraseña incorrecta para administrador")
+    requested_role = (body.role or "").strip().lower()
 
-    if role == "validator":
-        if body.password == validator_pass:
-            return {"auth": True, "token": "validator_access", "role": "validator"}
-        raise HTTPException(status_code=401, detail="Contraseña incorrecta para validador")
+    resolved_role = None
+    if body.password == admin_pass:
+        resolved_role = "admin"
+    elif body.password == validator_pass:
+        resolved_role = "validator"
 
-    raise HTTPException(status_code=400, detail="Rol no soportado")
+    if not resolved_role:
+        raise HTTPException(status_code=401, detail="Contraseña incorrecta")
+
+    if requested_role and requested_role not in {"admin", "validator"}:
+        raise HTTPException(status_code=400, detail="Rol no soportado")
+
+    if requested_role and requested_role != resolved_role:
+        raise HTTPException(status_code=401, detail="La contraseña no corresponde al rol seleccionado")
+
+    token = "admin_granted" if resolved_role == "admin" else "validator_access"
+    return {"auth": True, "token": token, "role": resolved_role}
 
 app.include_router(empresas.router)
 app.include_router(grupos.router)

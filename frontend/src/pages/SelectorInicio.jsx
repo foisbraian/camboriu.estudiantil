@@ -33,27 +33,32 @@ export default function SelectorInicio() {
     return (
         <div
             style={{
-                height: "100vh",
+                minHeight: "100vh",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                justifyContent: "center",
+                justifyContent: "flex-start",
                 background: "#f1f5f9",
                 padding: 20,
+                paddingTop: 60,
+                paddingBottom: 60,
+                overflowY: "auto",
+                boxSizing: "border-box"
             }}
         >
-            <h1 style={{ marginBottom: 40, color: "#1e293b", fontWeight: 800 }}>Panel de Administración</h1>
+            <h1 style={{ marginBottom: 32, color: "#1e293b", fontWeight: 800, textAlign: "center" }}>Panel de Administración</h1>
 
-            <div style={{ display: "flex", gap: 30, flexWrap: "wrap", justifyContent: "center" }}>
+            <div style={{ display: "flex", gap: 24, flexWrap: "wrap", justifyContent: "center", width: "100%", maxWidth: 1100 }}>
                 {cards.map((c) => (
                     <div
                         key={c.path}
                         onClick={() => navigate(c.path)}
                         style={{
                             background: "white",
-                            padding: 40,
+                            padding: 32,
                             borderRadius: 16,
-                            width: 300,
+                            width: "100%",
+                            maxWidth: 320,
                             textAlign: "center",
                             cursor: "pointer",
                             boxShadow: "0 10px 25px rgba(0,0,0,0.05)",
