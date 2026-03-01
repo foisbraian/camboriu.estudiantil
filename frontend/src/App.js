@@ -29,12 +29,15 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
 
+        {/* Home/Root redirect logic */}
+        <Route path="/" element={<Protected><Navigate to="/inicio" replace /></Protected>} />
+
         {/* Pantalla de Selección post-login */}
         <Route path="/inicio" element={<Protected><SelectorInicio /></Protected>} />
 
         {/* Rutas Protegidas bajo Layout */}
         <Route element={<Protected><Layout /></Protected>}>
-          <Route path="/" element={<AdminCalendar />} />
+          <Route path="/calendario" element={<AdminCalendar />} />
           <Route path="/empresas" element={<Empresas />} />
           <Route path="/empresas/:id" element={<EmpresaDetalle />} />
           <Route path="/eventos" element={<Eventos />} />
@@ -50,6 +53,9 @@ export default function App() {
 
         {/* Rutas Públicas */}
         <Route path="/portal/:codigo" element={<PortalEmpresa />} />
+
+        {/* Catch-all to root */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

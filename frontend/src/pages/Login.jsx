@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
-import logo from "../assets/logo.png";
 
 export default function Login() {
     const [pass, setPass] = useState("");
@@ -79,15 +78,6 @@ export default function Login() {
                 }}
             >
                 <div style={{ marginBottom: 30 }}>
-                    <img
-                        src={logo}
-                        alt="Logo"
-                        style={{
-                            width: 80,
-                            marginBottom: 20,
-                            filter: "drop-shadow(0 0 10px rgba(236, 72, 153, 0.4))"
-                        }}
-                    />
                     <h1 style={{
                         margin: 0,
                         color: "white",
@@ -154,7 +144,7 @@ export default function Login() {
                 <p style={{ marginTop: 25, color: "#64748b", fontSize: "0.8rem" }}>
                     &copy; 2026 Camboriú Estudiantil. Todos los derechos reservados.
                 </p>
-            </form>
+            </form >
 
             <style>{`
                 input::placeholder { color: #64748b; }
@@ -164,6 +154,6 @@ export default function Login() {
                     box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.1);
                 }
             `}</style>
-        </div>
+        </div >
     );
 }
