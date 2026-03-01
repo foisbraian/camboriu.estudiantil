@@ -11,7 +11,7 @@ export default function PortalEmpresa() {
 
     const cargar = useCallback(async () => {
         try {
-            const res = await api.get(`/empresas/portal/${codigo}`);
+            const res = await api.get(`/calendario/portal/${codigo}`);
             setData(res.data);
         } catch (err) {
             setError(err.response?.data?.detail || "Error al cargar el portal");

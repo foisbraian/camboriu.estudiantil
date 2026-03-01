@@ -22,6 +22,12 @@ export default function SelectorInicio() {
             path: "/proveedores",
             color: "#8b5cf6",
         },
+        {
+            title: "📲 Validación de QR",
+            desc: "Leer códigos QR y verificar la validez de vouchers desde un solo lugar.",
+            path: "/panel/validar",
+            color: "#f97316",
+        },
     ];
 
     return (
@@ -75,6 +81,8 @@ export default function SelectorInicio() {
             <button
                 onClick={() => {
                     localStorage.removeItem("admin_auth");
+                    localStorage.removeItem("validator_auth");
+                    localStorage.removeItem("auth_role");
                     navigate("/login");
                 }}
                 style={{

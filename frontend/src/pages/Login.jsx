@@ -5,16 +5,27 @@ import api from "../api";
 export default function Login() {
     const [pass, setPass] = useState("");
     const [loading, setLoading] = useState(false);
+    const [role, setRole] = useState("admin");
     const navigate = useNavigate();
 
     async function login(e) {
         e.preventDefault();
         setLoading(true);
         try {
-            const res = await api.post("/login", { password: pass });
+            const res = await api.post("/login", { password: pass, role });
             if (res.data.auth) {
-                localStorage.setItem("admin_auth", "true");
-                navigate("/inicio");
+                const loggedRole = res.data.role || role;
+                localStorage.setItem("auth_role", loggedRole);
+
+                if (loggedRole === "admin") {
+                    localStorage.setItem("admin_auth", "true");
+                    localStorage.removeItem("validator_auth");
+                    navigate("/inicio");
+                } else {
+                    localStorage.setItem("validator_auth", "true");
+                    localStorage.removeItem("admin_auth");
+                    navigate("/validar");
+                }
             }
         } catch (error) {
             alert(error.response?.data?.detail || "Error al iniciar sesión");
@@ -97,6 +108,32 @@ export default function Login() {
                     }}>
                         Plataforma de Gestión
                     </p>
+                </div>
+
+                <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+                    {[
+                        { label: "Administrador", value: "admin" },
+                        { label: "Validador QR", value: "validator" }
+                    ].map((option) => (
+                        <button
+                            type="button"
+                            key={option.value}
+                            onClick={() => setRole(option.value)}
+                            style={{
+                                flex: 1,
+                                padding: "12px 16px",
+                                borderRadius: 12,
+                                border: role === option.value ? "1px solid #ec4899" : "1px solid rgba(255,255,255,0.1)",
+                                background: role === option.value ? "rgba(236,72,153,0.15)" : "transparent",
+                                color: "white",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                                transition: "all 0.2s ease"
+                            }}
+                        >
+                            {option.label}
+                        </button>
+                    ))}
                 </div>
 
                 <div style={{ position: "relative", marginBottom: 20 }}>

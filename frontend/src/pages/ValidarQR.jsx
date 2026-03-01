@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Html5Qrcode } from "html5-qrcode";
 import api from "../api";
 
@@ -7,6 +8,10 @@ export default function ValidarQR() {
     const [mensaje, setMensaje] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
+    const role = localStorage.getItem("auth_role");
+    const isAdmin = role === "admin";
+    const isValidator = role === "validator";
 
     const isValidating = useRef(false);
     const html5QrCode = useRef(null);
@@ -76,6 +81,17 @@ export default function ValidarQR() {
         window.location.reload();
     };
 
+    const handleLogout = () => {
+        localStorage.removeItem("admin_auth");
+        localStorage.removeItem("validator_auth");
+        localStorage.removeItem("auth_role");
+        navigate("/login");
+    };
+
+    const handleGoBack = () => {
+        navigate("/inicio");
+    };
+
     return (
         <div style={{
             minHeight: "100vh",
@@ -96,6 +112,26 @@ export default function ValidarQR() {
             }}>
                 📲 VALIDAR <span style={{ color: "#ec4899" }}>VOUCHER</span>
             </h2>
+
+            <div style={{
+                width: "100%",
+                maxWidth: "400px",
+                display: "flex",
+                justifyContent: isAdmin ? "space-between" : "flex-end",
+                gap: 12,
+                marginBottom: 20
+            }}>
+                {isAdmin && (
+                    <button onClick={handleGoBack} style={SECONDARY_BUTTON}>
+                        ← Volver al Panel
+                    </button>
+                )}
+                {(isAdmin || isValidator) && (
+                    <button onClick={handleLogout} style={SECONDARY_BUTTON}>
+                        Cerrar sesión
+                    </button>
+                )}
+            </div>
 
             <div style={{
                 position: "relative",
@@ -214,4 +250,15 @@ const PRIMARY_BUTTON = {
     fontWeight: 700,
     fontSize: "1rem",
     boxShadow: "0 10px 15px -3px rgba(37, 99, 235, 0.3)"
+};
+
+const SECONDARY_BUTTON = {
+    flex: 1,
+    padding: "10px 14px",
+    borderRadius: 10,
+    border: "1px solid rgba(255,255,255,0.3)",
+    background: "transparent",
+    color: "white",
+    fontWeight: 600,
+    cursor: "pointer"
 };

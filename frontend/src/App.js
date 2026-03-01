@@ -17,9 +17,26 @@ import ImprimirTodosVouchers from "./pages/ImprimirTodosVouchers";
 import Proveedores from "./pages/Proveedores";
 import ProveedorDetalle from "./pages/ProveedorDetalle";
 
-function Protected({ children }) {
-  const isAuth = localStorage.getItem("admin_auth") === "true";
-  if (!isAuth) return <Navigate to="/login" />;
+const hasStoredRole = (role) => {
+  const storedRole = localStorage.getItem("auth_role");
+  if (storedRole) {
+    return storedRole === role;
+  }
+
+  if (role === "admin") {
+    return localStorage.getItem("admin_auth") === "true";
+  }
+  if (role === "validator") {
+    return localStorage.getItem("validator_auth") === "true";
+  }
+  return false;
+};
+
+function Protected({ children, allow = ["admin"] }) {
+  const canAccess = allow.some((role) => hasStoredRole(role));
+  if (!canAccess) {
+    return <Navigate to="/login" replace />;
+  }
   return children;
 }
 
@@ -35,8 +52,18 @@ export default function App() {
         {/* Pantalla de Selección post-login */}
         <Route path="/inicio" element={<Protected><SelectorInicio /></Protected>} />
 
+        {/* Ruta abierta solo para validadores o admins */}
+        <Route
+          path="/validar"
+          element={
+            <Protected allow={["admin", "validator"]}>
+              <ValidarQR />
+            </Protected>
+          }
+        />
+
         {/* Rutas Protegidas bajo Layout */}
-        <Route element={<Protected><Layout /></Protected>}>
+        <Route element={<Protected allow={["admin"]}><Layout /></Protected>}>
           <Route path="/calendario" element={<AdminCalendar />} />
           <Route path="/empresas" element={<Empresas />} />
           <Route path="/empresas/:id" element={<EmpresaDetalle />} />
@@ -44,7 +71,7 @@ export default function App() {
           <Route path="/tematicas" element={<Tematicas />} />
           <Route path="/finanzas" element={<FinanzasDashboard />} />
           <Route path="/finanzas/:id" element={<FinanzasDetalle />} />
-          <Route path="/validar" element={<ValidarQR />} />
+          <Route path="/panel/validar" element={<ValidarQR />} />
           <Route path="/imprimir-voucher/:id" element={<ImprimirVoucher />} />
           <Route path="/imprimir-vouchers-grupo/:grupoId" element={<ImprimirTodosVouchers />} />
           <Route path="/proveedores" element={<Proveedores />} />
