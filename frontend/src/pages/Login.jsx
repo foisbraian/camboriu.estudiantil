@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
+import logo from "../assets/logo.png";
 
 export default function Login() {
     const [pass, setPass] = useState("");
@@ -42,6 +43,7 @@ export default function Login() {
                     width: 300,
                 }}
             >
+                <img src={logo} alt="Logo" style={{ width: 120, margin: "0 auto 10px" }} />
                 <h2 style={{ margin: 0, textAlign: "center" }}>Admin Login</h2>
                 <input
                     type="password"

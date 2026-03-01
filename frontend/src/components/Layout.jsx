@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
+import logo from "../assets/logo.png";
 
 const MESES = [
     "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -113,6 +114,9 @@ export default function Layout() {
                     overflowY: "auto",
                 }}
             >
+                <div style={{ textAlign: "center", marginBottom: 20 }}>
+                    <img src={logo} alt="Camboriú" style={{ width: 100, filter: "drop-shadow(0 0 8px rgba(255,0,255,0.3))" }} />
+                </div>
                 <p style={{ color: "#64748b", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", margin: "0 0 6px 4px" }}>
                     Sesión
                 </p>
