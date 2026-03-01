@@ -104,7 +104,7 @@ def exportar_excel(background_tasks: BackgroundTasks, db: Session = Depends(get_
         if f.evento.tipo != "DISCO":
             continue
 
-        total = sum(a.grupo.cantidad_pax for a in f.asignaciones)
+        total = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo)
         tematica = f.tematica.nombre if f.tematica else ""
 
         ws2.append([
@@ -130,6 +130,8 @@ def exportar_excel(background_tasks: BackgroundTasks, db: Session = Depends(get_
         empresas = {}
 
         for a in f.asignaciones:
+            if not a.grupo or not a.grupo.empresa:
+                continue
             empresa = a.grupo.empresa.nombre
 
             if empresa not in empresas:
@@ -158,6 +160,8 @@ def exportar_excel(background_tasks: BackgroundTasks, db: Session = Depends(get_
         empresas = {}
 
         for a in f.asignaciones:
+            if not a.grupo or not a.grupo.empresa:
+                continue
             empresa = a.grupo.empresa.nombre
 
             if empresa not in empresas:
