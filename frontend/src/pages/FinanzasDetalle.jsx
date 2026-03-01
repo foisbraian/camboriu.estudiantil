@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../api";
 
@@ -74,11 +74,7 @@ export default function FinanzasDetalle() {
         </div>
     );
 
-    useEffect(() => {
-        cargarTodo();
-    }, [id]);
-
-    async function cargarTodo() {
+    const cargarTodo = useCallback(async () => {
         try {
             const resR = await api.get(`/finanzas/resumen/${id}`);
             setResumen(resR.data);
@@ -95,7 +91,11 @@ export default function FinanzasDetalle() {
         } catch (err) {
             console.error(err);
         }
-    }
+    }, [id, grupoDetalle]);
+
+    useEffect(() => {
+        cargarTodo();
+    }, [cargarTodo]);
 
     async function guardarConfig() {
         await api.post("/finanzas/config", { ...configForm, empresa_id: Number(id) });

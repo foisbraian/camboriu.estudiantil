@@ -12,8 +12,6 @@ export default function AdminCalendar() {
   const [resources, setResources] = useState([]);
   const [events, setEvents] = useState([]);
   const [calendarApi, setCalendarApi] = useState(null);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const navigate = useNavigate();
 
   const handleRegisterRef = useCallback((api) => {
     setCalendarApi(api);

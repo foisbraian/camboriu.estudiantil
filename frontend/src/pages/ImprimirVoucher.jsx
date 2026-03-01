@@ -1,9 +1,8 @@
 import React, { useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 export default function ImprimirVoucher() {
     const { id } = useParams();
-    const navigate = useNavigate();
     const imageUrl = `http://localhost:8000/vouchers/generate/${id}`;
 
     useEffect(() => {

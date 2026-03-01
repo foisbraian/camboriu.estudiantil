@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../api";
 
@@ -9,11 +9,7 @@ export default function ProveedorDetalle() {
     const [spreadsheet, setSpreadsheet] = useState({ headers: [], rows: [] });
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        cargar();
-    }, [id]);
-
-    const cargar = async () => {
+    const cargar = useCallback(async () => {
         try {
             const res = await api.get(`/proveedores/${id}`);
             setProveedor(res.data);
@@ -23,7 +19,11 @@ export default function ProveedorDetalle() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id]);
+
+    useEffect(() => {
+        cargar();
+    }, [cargar]);
 
     const guardar = async () => {
         try {

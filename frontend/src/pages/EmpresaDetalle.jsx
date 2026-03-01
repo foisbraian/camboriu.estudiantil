@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api";
 
@@ -42,17 +42,16 @@ export default function EmpresaDetalle() {
   });
 
 
-  useEffect(() => {
-    cargar();
-  }, []);
-
-  async function cargar() {
+  const cargar = useCallback(async () => {
     const e = await api.get(`/empresas/${id}`);
     setEmpresa(e.data);
-
     const g = await api.get(`/grupos/empresa/${id}`);
     setGrupos(g.data);
-  }
+  }, [id]);
+
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
 
   function set(k, v) {
     setForm({ ...form, [k]: v });

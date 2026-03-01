@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import TimelineCalendar from "../components/TimelineCalendar";
 import api from "../api";
@@ -9,21 +9,20 @@ export default function PortalEmpresa() {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        cargar();
-    }, [codigo]);
-
-    async function cargar() {
+    const cargar = useCallback(async () => {
         try {
-            const res = await api.get(`/calendario/portal/${codigo}`);
+            const res = await api.get(`/empresas/portal/${codigo}`);
             setData(res.data);
-        } catch (e) {
-            console.error(e);
-            setError("No se pudo cargar el calendario. Verifique el código de acceso.");
+        } catch (err) {
+            setError(err.response?.data?.detail || "Error al cargar el portal");
         } finally {
             setLoading(false);
         }
-    }
+    }, [codigo]);
+
+    useEffect(() => {
+        cargar();
+    }, [cargar]);
 
     if (loading) return <div style={{ padding: 20 }}>Cargando portal...</div>;
     if (error) return <div style={{ padding: 20, color: "red" }}>{error}</div>;

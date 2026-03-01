@@ -417,7 +417,6 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           }}
           eventContent={(arg) => {
             const title = arg.event.title;
-            const props = arg.event.extendedProps || {};
 
             // Si el título contiene salto de línea, renderizar con HTML
             if (title.includes('\n')) {
