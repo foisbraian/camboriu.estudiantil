@@ -3,7 +3,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 # PostgreSQL para producción (Render), SQLite para desarrollo
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./app.db")
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Si la variable está vacía o no existe, usamos SQLite
+if not DATABASE_URL or not DATABASE_URL.strip():
+    DATABASE_URL = "sqlite:///./app.db"
+
+# ⭐ FIX para Render: SQLAlchemy requiere 'postgresql://' en lugar de 'postgres://'
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 # Si es SQLite, necesitamos check_same_thread=False
 is_sqlite = DATABASE_URL.startswith("sqlite")
