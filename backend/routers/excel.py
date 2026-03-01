@@ -1,11 +1,15 @@
-from fastapi import APIRouter, Depends
+import os
+import tempfile
+from datetime import datetime
+
+from fastapi import APIRouter, Depends, BackgroundTasks
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
+
 from database import get_db
 import models
 
 from openpyxl import Workbook
-from datetime import datetime
 
 router = APIRouter(prefix="/excel", tags=["Excel"])
 
@@ -14,8 +18,15 @@ router = APIRouter(prefix="/excel", tags=["Excel"])
 # EXPORTAR TODO EL SISTEMA A EXCEL
 # ==========================================
 
+def _cleanup_file(path: str):
+    try:
+        os.remove(path)
+    except OSError:
+        pass
+
+
 @router.get("/exportar")
-def exportar_excel(db: Session = Depends(get_db)):
+def exportar_excel(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
 
     wb = Workbook()
 
@@ -156,11 +167,17 @@ def exportar_excel(db: Session = Depends(get_db)):
     # =================================================
 
     filename = f"reporte_eventos_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-    filepath = f"./{filename}"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
+        filepath = tmp.name
 
     wb.save(filepath)
+    background_tasks.add_task(_cleanup_file, filepath)
 
-    return FileResponse(filepath, filename=filename)
+    return FileResponse(
+        filepath,
+        filename=filename,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
 
 # ==========================================
@@ -168,7 +185,7 @@ def exportar_excel(db: Session = Depends(get_db)):
 # ==========================================
 
 @router.get("/finanzas/{empresa_id}")
-def exportar_finanzas(empresa_id: int, db: Session = Depends(get_db)):
+def exportar_finanzas(empresa_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     from routers.finanzas import get_resumen_empresa
     
     res = get_resumen_empresa(empresa_id, db)
@@ -215,7 +232,14 @@ def exportar_finanzas(empresa_id: int, db: Session = Depends(get_db)):
         ws.append([p.fecha, p.monto, p.metodo, p.nota])
         
     filename = f"reporte_financiero_{res['empresa']}_{datetime.now().strftime('%Y%m%d')}.xlsx"
-    filepath = f"./{filename}"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
+        filepath = tmp.name
+
     wb.save(filepath)
+    background_tasks.add_task(_cleanup_file, filepath)
     
-    return FileResponse(filepath, filename=filename)
+    return FileResponse(
+        filepath,
+        filename=filename,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
