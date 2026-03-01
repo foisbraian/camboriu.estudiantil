@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../api";
+import api, { BASE_URL } from "../api";
 
 export default function Empresas() {
   const [empresas, setEmpresas] = useState([]);
@@ -48,7 +48,7 @@ export default function Empresas() {
     <div style={{ padding: "40px 20px", maxWidth: "800px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h2>Empresas</h2>
-        <a href="http://localhost:8000/excel/exportar" target="_blank" rel="noreferrer">
+        <a href={`${BASE_URL}/excel/exportar`} target="_blank" rel="noreferrer">
           <button style={{ background: "green", color: "white" }}>Descargar Excel</button>
         </a>
       </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import api from "../api";
+import api, { BASE_URL } from "../api";
 
 export default function ImprimirTodosVouchers() {
     const { grupoId } = useParams();
@@ -60,7 +60,7 @@ export default function ImprimirTodosVouchers() {
                 {asignaciones.filter(a => a.habilitado).map(a => (
                     <div key={a.id} className="voucher-container" style={{ breakInside: "avoid", marginBottom: 10 }}>
                         <img
-                            src={`http://localhost:8000/vouchers/generate/${a.id}`}
+                            src={`${BASE_URL}/vouchers/generate/${a.id}`}
                             alt="Voucher"
                             style={{ width: "100%", maxWidth: "800px", height: "auto", display: "block", border: "1px solid #eee" }}
                         />

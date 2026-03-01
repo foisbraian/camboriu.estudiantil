@@ -64,10 +64,26 @@ def generate_voucher(asignacion_id: int, db: Session = Depends(get_db)):
     draw.rectangle([0, 0, 15, height], fill=color_accent)
     
     # Texto: Camboriú Estudiantil
+    # Intentar cargar fuentes (Arial en Windows, DejaVuSans en Linux/Render)
     try:
-        font_main = ImageFont.truetype("arial.ttf", 36)
-        font_sub = ImageFont.truetype("arial.ttf", 20)
-        font_label = ImageFont.truetype("arial.ttf", 16)
+        # Rutas comunes en Linux para DejaVuSans
+        font_paths = [
+            "arial.ttf", 
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
+        ]
+        
+        def load_font(size):
+            for path in font_paths:
+                try:
+                    return ImageFont.truetype(path, size)
+                except:
+                    continue
+            return ImageFont.load_default()
+
+        font_main = load_font(36)
+        font_sub = load_font(20)
+        font_label = load_font(16)
     except:
         font_main = ImageFont.load_default()
         font_sub = ImageFont.load_default()

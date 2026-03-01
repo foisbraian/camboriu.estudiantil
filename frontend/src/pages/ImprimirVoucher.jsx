@@ -1,9 +1,10 @@
 import React, { useEffect } from "react";
 import { useParams } from "react-router-dom";
+import api, { BASE_URL } from "../api";
 
 export default function ImprimirVoucher() {
     const { id } = useParams();
-    const imageUrl = `http://localhost:8000/vouchers/generate/${id}`;
+    const imageUrl = `${BASE_URL}/vouchers/generate/${id}`;
 
     useEffect(() => {
         // Pequeño delay para asegurar que la imagen cargue antes de imprimir

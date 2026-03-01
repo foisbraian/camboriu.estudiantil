@@ -1,8 +1,9 @@
 import axios from "axios";
 
+export const BASE_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
+
 const api = axios.create({
-  // En local usa 127.0.0.1:8000, en Render usa la URL relativa o la que definas en env
-  baseURL: process.env.REACT_APP_API_URL || "http://127.0.0.1:8000",
+  baseURL: BASE_URL,
 });
 
 export default api;

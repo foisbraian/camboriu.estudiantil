@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import api from "../api";
+import api, { BASE_URL } from "../api";
 
 export default function FinanzasDetalle() {
     const { id } = useParams();
@@ -280,7 +280,7 @@ export default function FinanzasDetalle() {
                     <div style={{ display: "flex", gap: 10 }}>
                         <button onClick={() => window.print()} style={{ padding: "8px 15px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, cursor: "pointer", fontSize: "0.85rem" }}>🖨️ Imprimir</button>
                         <button
-                            onClick={() => window.open(`http://localhost:8000/excel/finanzas/${id}`, "_blank")}
+                            onClick={() => window.open(`${BASE_URL}/excel/finanzas/${id}`, "_blank")}
                             style={{ padding: "8px 15px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, cursor: "pointer", fontSize: "0.85rem" }}
                         >
                             📄 Excel
