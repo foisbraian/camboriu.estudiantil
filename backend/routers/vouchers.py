@@ -134,19 +134,22 @@ def validate_voucher(token_data: dict, db: Session = Depends(get_db)):
     if voucher.usado:
         return JSONResponse({"status": "error", "message": f"Voucher ya fue usado el {voucher.fecha_uso}"}, status_code=400)
     
+    # Preparar detalle ANTES de commitear (para evitar errores post-commit)
+    asig = voucher.asignacion
+    res_detalle = {
+        "status": "success",
+        "message": "Voucher validado con éxito",
+        "detalle": {
+            "grupo": asig.grupo.nombre,
+            "servicio": asig.fecha_evento.evento.nombre,
+            "fecha": str(asig.fecha_evento.fecha),
+            "pax": asig.grupo.cantidad_pax
+        }
+    }
+
     # Marcar como usado
     voucher.usado = True
     voucher.fecha_uso = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     db.commit()
     
-    asignacion = voucher.asignacion
-    return {
-        "status": "success",
-        "message": "Voucher validado con éxito",
-        "detalle": {
-            "grupo": asignacion.grupo.nombre,
-            "servicio": asignacion.fecha_evento.evento.nombre,
-            "fecha": str(asignacion.fecha_evento.fecha),
-            "pax": asignacion.grupo.cantidad_pax
-        }
-    }
+    return res_detalle

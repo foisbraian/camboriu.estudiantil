@@ -139,6 +139,7 @@ class Asignacion(Base):
 
     grupo = relationship("Grupo", back_populates="asignaciones")
     fecha_evento = relationship("FechaEvento", back_populates="asignaciones")
+    vouchers = relationship("Voucher", back_populates="asignacion")
 
 
 # =============================
@@ -202,6 +203,8 @@ class Voucher(Base):
     asignacion_id = Column(Integer, ForeignKey("asignaciones.id"))
     usado = Column(Boolean, default=False)
     fecha_uso = Column(String, nullable=True) # datetime string
+
+    asignacion = relationship("Asignacion", back_populates="vouchers")
 
 
 class Proveedor(Base):
