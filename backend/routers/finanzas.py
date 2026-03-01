@@ -297,7 +297,9 @@ def get_asignaciones_grupo(grupo_id: int, db: Session = Depends(get_db)):
         "servicio": a.fecha_evento.evento.nombre if a.fecha_evento and a.fecha_evento.evento else "Sin servicio",
         "tipo": a.fecha_evento.evento.tipo if a.fecha_evento and a.fecha_evento.evento else "N/A",
         "pax": a.grupo.cantidad_pax if a.grupo else 0,
-        "habilitado": habilitados.get(a.id, False)
+        "habilitado": habilitados.get(a.id, False),
+        "voucher_usado": db.query(models.Voucher).filter(models.Voucher.asignacion_id == a.id).first().usado if db.query(models.Voucher).filter(models.Voucher.asignacion_id == a.id).first() else False,
+        "voucher_fecha_uso": db.query(models.Voucher).filter(models.Voucher.asignacion_id == a.id).first().fecha_uso if db.query(models.Voucher).filter(models.Voucher.asignacion_id == a.id).first() else None
     } for a in asignaciones]
 
 @router.get("/dashboard")

@@ -440,13 +440,23 @@ export default function FinanzasDetalle() {
                                             <div style={{ fontWeight: 700, color: "#1e293b" }}>{a.servicio}</div>
                                             <div style={{ fontSize: "0.85rem", color: "#64748b" }}>📅 {a.fecha}</div>
                                             <div style={{ fontSize: "0.8rem", color: "#94a3b8" }}>PAX Total: {a.pax}</div>
-                                            <div style={{
-                                                fontSize: "0.75rem",
-                                                fontWeight: 700,
-                                                color: a.habilitado ? "#059669" : "#ef4444",
-                                                marginTop: 4
-                                            }}>
-                                                {a.habilitado ? "✅ Habilitado" : "❌ Pendiente de Pago"}
+                                            <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                                                <div style={{
+                                                    fontSize: "0.75rem",
+                                                    fontWeight: 700,
+                                                    color: a.habilitado ? "#059669" : "#ef4444",
+                                                }}>
+                                                    {a.habilitado ? "✅ Habilitado" : "❌ Pago Pendiente"}
+                                                </div>
+                                                {a.habilitado && (
+                                                    <div style={{
+                                                        fontSize: "0.75rem",
+                                                        fontWeight: 700,
+                                                        color: a.voucher_usado ? "#ec4899" : "#3b82f6",
+                                                    }}>
+                                                        {a.voucher_usado ? `🎟️ USADO (${a.voucher_fecha_uso})` : "🎟️ DISPONIBLE"}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                         <button
