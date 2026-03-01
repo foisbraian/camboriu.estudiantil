@@ -17,7 +17,7 @@ export default function Layout() {
     const [anioSeleccionado, setAnioSeleccionado] = useState(now.getFullYear());
 
     const NAV_ITEMS = [
-        { label: "📅 Calendario", path: "/" },
+        { label: "📅 Calendario", path: "/calendario" },
         { label: "🏢 Empresas", path: "/empresas" },
         { label: "🎉 Eventos", path: "/eventos" },
         { label: "🎨 Temáticas", path: "/tematicas" },
@@ -34,7 +34,7 @@ export default function Layout() {
     const anios = Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i);
 
     // El botón de descargar solo es relevante en el calendario
-    const isCalendar = location.pathname === "/";
+    const isCalendar = location.pathname === "/calendario";
 
     const handleDescargar = () => {
         setMenuOpen(false);

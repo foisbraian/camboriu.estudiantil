@@ -7,7 +7,7 @@ export default function SelectorInicio() {
         {
             title: "📅 Gestión de Calendario",
             desc: "Administrar eventos, empresas y disponibilidad en el calendario global.",
-            path: "/",
+            path: "/calendario",
             color: "#2563eb",
         },
         {
