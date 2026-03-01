@@ -1,0 +1,299 @@
+/* =========================================================================
+   TIMELINE CALENDAR - PROFESSIONAL THEME
+   ========================================================================= */
+
+/* --- Container --- */
+.calendar-container {
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  padding: 12px;
+  overflow: hidden;
+}
+
+/* --- Modal Overlay (Glassmorphism) --- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  /* Slate 900 con opacidad */
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: bgFadeIn 0.25s ease-out forwards;
+}
+
+/* --- Modal Card --- */
+.modal {
+  background: #ffffff;
+  width: 100%;
+  max-width: 420px;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  font-family: 'Inter', system-ui, sans-serif;
+  overflow: hidden;
+  transform: scale(0.95);
+  opacity: 0;
+  animation: modalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Header */
+.modal-header {
+  background: #f8fafc;
+  /* Slate 50 */
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1e293b;
+  /* Slate 800 */
+}
+
+.modal-date {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.875rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Body */
+.modal-body {
+  padding: 24px;
+}
+
+.modal-body label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 8px;
+}
+
+.info-box {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  padding: 12px;
+  border-radius: 8px;
+  color: #334155;
+}
+
+.text-muted {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+/* Controls */
+select,
+.form-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  /* Slate 300 */
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: #334155;
+  background: #fff;
+  transition: all 0.2s;
+  outline: none;
+}
+
+select:focus {
+  border-color: #3b82f6;
+  /* Blue 500 */
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 10px;
+  background: #f8fafc;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.checkbox-wrapper input {
+  width: 18px;
+  height: 18px;
+  accent-color: #3b82f6;
+}
+
+.checkbox-wrapper label {
+  margin: 0;
+  cursor: pointer;
+}
+
+/* Footer */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* Buttons */
+button {
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.btn-secondary {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+}
+
+.btn-secondary:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.btn-primary {
+  background: #2563eb;
+  /* Blue 600 */
+  color: white;
+  box-shadow: 0 2px 5px rgba(37, 99, 235, 0.3);
+}
+
+.btn-primary:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.btn-danger {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.btn-danger:hover {
+  background: #fecaca;
+  color: #dc2626;
+}
+
+/* --- Animations --- */
+@keyframes bgFadeIn {
+  to {
+    background: rgba(15, 23, 42, 0.5);
+  }
+}
+
+@keyframes modalPop {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* --- Calendar Overrides --- */
+.fc-license-message {
+  display: none;
+}
+
+/* Hide calendar title */
+.fc-toolbar-title {
+  display: none;
+}
+
+/* Constrain resource area width */
+.fc-resource-area {
+  background: #f8fafc;
+  max-width: 180px !important;
+  min-width: 150px !important;
+}
+
+.fc-timeline-event {
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.fc-col-header-cell {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 8px 0;
+}
+
+/* =========================================================================
+   PRINT / PDF STYLES
+   ========================================================================= */
+
+@media print {
+
+  /* Orientación A4 apaisada con márgenes mínimos */
+  @page {
+    size: A4 landscape;
+    margin: 8mm;
+  }
+
+  /* Ocultar menú de navegación de la app */
+  #app-menu {
+    display: none !important;
+  }
+
+  /* Ocultar el panel de controles de impresión */
+  #print-controls {
+    display: none !important;
+  }
+
+  /* Ocultar el h2 "Calendario General" de pantalla */
+  #calendar-page-title {
+    display: none !important;
+  }
+
+  /* Mostrar título del mes (oculto en pantalla) */
+  #print-title {
+    display: block !important;
+    margin-bottom: 4px;
+  }
+
+  /* CLAVE: quitar el height fijo del wrapper para que no genere página en blanco */
+  .fc-print-wrapper {
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  /* FullCalendar: sin height fijo, que respire */
+  .fc {
+    width: 100% !important;
+    height: auto !important;
+    font-size: 8px !important;
+  }
+
+  /* Forzar colores en impresión (Chrome los quita por defecto) */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Quitar overflow/scroll del timeline para que todo sea visible */
+  .fc-scroller,
+  .fc-scroller-harness,
+  .fc-scroller-harness-liquid {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  /* Ocultar modal si estuviera abierto */
+  .modal-overlay {
+    display: none !important;
+  }
+}
