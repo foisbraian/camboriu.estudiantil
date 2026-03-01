@@ -134,8 +134,8 @@ class Asignacion(Base):
 
     id = Column(Integer, primary_key=True)
 
-    grupo_id = Column(Integer, ForeignKey("grupos.id"))
-    fecha_evento_id = Column(Integer, ForeignKey("fechas_evento.id"))
+    grupo_id = Column(Integer, ForeignKey("grupos.id", ondelete="CASCADE"))
+    fecha_evento_id = Column(Integer, ForeignKey("fechas_evento.id", ondelete="CASCADE"))
 
     grupo = relationship("Grupo", back_populates="asignaciones")
     fecha_evento = relationship("FechaEvento", back_populates="asignaciones")
@@ -200,7 +200,7 @@ class Voucher(Base):
 
     id = Column(Integer, primary_key=True)
     token = Column(String, unique=True, index=True)
-    asignacion_id = Column(Integer, ForeignKey("asignaciones.id"))
+    asignacion_id = Column(Integer, ForeignKey("asignaciones.id", ondelete="CASCADE"))
     usado = Column(Boolean, default=False)
     fecha_uso = Column(String, nullable=True) # datetime string
 

@@ -80,7 +80,7 @@ def calendario(db: Session = Depends(get_db)):
         text_color = "black" if color == "yellow" else "white"
 
         # Calcular ocupación (Sumar PAX de los grupos asignados)
-        ocupacion = sum(a.grupo.cantidad_pax for a in f.asignaciones)
+        ocupacion = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo)
         capacidad = f.evento.capacidad_maxima
 
         # Desglose Comida
@@ -88,11 +88,11 @@ def calendario(db: Session = Depends(get_db)):
         sin_comida = 0
         
         if f.evento.tipo == "PARQUE":
-            con_comida = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo.parque_con_comida)
-            sin_comida = sum(a.grupo.cantidad_pax for a in f.asignaciones if not a.grupo.parque_con_comida)
+            con_comida = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo and a.grupo.parque_con_comida)
+            sin_comida = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo and not a.grupo.parque_con_comida)
         elif f.evento.tipo == "POOL":
-            con_comida = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo.pool_con_comida)
-            sin_comida = sum(a.grupo.cantidad_pax for a in f.asignaciones if not a.grupo.pool_con_comida)
+            con_comida = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo and a.grupo.pool_con_comida)
+            sin_comida = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo and not a.grupo.pool_con_comida)
 
         # Título con temática si existe
         titulo = f"{f.evento.nombre} ({ocupacion}/{capacidad})"
