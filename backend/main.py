@@ -12,18 +12,31 @@ app = FastAPI()
 models.Base.metadata.create_all(bind=engine)
 
 # Configuración de CORS dinámica
-origins = [
-    "http://localhost:3000",
-    os.getenv("FRONTEND_URL", "*") # Si no hay URL, permite todo (útil para Render)
-]
+frontend_url = os.getenv("FRONTEND_URL", "").strip().rstrip("/")
+origins = ["http://localhost:3000"]
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+if frontend_url:
+    origins.append(frontend_url)
+    # También permitimos la versión con y sin barra al final por si acaso
+    origins.append(frontend_url + "/")
+
+# Si no hay FRONTEND_URL, permitimos todo (pero sin credenciales por seguridad y compatibilidad)
+if not frontend_url:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 @app.post("/login")
 def login(password: str = Body(..., embed=True)):
