@@ -52,3 +52,14 @@ def editar_grupo(grupo_id: int, data: schemas.GrupoUpdate, db: Session = Depends
     db.commit()
     db.refresh(grupo)
     return grupo
+
+@router.delete("/{grupo_id}")
+def eliminar_grupo(grupo_id: int, db: Session = Depends(get_db)):
+    grupo = db.get(models.Grupo, grupo_id)
+    if not grupo:
+        from fastapi import HTTPException
+        raise HTTPException(404, "Grupo no encontrado")
+    
+    db.delete(grupo)
+    db.commit()
+    return {"ok": True}

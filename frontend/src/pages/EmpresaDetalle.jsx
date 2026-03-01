@@ -132,6 +132,17 @@ export default function EmpresaDetalle() {
     }
   }
 
+  async function eliminarGrupo(grupoId) {
+    if (!window.confirm("¿Estás seguro de eliminar este grupo? Se borrarán también sus vouchers y asignaciones relacionadas.")) return;
+    try {
+      await api.delete(`/grupos/${grupoId}`);
+      alert("Grupo eliminado");
+      cargar();
+    } catch (error) {
+      alert("Error al eliminar el grupo");
+    }
+  }
+
   if (!empresa) return <p>Cargando...</p>;
 
   return (
@@ -311,9 +322,17 @@ export default function EmpresaDetalle() {
             <small>{g.fecha_entrada} → {g.fecha_salida}</small>
           </div>
 
-          <button onClick={() => handleEditClick(g)} style={{ padding: "5px 10px", fontSize: "0.8rem" }}>
-            Editar
-          </button>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => handleEditClick(g)} style={{ padding: "5px 10px", fontSize: "0.8rem", cursor: "pointer" }}>
+              Editar
+            </button>
+            <button
+              onClick={() => eliminarGrupo(g.id)}
+              style={{ padding: "5px 10px", fontSize: "0.8rem", background: "#fef2f2", color: "#ef4444", border: "1px solid #fee2e2", borderRadius: 4, cursor: "pointer" }}
+            >
+              Eliminar
+            </button>
+          </div>
         </div>
       ))}
 
