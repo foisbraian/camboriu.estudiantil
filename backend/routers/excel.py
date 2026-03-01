@@ -46,12 +46,21 @@ def exportar_excel(background_tasks: BackgroundTasks, db: Session = Depends(get_
 
     # Obtener todas las asignaciones y ordenarlas por fecha
     asignaciones = db.query(models.Asignacion).all()
-    asignaciones_sorted = sorted(asignaciones, key=lambda x: (x.fecha_evento.fecha, x.fecha_evento.evento.nombre))
+    asignaciones_sorted = sorted(
+        asignaciones,
+        key=lambda x: (
+            x.fecha_evento.fecha if x.fecha_evento else datetime.max.date(),
+            x.fecha_evento.evento.nombre if x.fecha_evento and x.fecha_evento.evento else ""
+        )
+    )
 
     for a in asignaciones_sorted:
         grupo = a.grupo
         fecha_evento = a.fecha_evento
-        evento = fecha_evento.evento
+        evento = fecha_evento.evento if fecha_evento else None
+
+        if not grupo or not fecha_evento or not evento:
+            continue
         
         # Determinar si tiene comida según el tipo de servicio
         con_comida = ""
