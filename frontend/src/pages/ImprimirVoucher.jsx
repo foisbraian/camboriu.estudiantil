@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useParams } from "react-router-dom";
-import api, { BASE_URL } from "../api";
+import { BASE_URL } from "../api";
 
 export default function ImprimirVoucher() {
     const { id } = useParams();
