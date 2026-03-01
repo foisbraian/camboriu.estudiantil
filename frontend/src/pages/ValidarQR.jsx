@@ -7,7 +7,6 @@ export default function ValidarQR() {
     const [mensaje, setMensaje] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
-    const [scannedToken, setScannedToken] = useState("");
 
     const isValidating = useRef(false);
     const html5QrCode = useRef(null);
@@ -37,8 +36,6 @@ export default function ValidarQR() {
 
             // Vibración táctil si el navegador lo soporta
             if (navigator.vibrate) navigator.vibrate(100);
-
-            setScannedToken(decodedText);
 
             try {
                 // Detener el scanner antes de validar para evitar ruido visual
