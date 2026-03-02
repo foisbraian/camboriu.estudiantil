@@ -28,6 +28,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
   const [slotWidth, setSlotWidth] = useState(110);
   const [localEvents, setLocalEvents] = useState(events);
   const hasCenteredToday = useRef(false);
+  const scrollTimeoutRef = useRef(null);
 
   const centerToday = useCallback(() => {
     const rootEl = calendarRef.current?.el;
@@ -47,23 +48,37 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
     }
   }, []);
 
-  const handleDatesSet = useCallback(() => {
-    const api = calendarRef.current?.getApi();
-    if (!api) return;
-    const today = dayjs();
-    if (dayjs(api.view.currentStart).month() === today.month() && hasCenteredToday.current) {
-      return;
-    }
-    api.gotoDate(today.toDate());
-    requestAnimationFrame(() => {
-      centerToday();
-      hasCenteredToday.current = true;
-    });
-  }, [centerToday]);
-
   useEffect(() => {
     hasCenteredToday.current = false;
   }, [events]);
+
+  useEffect(() => {
+    if (hasCenteredToday.current) return;
+    const api = calendarRef.current?.getApi();
+    if (!api) return;
+    api.gotoDate(dayjs().toDate());
+
+    let attempts = 0;
+    const maxAttempts = 6;
+
+    const tryCenter = () => {
+      if (centerToday()) {
+        hasCenteredToday.current = true;
+        return;
+      }
+      if (attempts >= maxAttempts) return;
+      attempts += 1;
+      scrollTimeoutRef.current = setTimeout(tryCenter, 160);
+    };
+
+    const raf = requestAnimationFrame(tryCenter);
+    return () => {
+      cancelAnimationFrame(raf);
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [centerToday, localEvents]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -421,7 +436,6 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           plugins={[resourceTimelinePlugin, interactionPlugin]}
           initialView="resourceTimelineYear"
           initialDate={dayjs().toDate()}
-          datesSet={handleDatesSet}
           headerToolbar={false}
           resources={resources}
           events={localEvents}
