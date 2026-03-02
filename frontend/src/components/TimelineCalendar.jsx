@@ -46,8 +46,10 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
     }
   }, []);
 
-  const handleDatesSet = useCallback(() => {
-    if (hasCenteredToday.current) return;
+  const handleDatesSet = useCallback((info) => {
+    if (hasCenteredToday.current && info.view.currentStart.getMonth() === new Date().getMonth()) {
+      return;
+    }
     const api = calendarRef.current?.getApi();
     if (!api) return;
     const today = new Date();
