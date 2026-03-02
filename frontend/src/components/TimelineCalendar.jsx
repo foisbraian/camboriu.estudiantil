@@ -410,6 +410,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           ref={calendarRef}
           plugins={[resourceTimelinePlugin, interactionPlugin]}
           initialView="resourceTimelineYear"
+          initialDate={new Date()}
           headerToolbar={false}
           resources={resources}
           events={localEvents}
