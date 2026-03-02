@@ -2,7 +2,6 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import FullCalendar from "@fullcalendar/react";
 import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
 import interactionPlugin from "@fullcalendar/interaction";
-import dayjs from "dayjs";
 import api from "../api";
 import "./timeline.css";
 
@@ -28,12 +27,11 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
   const [slotWidth, setSlotWidth] = useState(110);
   const [localEvents, setLocalEvents] = useState(events);
   const hasCenteredToday = useRef(false);
-  const scrollTimeoutRef = useRef(null);
 
   const centerToday = useCallback(() => {
     const rootEl = calendarRef.current?.el;
-    if (!rootEl) return;
-    const todayISO = dayjs().format("YYYY-MM-DD");
+    if (!rootEl) return false;
+    const todayISO = new Date().toISOString().slice(0, 10);
     const slot =
       rootEl.querySelector(`.fc-timeline-slot[data-date="${todayISO}"]`)
       || rootEl.querySelector(`.fc-col-header-cell[data-date="${todayISO}"]`);
@@ -43,9 +41,13 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
     if (slot && scroller) {
       const offset = slot.offsetLeft - scroller.clientWidth / 2 + slot.clientWidth / 2;
       scroller.scrollLeft = offset;
-    } else if (slot?.scrollIntoView) {
-      slot.scrollIntoView({ behavior: "auto", inline: "center", block: "nearest" });
+      return true;
     }
+    if (slot?.scrollIntoView) {
+      slot.scrollIntoView({ behavior: "auto", inline: "center", block: "nearest" });
+      return true;
+    }
+    return false;
   }, []);
 
   useEffect(() => {
@@ -56,7 +58,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
     if (hasCenteredToday.current) return;
     const api = calendarRef.current?.getApi();
     if (!api) return;
-    api.gotoDate(dayjs().toDate());
+    api.gotoDate(new Date());
 
     let attempts = 0;
     const maxAttempts = 6;
@@ -68,15 +70,12 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
       }
       if (attempts >= maxAttempts) return;
       attempts += 1;
-      scrollTimeoutRef.current = setTimeout(tryCenter, 160);
+      setTimeout(tryCenter, 160);
     };
 
     const raf = requestAnimationFrame(tryCenter);
     return () => {
       cancelAnimationFrame(raf);
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
     };
   }, [centerToday, localEvents]);
 
@@ -435,7 +434,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           ref={calendarRef}
           plugins={[resourceTimelinePlugin, interactionPlugin]}
           initialView="resourceTimelineYear"
-          initialDate={dayjs().toDate()}
+          initialDate={new Date()}
           headerToolbar={false}
           resources={resources}
           events={localEvents}
