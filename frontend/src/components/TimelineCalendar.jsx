@@ -7,6 +7,15 @@ import "./timeline.css";
 
 export default function TimelineCalendar({ resources, events, readOnly = false, onRegisterRef }) {
   const calendarRef = useRef(null);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const api = calendarRef.current?.getApi();
+      if (api) {
+        api.gotoDate(new Date());
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Exponer método navegarAMes al padre via callback prop
   useEffect(() => {
