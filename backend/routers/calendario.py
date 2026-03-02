@@ -37,12 +37,6 @@ def calendario(db: Session = Depends(get_db)):
     empresas = db.query(models.Empresa).all()
 
     # fila superior
-    resources.append({
-        "id": "eventos",
-        "title": "Eventos",
-        "order": 0
-    })
-
     # empresas (COMO CARPETAS/PADRES)
     for i, e in enumerate(empresas, 1):
         resources.append({
@@ -244,14 +238,6 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
 
     resources = []
     events = []
-
-    # 1. RESOURCES
-    # Fila superior
-    resources.append({
-        "id": "eventos",
-        "title": "Eventos (Asignados)",
-        "order": 0
-    })
 
     # Empresa
     resources.append({

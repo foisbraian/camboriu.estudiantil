@@ -447,7 +447,6 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           stickyHeaderDates
           resourceAreaHeaderContent="Empresa / Grupo"
           resourceAreaWidth="180px"
-          resourceGroupField="groupId"
           resourceLabelContent={(arg) => {
             return (
               <span style={{ fontWeight: arg.resource.extendedProps.parentId ? "normal" : "bold", paddingLeft: arg.resource.extendedProps.parentId ? 20 : 0 }}>
