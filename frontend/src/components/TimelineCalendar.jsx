@@ -30,7 +30,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
   // =========================================================
   // STATE
   // =========================================================
-  const [slotWidth, setSlotWidth] = useState(80);
+  const [slotWidth, setSlotWidth] = useState(70);
   const [localEvents, setLocalEvents] = useState(events);
 
   const [modalOpen, setModalOpen] = useState(false);
