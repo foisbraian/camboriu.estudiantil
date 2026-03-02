@@ -7,6 +7,7 @@ const EVENT_GRADIENTS = {
     DISCO: "linear-gradient(120deg, #7c3aed, #ec4899)",
     PARQUE: "linear-gradient(120deg, #0ea5e9, #22c55e)",
     POOL: "linear-gradient(120deg, #06b6d4, #2563eb)",
+    CENA: "linear-gradient(120deg, #cbd5f5, #94a3b8)",
     DEFAULT: "linear-gradient(120deg, #1d4ed8, #9333ea)"
 };
 

@@ -71,13 +71,14 @@ def calendario(db: Session = Depends(get_db)):
         color_map = {
             "DISCO": "yellow",
             "PARQUE": "green",
-            "POOL": "skyblue"
+            "POOL": "skyblue",
+            "CENA": "#e2e8f0"
         }
 
         color = "red" if f.con_alcohol else color_map.get(f.evento.tipo, "gray")
         
-        # Text Color: Black if yellow
-        text_color = "black" if color == "yellow" else "white"
+        # Text Color: Black if fondo claro
+        text_color = "black" if color in ("yellow", "#e2e8f0") else "white"
 
         # Calcular ocupación (Sumar PAX de los grupos asignados)
         ocupacion = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo)
@@ -177,7 +178,8 @@ def calendario(db: Session = Depends(get_db)):
                         color_map = {
                             "DISCO": "#000000",    # Negro
                             "PARQUE": "#16a34a",   # Verde
-                            "POOL": "#0ea5e9"      # Azul claro
+                            "POOL": "#0ea5e9",     # Azul claro
+                            "CENA": "#94a3b8"      # Gris
                         }
                         bg_color_asig = color_map.get(asignacion.fecha_evento.evento.tipo, "gray")
 
@@ -320,7 +322,7 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
 
             if asignaciones_dia:
                 for asignacion in asignaciones_dia:
-                    color_map = {"DISCO": "#000000", "PARQUE": "#16a34a", "POOL": "#0ea5e9"}
+                    color_map = {"DISCO": "#000000", "PARQUE": "#16a34a", "POOL": "#0ea5e9", "CENA": "#94a3b8"}
                     bg_color_asig = color_map.get(asignacion.fecha_evento.evento.tipo, "gray")
 
                     events.append({
@@ -357,9 +359,9 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
         fechas_globales = db.query(models.FechaEvento).filter(models.FechaEvento.id.in_(fecha_eventos_asignados_ids)).all()
         
         for f in fechas_globales:
-            color_map = {"DISCO": "yellow", "PARQUE": "green", "POOL": "skyblue"}
+            color_map = {"DISCO": "yellow", "PARQUE": "green", "POOL": "skyblue", "CENA": "#e2e8f0"}
             color = "red" if f.con_alcohol else color_map.get(f.evento.tipo, "gray")
-            text_color = "black" if color == "yellow" else "white"
+            text_color = "black" if color in ("yellow", "#e2e8f0") else "white"
 
             # Opcional: Ocultar ocupacion real total? 
             # El usuario dijo: "vean solo su programación... con el nombre y todo"

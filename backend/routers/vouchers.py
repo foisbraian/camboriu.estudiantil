@@ -18,6 +18,7 @@ WINDOW_CONFIG = {
     "DISCO": {"start": time(22, 0), "end": time(6, 0), "offset_days": 1},
     "PARQUE": {"start": time(8, 0), "end": time(18, 0), "offset_days": 0},
     "POOL": {"start": time(10, 0), "end": time(18, 0), "offset_days": 0},
+    "CENA": {"start": time(20, 0), "end": time(23, 30), "offset_days": 0},
 }
 
 

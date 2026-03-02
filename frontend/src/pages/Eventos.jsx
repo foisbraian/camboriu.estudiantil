@@ -46,6 +46,7 @@ export default function Eventos() {
         <option value="DISCO">Disco</option>
         <option value="PARQUE">Parque</option>
         <option value="POOL">Pool</option>
+        <option value="CENA">Cena de velas</option>
       </select>
 
       <input
