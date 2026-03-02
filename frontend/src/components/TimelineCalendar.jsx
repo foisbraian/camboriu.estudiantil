@@ -37,9 +37,16 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
       const dateAttr = today.toISOString().slice(0, 10);
       const rootEl = calendarRef.current?.el;
       if (!rootEl) return;
-      const slot = rootEl.querySelector(`.fc-timeline-slot[data-date="${dateAttr}"]`) ||
-                   rootEl.querySelector(`.fc-col-header-cell[data-date="${dateAttr}"]`);
-      if (slot?.scrollIntoView) {
+      const slot = rootEl.querySelector(
+        `.fc-timeline-slot[data-date="${dateAttr}"]`
+      ) || rootEl.querySelector(`.fc-col-header-cell[data-date="${dateAttr}"]`);
+      const scroller = rootEl.querySelector(".fc-scroller-harness .fc-scroller") || rootEl.querySelector(".fc-scroller-harness");
+      if (slot && scroller) {
+        const slotRect = slot.getBoundingClientRect();
+        const scrollerRect = scroller.getBoundingClientRect();
+        const offset = slotRect.left - scrollerRect.left - scrollerRect.width / 3;
+        scroller.scrollLeft += offset;
+      } else if (slot?.scrollIntoView) {
         slot.scrollIntoView({ behavior: "auto", inline: "center", block: "nearest" });
       }
     };
