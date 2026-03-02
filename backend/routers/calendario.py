@@ -536,8 +536,11 @@ def eliminar_fecha_evento_global(fecha_evento_id: int, db: Session = Depends(get
     if not f:
         raise HTTPException(404, "FechaEvento no encontrada")
 
-    # Borrar asignaciones asociadas primero (Cascade manual por seguridad)
-    db.query(models.Asignacion).filter_by(fecha_evento_id=f.id).delete()
+    # Borrar vouchers y asignaciones asociadas primero (Cascade manual por seguridad)
+    asignaciones_ids = [a.id for a in db.query(models.Asignacion.id).filter_by(fecha_evento_id=f.id).all()]
+    if asignaciones_ids:
+        db.query(models.Voucher).filter(models.Voucher.asignacion_id.in_(asignaciones_ids)).delete(synchronize_session=False)
+        db.query(models.Asignacion).filter(models.Asignacion.id.in_(asignaciones_ids)).delete(synchronize_session=False)
 
     db.delete(f)
     db.commit()

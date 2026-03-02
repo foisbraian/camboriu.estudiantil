@@ -76,7 +76,10 @@ def eliminar_evento(evento_id: int, db: Session = Depends(get_db)):
     # models.py no tiene cascade="all, delete", asi que manual.
     fechas = db.query(models.FechaEvento).filter_by(evento_id=evento_id).all()
     for f in fechas:
-        db.query(models.Asignacion).filter_by(fecha_evento_id=f.id).delete()
+        asignaciones_ids = [a.id for a in db.query(models.Asignacion.id).filter_by(fecha_evento_id=f.id).all()]
+        if asignaciones_ids:
+            db.query(models.Voucher).filter(models.Voucher.asignacion_id.in_(asignaciones_ids)).delete(synchronize_session=False)
+            db.query(models.Asignacion).filter(models.Asignacion.id.in_(asignaciones_ids)).delete(synchronize_session=False)
         db.delete(f)
 
     db.delete(e)
