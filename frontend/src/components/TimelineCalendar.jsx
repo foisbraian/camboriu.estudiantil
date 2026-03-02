@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import FullCalendar from "@fullcalendar/react";
 import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
 import interactionPlugin from "@fullcalendar/interaction";
@@ -26,34 +26,41 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
   // =========================================================
   const [slotWidth, setSlotWidth] = useState(110);
   const [localEvents, setLocalEvents] = useState(events);
+  const hasCenteredToday = useRef(false);
 
-  useEffect(() => {
+  const centerToday = useCallback(() => {
+    const rootEl = calendarRef.current?.el;
+    if (!rootEl) return;
+    const todayISO = new Date().toISOString().slice(0, 10);
+    const slot =
+      rootEl.querySelector(`.fc-timeline-slot[data-date="${todayISO}"]`)
+      || rootEl.querySelector(`.fc-col-header-cell[data-date="${todayISO}"]`);
+    const scroller =
+      rootEl.querySelector(".fc-scroller-harness .fc-scroller")
+      || rootEl.querySelector(".fc-timeline-body .fc-scroller");
+    if (slot && scroller) {
+      const offset = slot.offsetLeft - scroller.clientWidth / 2 + slot.clientWidth / 2;
+      scroller.scrollLeft = offset;
+    } else if (slot?.scrollIntoView) {
+      slot.scrollIntoView({ behavior: "auto", inline: "center", block: "nearest" });
+    }
+  }, []);
+
+  const handleDatesSet = useCallback(() => {
+    if (hasCenteredToday.current) return;
     const api = calendarRef.current?.getApi();
     if (!api) return;
     const today = new Date();
     api.gotoDate(today);
+    requestAnimationFrame(() => {
+      centerToday();
+      hasCenteredToday.current = true;
+    });
+  }, [centerToday]);
 
-    const scrollIntoView = () => {
-      const dateAttr = today.toISOString().slice(0, 10);
-      const rootEl = calendarRef.current?.el;
-      if (!rootEl) return;
-      const slot = rootEl.querySelector(
-        `.fc-timeline-slot[data-date="${dateAttr}"]`
-      ) || rootEl.querySelector(`.fc-col-header-cell[data-date="${dateAttr}"]`);
-      const scroller = rootEl.querySelector(".fc-scroller-harness .fc-scroller") || rootEl.querySelector(".fc-scroller-harness");
-      if (slot && scroller) {
-        const slotRect = slot.getBoundingClientRect();
-        const scrollerRect = scroller.getBoundingClientRect();
-        const offset = slotRect.left - scrollerRect.left - scrollerRect.width / 3;
-        scroller.scrollLeft += offset;
-      } else if (slot?.scrollIntoView) {
-        slot.scrollIntoView({ behavior: "auto", inline: "center", block: "nearest" });
-      }
-    };
-
-    const raf = requestAnimationFrame(scrollIntoView);
-    return () => cancelAnimationFrame(raf);
-  }, [localEvents]);
+  useEffect(() => {
+    hasCenteredToday.current = false;
+  }, [events]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -411,6 +418,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           plugins={[resourceTimelinePlugin, interactionPlugin]}
           initialView="resourceTimelineYear"
           initialDate={new Date()}
+          datesSet={handleDatesSet}
           headerToolbar={false}
           resources={resources}
           events={localEvents}
