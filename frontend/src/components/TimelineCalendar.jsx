@@ -51,10 +51,6 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
   }, []);
 
   useEffect(() => {
-    hasCenteredToday.current = false;
-  }, [events]);
-
-  useEffect(() => {
     if (hasCenteredToday.current) return;
     const api = calendarRef.current?.getApi();
     if (!api) return;
@@ -77,7 +73,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
     return () => {
       cancelAnimationFrame(raf);
     };
-  }, [centerToday, localEvents]);
+  }, [centerToday, events]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
