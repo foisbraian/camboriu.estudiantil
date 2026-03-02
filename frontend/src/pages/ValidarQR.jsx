@@ -31,13 +31,13 @@ export default function ValidarQR() {
     const html5QrCode = useRef(null);
 
     useEffect(() => {
-        html5QrCode.current = new Html5Qrcode("reader");
         return () => {
             if (html5QrCode.current) {
                 if (html5QrCode.current.isScanning) {
                     html5QrCode.current.stop().catch(() => {});
                 }
                 html5QrCode.current.clear().catch(() => {});
+                html5QrCode.current = null;
             }
         };
     }, []);
@@ -113,6 +113,14 @@ export default function ValidarQR() {
 
         const startScanner = async () => {
             try {
+                if (!html5QrCode.current) {
+                    const container = document.getElementById("reader");
+                    if (!container) {
+                        console.warn("Contenedor del lector no disponible todavía");
+                        return;
+                    }
+                    html5QrCode.current = new Html5Qrcode("reader");
+                }
                 await html5QrCode.current.start({ facingMode: "environment" }, qrConfig, onScanSuccess);
                 setScannerReady(true);
             } catch (err) {
