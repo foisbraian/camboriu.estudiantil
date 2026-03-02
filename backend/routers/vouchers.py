@@ -6,10 +6,75 @@ import models
 import secrets
 import qrcode
 import io
-from datetime import datetime
+from datetime import datetime, date, time, timedelta
+from zoneinfo import ZoneInfo
+from typing import Optional
 from PIL import Image, ImageDraw, ImageFont
 
 router = APIRouter(prefix="/vouchers", tags=["Vouchers"])
+BALNEARIO_TZ = ZoneInfo("America/Sao_Paulo")
+
+WINDOW_CONFIG = {
+    "DISCO": {"start": time(22, 0), "end": time(6, 0), "offset_days": 1},
+    "PARQUE": {"start": time(8, 0), "end": time(18, 0), "offset_days": 0},
+    "POOL": {"start": time(10, 0), "end": time(18, 0), "offset_days": 0},
+}
+
+
+def build_event_window(fecha_evento: models.FechaEvento):
+    config = WINDOW_CONFIG.get((fecha_evento.evento.tipo or "").upper(), None)
+    if not config:
+        config = {"start": time(0, 0), "end": time(23, 59), "offset_days": 0}
+
+    inicio_dt = datetime.combine(fecha_evento.fecha, config["start"], tzinfo=BALNEARIO_TZ)
+    fin_dt = datetime.combine(
+        fecha_evento.fecha + timedelta(days=config["offset_days"]),
+        config["end"],
+        tzinfo=BALNEARIO_TZ
+    )
+    etiqueta = f"{inicio_dt.strftime('%d/%m %H:%M')} - {fin_dt.strftime('%d/%m %H:%M')} {inicio_dt.tzname()}"
+    return inicio_dt, fin_dt, etiqueta
+
+
+@router.get("/agenda")
+def listar_eventos_para_validacion(
+    fecha: Optional[date] = None,
+    db: Session = Depends(get_db)
+):
+    referencia = fecha or datetime.now(BALNEARIO_TZ).date()
+    ventana_inicio = referencia - timedelta(days=1)
+    ventana_fin = referencia + timedelta(days=1)
+
+    fechas_evento = (
+        db.query(models.FechaEvento)
+        .join(models.Evento)
+        .filter(models.FechaEvento.fecha >= ventana_inicio)
+        .filter(models.FechaEvento.fecha <= ventana_fin)
+        .order_by(models.FechaEvento.fecha, models.Evento.tipo)
+        .all()
+    )
+
+    respuesta = []
+    for f in fechas_evento:
+        inicio_dt, fin_dt, etiqueta = build_event_window(f)
+        respuesta.append({
+            "fecha_evento_id": f.id,
+            "fecha": str(f.fecha),
+            "evento": {
+                "id": f.evento.id,
+                "nombre": f.evento.nombre,
+                "tipo": f.evento.tipo
+            },
+            "tematica": f.tematica.nombre if f.tematica else None,
+            "con_alcohol": f.con_alcohol,
+            "ventana": {
+                "inicio": inicio_dt.isoformat(),
+                "fin": fin_dt.isoformat(),
+                "label": etiqueta
+            }
+        })
+
+    return respuesta
 
 def generate_unique_token():
     return secrets.token_urlsafe(16)
@@ -126,6 +191,14 @@ def validate_voucher(token_data: dict, db: Session = Depends(get_db)):
     token = token_data.get("token")
     if not token:
         raise HTTPException(400, "Token requerido")
+
+    fecha_evento_id = token_data.get("fecha_evento_id")
+    if not fecha_evento_id:
+        raise HTTPException(400, "Debe seleccionar un evento antes de validar")
+
+    fecha_evento_seleccionada = db.get(models.FechaEvento, fecha_evento_id)
+    if not fecha_evento_seleccionada:
+        raise HTTPException(404, "Evento seleccionado no existe")
         
     voucher = db.query(models.Voucher).filter(models.Voucher.token == token).first()
     if not voucher:
@@ -134,8 +207,22 @@ def validate_voucher(token_data: dict, db: Session = Depends(get_db)):
     if voucher.usado:
         return JSONResponse({"status": "error", "message": f"Voucher ya fue usado el {voucher.fecha_uso}"}, status_code=400)
     
-    # Preparar detalle ANTES de commitear (para evitar errores post-commit)
     asig = voucher.asignacion
+
+    if asig.fecha_evento_id != fecha_evento_seleccionada.id:
+        fecha_correcta = asig.fecha_evento
+        _, _, etiqueta = build_event_window(fecha_correcta)
+        return JSONResponse({
+            "status": "error",
+            "message": f"Este voucher corresponde a {fecha_correcta.evento.nombre} el {fecha_correcta.fecha} ({etiqueta}).",
+            "detalle": {
+                "servicio": fecha_correcta.evento.nombre,
+                "fecha": str(fecha_correcta.fecha),
+                "ventana": etiqueta
+            }
+        }, status_code=400)
+
+    inicio_dt, fin_dt, etiqueta = build_event_window(asig.fecha_evento)
     res_detalle = {
         "status": "success",
         "message": "Voucher validado con éxito",
@@ -143,13 +230,22 @@ def validate_voucher(token_data: dict, db: Session = Depends(get_db)):
             "grupo": asig.grupo.nombre,
             "servicio": asig.fecha_evento.evento.nombre,
             "fecha": str(asig.fecha_evento.fecha),
-            "pax": asig.grupo.cantidad_pax
+            "estructura_grupo": {
+                "pax": asig.grupo.cantidad_estudiantes or 0,
+                "padres": asig.grupo.cantidad_padres or 0,
+                "guias": asig.grupo.cantidad_guias or 0
+            },
+            "ventana": {
+                "inicio": inicio_dt.isoformat(),
+                "fin": fin_dt.isoformat(),
+                "label": etiqueta
+            }
         }
     }
 
     # Marcar como usado
     voucher.usado = True
-    voucher.fecha_uso = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    voucher.fecha_uso = datetime.now(BALNEARIO_TZ).strftime("%Y-%m-%d %H:%M:%S %Z")
     db.commit()
     
     return res_detalle
