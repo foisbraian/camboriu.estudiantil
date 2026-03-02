@@ -45,6 +45,9 @@ def listar_eventos_para_validacion(
     ventana_inicio = referencia - timedelta(days=1)
     ventana_fin = referencia + timedelta(days=1)
 
+    dia_inicio = datetime.combine(referencia, time.min, tzinfo=BALNEARIO_TZ)
+    dia_fin = dia_inicio + timedelta(days=1)
+
     fechas_evento = (
         db.query(models.FechaEvento)
         .join(models.Evento)
@@ -57,6 +60,8 @@ def listar_eventos_para_validacion(
     respuesta = []
     for f in fechas_evento:
         inicio_dt, fin_dt, etiqueta = build_event_window(f)
+        if fin_dt <= dia_inicio or inicio_dt >= dia_fin:
+            continue
         respuesta.append({
             "fecha_evento_id": f.id,
             "fecha": str(f.fecha),

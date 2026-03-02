@@ -91,7 +91,7 @@ export default function ValidarQR() {
     }, [selectedEvent]);
 
     useEffect(() => {
-        if (!selectedEvent || !html5QrCode.current) {
+        if (!selectedEvent) {
             return;
         }
         const qrConfig = { fps: 10, qrbox: { width: 280, height: 280 } };
