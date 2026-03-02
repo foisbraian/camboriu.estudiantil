@@ -22,6 +22,7 @@ export default function ValidarQR() {
     const [referenceISO, setReferenceISO] = useState(() => buildRelativeISO(0));
     const [scannerSession, setScannerSession] = useState(0);
     const [scannerReady, setScannerReady] = useState(false);
+    const [view, setView] = useState("select");
     const navigate = useNavigate();
     const role = localStorage.getItem("auth_role");
     const isAdmin = role === "admin";
@@ -42,6 +43,12 @@ export default function ValidarQR() {
         };
     }, []);
 
+    const clearValidationFeedback = useCallback(() => {
+        setResultado(null);
+        setMensaje("");
+        setError("");
+    }, []);
+
     useEffect(() => {
         const cargarAgenda = async () => {
             setAgendaLoading(true);
@@ -57,6 +64,8 @@ export default function ValidarQR() {
                     }
                     return null;
                 });
+                setView("select");
+                clearValidationFeedback();
             } catch (agendaErr) {
                 setAgendaError(agendaErr.response?.data?.detail || "No se pudo obtener la agenda.");
             } finally {
@@ -64,7 +73,7 @@ export default function ValidarQR() {
             }
         };
         cargarAgenda();
-    }, [referenceISO]);
+    }, [referenceISO, clearValidationFeedback]);
 
     const validarToken = useCallback(async (token) => {
         if (!selectedEvent) {
@@ -91,7 +100,7 @@ export default function ValidarQR() {
     }, [selectedEvent]);
 
     useEffect(() => {
-        if (!selectedEvent) {
+        if (!selectedEvent || view !== "scan") {
             return;
         }
         const qrConfig = { fps: 10, qrbox: { width: 280, height: 280 } };
@@ -138,18 +147,33 @@ export default function ValidarQR() {
                 html5QrCode.current.stop().catch(() => {});
             }
         };
-    }, [selectedEvent, scannerSession, validarToken]);
+    }, [selectedEvent, scannerSession, validarToken, view]);
 
     useEffect(() => {
         setResultado(null);
         setMensaje("");
         setError("");
-    }, [selectedEvent]);
+        if (!selectedEvent && view === "scan") {
+            setView("select");
+        }
+    }, [selectedEvent, view]);
+
+    const handleConfirmSelection = () => {
+        if (!selectedEvent) return;
+        clearValidationFeedback();
+        setView("scan");
+        setScannerSession((prev) => prev + 1);
+        isValidating.current = false;
+    };
+
+    const handleChangeEvent = () => {
+        clearValidationFeedback();
+        setView("select");
+        isValidating.current = false;
+    };
 
     const resetScanner = () => {
-        setResultado(null);
-        setMensaje("");
-        setError("");
+        clearValidationFeedback();
         setScannerSession((prev) => prev + 1);
         isValidating.current = false;
     };
@@ -162,21 +186,24 @@ export default function ValidarQR() {
     };
 
     const handleGoBack = () => {
-        navigate("/inicio");
+        navigate("/inicio", { replace: true });
     };
 
     const toggleReferenceDay = (offsetDays) => {
         setReferenceISO(buildRelativeISO(offsetDays));
+        setView("select");
+        clearValidationFeedback();
+        isValidating.current = false;
     };
+
+    const headerTitle = view === "scan" ? "Validar vouchers" : "Seleccionar evento";
 
     return (
         <div style={PAGE_BG}>
             <div style={CONTENT_WRAPPER}>
                 <header style={HEADER}>
                     <div>
-                        <p style={EYEBROW}>Validador operativo</p>
-                        <h1 style={TITLE}>Seleccioná el evento y recién ahí abrí la cámara</h1>
-                        <p style={SUBTITLE}>Cada puerta valida su propio turno para evitar que un grupo ingrese al boliche equivocado.</p>
+                        <h1 style={TITLE}>{headerTitle}</h1>
                     </div>
                     <div style={HEADER_ACTIONS}>
                         {isAdmin && (
@@ -192,13 +219,13 @@ export default function ValidarQR() {
                     </div>
                 </header>
 
-                <div style={LAYOUT}>
-                    <section style={PANEL_LEFT}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 16 }}>
+                {view === "select" ? (
+                    <section style={SELECT_PANEL}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
                             <div>
                                 <h2 style={{ margin: 0, color: "#e5e7eb", fontSize: "1.2rem" }}>Elegí el evento activo</h2>
                                 <p style={{ margin: "6px 0 0 0", color: "#94a3b8", fontSize: "0.95rem" }}>
-                                    Filtrá por día si necesitás revisar el turno de anoche o el que viene.
+                                    Filtrá por día si necesitás revisar el turno anterior o el que viene.
                                 </p>
                             </div>
                             <div style={{ display: "flex", gap: 8 }}>
@@ -223,72 +250,75 @@ export default function ValidarQR() {
                                 />
                             ))}
                         </div>
-                    </section>
 
-                    <section style={PANEL_RIGHT}>
-                        {selectedEvent ? (
+                        <button
+                            onClick={handleConfirmSelection}
+                            style={{
+                                ...CONFIRM_BUTTON,
+                                opacity: selectedEvent ? 1 : 0.4,
+                                cursor: selectedEvent ? "pointer" : "not-allowed"
+                            }}
+                            disabled={!selectedEvent}
+                        >
+                            Continuar a la cámara
+                        </button>
+                    </section>
+                ) : (
+                    <section style={SCAN_PANEL}>
+                        <div style={EVENT_SUMMARY}>
                             <div>
-                                <div style={EVENT_SUMMARY}>
-                                    <div>
-                                        <span style={EYEBROW}>Validando</span>
-                                        <h3 style={{ margin: "6px 0", fontSize: "1.3rem", color: "#f8fafc" }}>{selectedEvent.evento.nombre}</h3>
-                                        <p style={{ margin: 0, color: "#94a3b8" }}>{selectedEvent.ventana?.label || ""}</p>
+                                <span style={EYEBROW}>Validando</span>
+                                <h3 style={{ margin: "6px 0", fontSize: "1.3rem", color: "#f8fafc" }}>{selectedEvent?.evento.nombre}</h3>
+                                <p style={{ margin: 0, color: "#94a3b8" }}>{selectedEvent?.ventana?.label || ""}</p>
+                            </div>
+                            <button onClick={handleChangeEvent} style={SWAP_BUTTON}>Elegir otro evento</button>
+                        </div>
+
+                        <div style={SCANNER_CARD}>
+                            {!resultado && !error && (
+                                <>
+                                    <div id="reader" style={{ width: "100%", minHeight: 320, borderRadius: 18, overflow: "hidden" }}></div>
+                                    {!scannerReady && (
+                                        <p style={{ ...STATE_TEXT, marginTop: 12 }}>Iniciando cámara...</p>
+                                    )}
+                                </>
+                            )}
+
+                            {loading && (
+                                <div style={LOADER_OVERLAY}>
+                                    <div className="spinner" />
+                                    <p style={{ marginTop: 15 }}>Validando...</p>
+                                </div>
+                            )}
+
+                            {resultado && (
+                                <div style={{ animation: "fadeIn 0.5s ease" }}>
+                                    <div style={{ fontSize: "3rem", marginBottom: 16 }}>✅</div>
+                                    <h3 style={{ color: "#4ade80", margin: "0 0 12px 0" }}>{mensaje}</h3>
+                                    <div style={RESULT_CARD}>
+                                        <DetailRow label="Grupo" value={resultado.grupo} />
+                                        <DetailRow label="Servicio" value={resultado.servicio} />
+                                        <DetailRow label="Fecha" value={resultado.fecha} />
+                                        {resultado.ventana?.label && (
+                                            <DetailRow label="Horario" value={resultado.ventana.label} />
+                                        )}
+                                        <StructureRow estructura={resultado.estructura_grupo} />
                                     </div>
-                                    <button onClick={() => setSelectedEvent(null)} style={SWAP_BUTTON}>Cambiar evento</button>
+                                    <button onClick={resetScanner} style={PRIMARY_BUTTON}>Escanear siguiente</button>
                                 </div>
+                            )}
 
-                                <div style={SCANNER_CARD}>
-                                    {!resultado && !error && (
-                                        <>
-                                            <div id="reader" style={{ width: "100%", minHeight: 320, borderRadius: 18, overflow: "hidden" }}></div>
-                                            {!scannerReady && (
-                                                <p style={{ ...STATE_TEXT, marginTop: 12 }}>Iniciando cámara...</p>
-                                            )}
-                                        </>
-                                    )}
-
-                                    {loading && (
-                                        <div style={LOADER_OVERLAY}>
-                                            <div className="spinner" />
-                                            <p style={{ marginTop: 15 }}>Validando...</p>
-                                        </div>
-                                    )}
-
-                                    {resultado && (
-                                        <div style={{ animation: "fadeIn 0.5s ease" }}>
-                                            <div style={{ fontSize: "3rem", marginBottom: 16 }}>✅</div>
-                                            <h3 style={{ color: "#4ade80", margin: "0 0 12px 0" }}>{mensaje}</h3>
-                                            <div style={RESULT_CARD}>
-                                                <DetailRow label="Grupo" value={resultado.grupo} />
-                                                <DetailRow label="Servicio" value={resultado.servicio} />
-                                                <DetailRow label="Fecha" value={resultado.fecha} />
-                                                {resultado.ventana?.label && (
-                                                    <DetailRow label="Horario" value={resultado.ventana.label} />
-                                                )}
-                                                <StructureRow estructura={resultado.estructura_grupo} />
-                                            </div>
-                                            <button onClick={resetScanner} style={PRIMARY_BUTTON}>Escanear siguiente</button>
-                                        </div>
-                                    )}
-
-                                    {error && (
-                                        <div style={{ animation: "shake 0.5s ease" }}>
-                                            <div style={{ fontSize: "3rem", marginBottom: 16 }}>❌</div>
-                                            <h3 style={{ color: "#f87171", margin: "0 0 12px 0" }}>Error de validación</h3>
-                                            <p style={{ color: "#cbd5f5", marginBottom: 20 }}>{error}</p>
-                                            <button onClick={resetScanner} style={{ ...PRIMARY_BUTTON, background: "linear-gradient(120deg, #ef4444, #f97316)" }}>Reintentar</button>
-                                        </div>
-                                    )}
+                            {error && (
+                                <div style={{ animation: "shake 0.5s ease" }}>
+                                    <div style={{ fontSize: "3rem", marginBottom: 16 }}>❌</div>
+                                    <h3 style={{ color: "#f87171", margin: "0 0 12px 0" }}>Error de validación</h3>
+                                    <p style={{ color: "#cbd5f5", marginBottom: 20 }}>{error}</p>
+                                    <button onClick={resetScanner} style={{ ...PRIMARY_BUTTON, background: "linear-gradient(120deg, #ef4444, #f97316)" }}>Reintentar</button>
                                 </div>
-                            </div>
-                        ) : (
-                            <div style={PLACEHOLDER_CARD}>
-                                <p style={{ fontSize: "1.1rem", color: "#f1f5f9", fontWeight: 600 }}>Seleccioná un evento para activar la cámara</p>
-                                <p style={{ color: "#94a3b8" }}>Esto evita validar vouchers que corresponden a otro servicio cercano.</p>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </section>
-                </div>
+                )}
             </div>
 
             <style>{`
@@ -426,24 +456,17 @@ const HEADER_ACTIONS = {
     alignItems: "center"
 };
 
-const LAYOUT = {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 24
-};
-
-const PANEL_LEFT = {
-    flex: "1 1 360px",
+const SELECT_PANEL = {
     background: "rgba(15,23,42,0.6)",
     padding: 24,
     borderRadius: 28,
     border: "1px solid rgba(148, 163, 184, 0.2)",
-    backdropFilter: "blur(12px)"
+    backdropFilter: "blur(12px)",
+    maxWidth: 900,
+    margin: "0 auto"
 };
 
-const PANEL_RIGHT = {
-    flex: "1 1 380px",
-    minHeight: 420,
+const SCAN_PANEL = {
     background: "rgba(15,23,42,0.6)",
     padding: 24,
     borderRadius: 28,
@@ -455,6 +478,20 @@ const EVENT_LIST = {
     maxHeight: "70vh",
     overflowY: "auto",
     paddingRight: 6
+};
+
+const CONFIRM_BUTTON = {
+    marginTop: 24,
+    width: "100%",
+    padding: "14px 16px",
+    borderRadius: 16,
+    border: "none",
+    color: "white",
+    fontWeight: 700,
+    fontSize: "1rem",
+    background: "linear-gradient(120deg, #2563eb, #a855f7)",
+    boxShadow: "0 15px 35px rgba(37, 99, 235, 0.25)",
+    transition: "opacity 0.2s"
 };
 
 const EVENT_SUMMARY = {
@@ -481,13 +518,6 @@ const RESULT_CARD = {
     padding: 18,
     border: "1px solid rgba(148,163,184,0.2)",
     marginBottom: 20
-};
-
-const PLACEHOLDER_CARD = {
-    borderRadius: 24,
-    border: "1px dashed rgba(148, 163, 184, 0.4)",
-    padding: 40,
-    textAlign: "center"
 };
 
 const PRIMARY_BUTTON = {
@@ -535,12 +565,6 @@ const TITLE = {
     color: "#f8fafc",
     fontSize: "2rem",
     margin: "8px 0"
-};
-
-const SUBTITLE = {
-    color: "#94a3b8",
-    margin: 0,
-    maxWidth: 520
 };
 
 const STATE_TEXT = {
