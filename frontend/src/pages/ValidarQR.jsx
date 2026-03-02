@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Html5Qrcode } from "html5-qrcode";
 import api from "../api";
@@ -66,6 +66,30 @@ export default function ValidarQR() {
         cargarAgenda();
     }, [referenceISO]);
 
+    const validarToken = useCallback(async (token) => {
+        if (!selectedEvent) {
+            setError("Seleccioná un evento antes de validar.");
+            isValidating.current = false;
+            return;
+        }
+        setLoading(true);
+        setError("");
+        setResultado(null);
+        try {
+            const res = await api.post("/vouchers/validate", {
+                token,
+                fecha_evento_id: selectedEvent.fecha_evento_id
+            });
+            setResultado(res.data.detalle);
+            setMensaje(res.data.message);
+        } catch (err) {
+            setError(err.response?.data?.message || err.response?.data?.detail || "Este código no es válido o ya fue usado.");
+        } finally {
+            setLoading(false);
+            isValidating.current = false;
+        }
+    }, [selectedEvent]);
+
     useEffect(() => {
         if (!selectedEvent || !html5QrCode.current) {
             return;
@@ -106,37 +130,13 @@ export default function ValidarQR() {
                 html5QrCode.current.stop().catch(() => {});
             }
         };
-    }, [selectedEvent, scannerSession]);
+    }, [selectedEvent, scannerSession, validarToken]);
 
     useEffect(() => {
         setResultado(null);
         setMensaje("");
         setError("");
     }, [selectedEvent]);
-
-    const validarToken = async (token) => {
-        if (!selectedEvent) {
-            setError("Seleccioná un evento antes de validar.");
-            isValidating.current = false;
-            return;
-        }
-        setLoading(true);
-        setError("");
-        setResultado(null);
-        try {
-            const res = await api.post("/vouchers/validate", {
-                token,
-                fecha_evento_id: selectedEvent.fecha_evento_id
-            });
-            setResultado(res.data.detalle);
-            setMensaje(res.data.message);
-        } catch (err) {
-            setError(err.response?.data?.message || err.response?.data?.detail || "Este código no es válido o ya fue usado.");
-        } finally {
-            setLoading(false);
-            isValidating.current = false;
-        }
-    };
 
     const resetScanner = () => {
         setResultado(null);
