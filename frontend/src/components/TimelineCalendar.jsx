@@ -2,6 +2,7 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import FullCalendar from "@fullcalendar/react";
 import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
 import interactionPlugin from "@fullcalendar/interaction";
+import dayjs from "dayjs";
 import api from "../api";
 import "./timeline.css";
 
@@ -31,7 +32,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
   const centerToday = useCallback(() => {
     const rootEl = calendarRef.current?.el;
     if (!rootEl) return;
-    const todayISO = new Date().toISOString().slice(0, 10);
+    const todayISO = dayjs().format("YYYY-MM-DD");
     const slot =
       rootEl.querySelector(`.fc-timeline-slot[data-date="${todayISO}"]`)
       || rootEl.querySelector(`.fc-col-header-cell[data-date="${todayISO}"]`);
@@ -46,14 +47,14 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
     }
   }, []);
 
-  const handleDatesSet = useCallback((info) => {
-    if (hasCenteredToday.current && info.view.currentStart.getMonth() === new Date().getMonth()) {
-      return;
-    }
+  const handleDatesSet = useCallback(() => {
     const api = calendarRef.current?.getApi();
     if (!api) return;
-    const today = new Date();
-    api.gotoDate(today);
+    const today = dayjs();
+    if (dayjs(api.view.currentStart).month() === today.month() && hasCenteredToday.current) {
+      return;
+    }
+    api.gotoDate(today.toDate());
     requestAnimationFrame(() => {
       centerToday();
       hasCenteredToday.current = true;
@@ -419,7 +420,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           ref={calendarRef}
           plugins={[resourceTimelinePlugin, interactionPlugin]}
           initialView="resourceTimelineYear"
-          initialDate={new Date()}
+          initialDate={dayjs().toDate()}
           datesSet={handleDatesSet}
           headerToolbar={false}
           resources={resources}
