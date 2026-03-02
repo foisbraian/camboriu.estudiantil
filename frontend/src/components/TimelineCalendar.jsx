@@ -7,12 +7,6 @@ import "./timeline.css";
 
 export default function TimelineCalendar({ resources, events, readOnly = false, onRegisterRef }) {
   const calendarRef = useRef(null);
-  useEffect(() => {
-    const api = calendarRef.current?.getApi();
-    if (api) {
-      api.gotoDate(new Date());
-    }
-  }, [events]);
 
   // Exponer método navegarAMes al padre via callback prop
   useEffect(() => {
@@ -32,6 +26,27 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
   // =========================================================
   const [slotWidth, setSlotWidth] = useState(110);
   const [localEvents, setLocalEvents] = useState(events);
+
+  useEffect(() => {
+    const api = calendarRef.current?.getApi();
+    if (!api) return;
+    const today = new Date();
+    api.gotoDate(today);
+
+    const scrollIntoView = () => {
+      const dateAttr = today.toISOString().slice(0, 10);
+      const rootEl = calendarRef.current?.el;
+      if (!rootEl) return;
+      const slot = rootEl.querySelector(`.fc-timeline-slot[data-date="${dateAttr}"]`) ||
+                   rootEl.querySelector(`.fc-col-header-cell[data-date="${dateAttr}"]`);
+      if (slot?.scrollIntoView) {
+        slot.scrollIntoView({ behavior: "auto", inline: "center", block: "nearest" });
+      }
+    };
+
+    const raf = requestAnimationFrame(scrollIntoView);
+    return () => cancelAnimationFrame(raf);
+  }, [localEvents]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
