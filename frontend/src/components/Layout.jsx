@@ -24,10 +24,15 @@ export default function Layout() {
         { label: "🤝 Proveedores", path: "/proveedores" },
         { label: "📲 Validar QR", path: "/panel/validar" },
     ];
+    const role = localStorage.getItem("auth_role");
+    const navItems = role === "calendar"
+        ? NAV_ITEMS.filter((item) => item.path === "/calendario")
+        : NAV_ITEMS;
 
     function salir() {
         localStorage.removeItem("admin_auth");
         localStorage.removeItem("validator_auth");
+        localStorage.removeItem("calendar_auth");
         localStorage.removeItem("auth_role");
         window.location.href = "/login";
     }
@@ -140,7 +145,7 @@ export default function Layout() {
                 <p style={{ color: "#64748b", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", margin: "0 0 6px 4px" }}>
                     Navegación
                 </p>
-                {NAV_ITEMS.map(({ label, path }) => (
+                {navItems.map(({ label, path }) => (
                     <button
                         key={path}
                         onClick={() => { setMenuOpen(false); navigate(path); }}

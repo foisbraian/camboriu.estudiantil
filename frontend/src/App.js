@@ -29,6 +29,9 @@ const hasStoredRole = (role) => {
   if (role === "validator") {
     return localStorage.getItem("validator_auth") === "true";
   }
+  if (role === "calendar") {
+    return localStorage.getItem("calendar_auth") === "true";
+  }
   return false;
 };
 
@@ -47,7 +50,14 @@ export default function App() {
         <Route path="/login" element={<Login />} />
 
         {/* Home/Root redirect logic */}
-        <Route path="/" element={<Protected><Navigate to="/inicio" replace /></Protected>} />
+        <Route
+          path="/"
+          element={
+            <Protected allow={["admin", "calendar"]}>
+              <Navigate to={hasStoredRole("admin") ? "/inicio" : "/calendario"} replace />
+            </Protected>
+          }
+        />
 
         {/* Pantalla de Selección post-login */}
         <Route path="/inicio" element={<Protected><SelectorInicio /></Protected>} />
@@ -62,9 +72,13 @@ export default function App() {
           }
         />
 
-        {/* Rutas Protegidas bajo Layout */}
-        <Route element={<Protected allow={["admin"]}><Layout /></Protected>}>
+        {/* Calendario compartido entre admin y rol solo lectura */}
+        <Route element={<Protected allow={["admin", "calendar"]}><Layout /></Protected>}>
           <Route path="/calendario" element={<AdminCalendar />} />
+        </Route>
+
+        {/* Resto de rutas solo para admin */}
+        <Route element={<Protected allow={["admin"]}><Layout /></Protected>}>
           <Route path="/empresas" element={<Empresas />} />
           <Route path="/empresas/:id" element={<EmpresaDetalle />} />
           <Route path="/eventos" element={<Eventos />} />

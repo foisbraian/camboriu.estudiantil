@@ -87,6 +87,7 @@ export default function SelectorInicio() {
                 onClick={() => {
                     localStorage.removeItem("admin_auth");
                     localStorage.removeItem("validator_auth");
+                    localStorage.removeItem("calendar_auth");
                     localStorage.removeItem("auth_role");
                     navigate("/login");
                 }}

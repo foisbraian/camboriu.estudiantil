@@ -498,7 +498,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
         />
       </div>
 
-      {modalOpen && (
+      {!readOnly && modalOpen && (
         <div className="modal-overlay">
           <div className="modal">
 

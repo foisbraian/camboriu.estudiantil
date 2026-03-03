@@ -20,11 +20,18 @@ export default function Login() {
                 if (loggedRole === "admin") {
                     localStorage.setItem("admin_auth", "true");
                     localStorage.removeItem("validator_auth");
+                    localStorage.removeItem("calendar_auth");
                     navigate("/inicio");
-                } else {
+                } else if (loggedRole === "validator") {
                     localStorage.setItem("validator_auth", "true");
                     localStorage.removeItem("admin_auth");
+                    localStorage.removeItem("calendar_auth");
                     navigate("/validar");
+                } else if (loggedRole === "calendar") {
+                    localStorage.setItem("calendar_auth", "true");
+                    localStorage.removeItem("admin_auth");
+                    localStorage.removeItem("validator_auth");
+                    navigate("/calendario");
                 }
             }
         } catch (error) {
@@ -111,10 +118,11 @@ export default function Login() {
                 </div>
 
                 <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
-                    {[
-                        { label: "Administrador", value: "admin" },
-                        { label: "Validador QR", value: "validator" }
-                    ].map((option) => (
+                     {[
+                         { label: "Administrador", value: "admin" },
+                         { label: "Validador QR", value: "validator" },
+                         { label: "Calendario (solo lectura)", value: "calendar" }
+                     ].map((option) => (
                         <button
                             type="button"
                             key={option.value}

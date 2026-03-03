@@ -48,6 +48,7 @@ else:
 def login(body: LoginBody):
     admin_pass = os.getenv("ADMIN_PASSWORD", "Graciasburgos2026").strip()
     validator_pass = os.getenv("VALIDATOR_PASSWORD", "CamboriuValidator2026").strip()
+    calendar_pass = os.getenv("CALENDAR_PASSWORD", "CamboriuCalendar2026").strip()
 
     requested_role = (body.role or "").strip().lower()
 
@@ -56,17 +57,24 @@ def login(body: LoginBody):
         resolved_role = "admin"
     elif body.password == validator_pass:
         resolved_role = "validator"
+    elif body.password == calendar_pass:
+        resolved_role = "calendar"
 
     if not resolved_role:
         raise HTTPException(status_code=401, detail="Contraseña incorrecta")
 
-    if requested_role and requested_role not in {"admin", "validator"}:
+    if requested_role and requested_role not in {"admin", "validator", "calendar"}:
         raise HTTPException(status_code=400, detail="Rol no soportado")
 
     if requested_role and requested_role != resolved_role:
         raise HTTPException(status_code=401, detail="La contraseña no corresponde al rol seleccionado")
 
-    token = "admin_granted" if resolved_role == "admin" else "validator_access"
+    token_map = {
+        "admin": "admin_granted",
+        "validator": "validator_access",
+        "calendar": "calendar_view",
+    }
+    token = token_map.get(resolved_role, "admin_granted")
     return {"auth": True, "token": token, "role": resolved_role}
 
 app.include_router(empresas.router)

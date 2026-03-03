@@ -11,6 +11,8 @@ export default function AdminCalendar() {
   const [resources, setResources] = useState([]);
   const [events, setEvents] = useState([]);
   const [calendarApi, setCalendarApi] = useState(null);
+  const role = localStorage.getItem("auth_role");
+  const readOnly = role === "calendar";
 
   const handleRegisterRef = useCallback((api) => {
     setCalendarApi(api);
@@ -64,6 +66,7 @@ export default function AdminCalendar() {
         onRegisterRef={handleRegisterRef}
         resources={resources}
         events={events}
+        readOnly={readOnly}
       />
     </div>
   );

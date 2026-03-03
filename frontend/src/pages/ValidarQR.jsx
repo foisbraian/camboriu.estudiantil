@@ -182,6 +182,7 @@ export default function ValidarQR() {
     const handleLogout = () => {
         localStorage.removeItem("admin_auth");
         localStorage.removeItem("validator_auth");
+        localStorage.removeItem("calendar_auth");
         localStorage.removeItem("auth_role");
         navigate("/login");
     };
