@@ -449,10 +449,12 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
             }
             const groupName = arg.resource.extendedProps?.grupoNombre || arg.resource.title;
             const company = arg.resource.extendedProps?.empresaNombre;
+            const mainLabel = company || groupName;
+            const secondary = company ? groupName : "";
             return (
               <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
-                <span style={{ fontWeight: 700, color: "#0f172a" }}>{groupName}</span>
-                {company && <span style={{ fontSize: "0.8rem", color: "#94a3b8" }}>{company}</span>}
+                <span style={{ fontWeight: 700, color: "#0f172a" }}>{mainLabel}</span>
+                {secondary && <span style={{ fontSize: "0.8rem", color: "#94a3b8" }}>{secondary}</span>}
               </div>
             );
           }}
