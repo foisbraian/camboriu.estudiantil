@@ -26,7 +26,7 @@ export default function Layout() {
     ];
     const role = localStorage.getItem("auth_role");
     const navItems = role === "calendar"
-        ? NAV_ITEMS.filter((item) => item.path === "/calendario")
+        ? NAV_ITEMS.filter((item) => ["/calendario", "/eventos"].includes(item.path))
         : NAV_ITEMS;
 
     function salir() {
