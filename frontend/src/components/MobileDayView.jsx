@@ -97,7 +97,7 @@ export default function MobileDayView({ resources, events, loading }) {
   const goToday = () => setCurrentDate(today());
 
   return (
-    <div style={{ padding: 16, minHeight: "100%", display: "flex", flexDirection: "column", gap: 20 }}>
+    <div style={{ padding: "16px 16px 32px", minHeight: "100%", display: "flex", flexDirection: "column", gap: 16 }}>
       <header style={heroCardStyle}>
         <div style={{ opacity: 0.85, fontSize: "0.95rem" }}>Calendario Diario</div>
         <h2 style={{ margin: "4px 0 0 0", fontSize: "1.6rem" }}>{formatHuman(currentDate)}</h2>
@@ -117,21 +117,21 @@ export default function MobileDayView({ resources, events, loading }) {
             {globalEvents.length === 0 ? (
               <p style={emptyMsgStyle}>No hay servicios creados para este día.</p>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {globalEvents.map((evt) => (
                   <div
                     key={evt.id}
                     style={{
-                      borderRadius: 16,
-                      padding: 16,
+                      borderRadius: 14,
+                      padding: "12px 14px",
                       color: evt.color === "yellow" ? "#0f172a" : "white",
                       background: evt.color || "#0f172a",
-                      boxShadow: "0 12px 25px rgba(15,23,42,0.18)",
+                      boxShadow: "0 8px 20px rgba(15,23,42,0.18)",
                     }}
                   >
-                    <div style={{ fontSize: "1.1rem", fontWeight: 700 }}>{evt.title}</div>
-                    {evt.tematica && <div style={{ marginTop: 4 }}>🎭 {evt.tematica}</div>}
-                    <div style={{ marginTop: 8, fontSize: "0.9rem", opacity: 0.9 }}>
+                    <div style={{ fontSize: "1rem", fontWeight: 700 }}>{evt.title}</div>
+                    {evt.tematica && <div style={{ marginTop: 2, fontSize: "0.85rem", opacity: 0.95 }}>{evt.tematica}</div>}
+                    <div style={{ marginTop: 6, fontSize: "0.85rem", opacity: 0.9 }}>
                       {evt.ocupacion != null && evt.capacidad != null && (
                         <span>Capacidad {evt.ocupacion}/{evt.capacidad}</span>
                       )}
@@ -148,21 +148,21 @@ export default function MobileDayView({ resources, events, loading }) {
             {groupEntries.length === 0 ? (
               <p style={emptyMsgStyle}>No hay grupos alojados en esta fecha.</p>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {groupEntries.map((entry) => (
                   <div
                     key={entry.id}
                     style={{
-                      borderRadius: 16,
-                      padding: 16,
+                      borderRadius: 12,
+                      padding: "12px 14px",
                       background: "white",
-                      borderLeft: `6px solid ${entry.tipo === "asignacion" ? entry.color || "#0ea5e9" : "#e2e8f0"}`,
-                      boxShadow: "0 10px 24px rgba(15,23,42,0.08)",
+                      borderLeft: `5px solid ${entry.tipo === "asignacion" ? entry.color || "#0ea5e9" : "#e2e8f0"}`,
+                      boxShadow: "0 6px 16px rgba(15,23,42,0.08)",
                     }}
                   >
-                    <div style={{ color: "#475569", fontSize: "0.9rem", marginBottom: 4 }}>{entry.company}</div>
-                    <div style={{ fontWeight: 600, fontSize: "1.05rem", color: "#0f172a" }}>{entry.group}</div>
-                    <div style={{ marginTop: 6, color: entry.tipo === "asignacion" ? "#0f172a" : "#94a3b8" }}>
+                    <div style={{ color: "#475569", fontSize: "0.85rem", marginBottom: 2 }}>{entry.company}</div>
+                    <div style={{ fontWeight: 600, fontSize: "0.95rem", color: "#0f172a", lineHeight: 1.25 }}>{entry.group}</div>
+                    <div style={{ marginTop: 4, fontSize: "0.85rem", color: entry.tipo === "asignacion" ? "#0f172a" : "#94a3b8" }}>
                       {entry.tipo === "asignacion" ? `Evento: ${entry.label}` : "Sin actividad programada"}
                     </div>
                   </div>
@@ -179,7 +179,7 @@ export default function MobileDayView({ resources, events, loading }) {
 const heroCardStyle = {
   background: "linear-gradient(135deg, #0ea5e9, #4338ca)",
   borderRadius: 22,
-  padding: 20,
+  padding: 16,
   color: "white",
   boxShadow: "0 20px 45px rgba(15,23,42,0.35)",
 };
@@ -188,9 +188,10 @@ const heroBtnStyle = {
   flex: 1,
   border: "none",
   borderRadius: 999,
-  padding: "10px 12px",
+  padding: "8px 12px",
   background: "rgba(255,255,255,0.25)",
   color: "white",
+  fontSize: "0.85rem",
   fontWeight: 600,
   cursor: "pointer",
 };
@@ -198,7 +199,7 @@ const heroBtnStyle = {
 const sectionCardStyle = {
   background: "#f8fafc",
   borderRadius: 20,
-  padding: 18,
+  padding: 14,
   boxShadow: "inset 0 1px 0 rgba(255,255,255,0.4)",
 };
 
