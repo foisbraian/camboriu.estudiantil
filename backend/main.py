@@ -3,7 +3,18 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from routers import empresas, grupos, eventos, excel, calendario, tematicas, finanzas, vouchers, proveedores
+from routers import (
+    empresas,
+    grupos,
+    eventos,
+    excel,
+    calendario,
+    tematicas,
+    finanzas,
+    vouchers,
+    proveedores,
+    backup,
+)
 import models
 from database import engine
 
@@ -88,3 +99,4 @@ app.include_router(tematicas.router)
 app.include_router(finanzas.router)
 app.include_router(vouchers.router)
 app.include_router(proveedores.router)
+app.include_router(backup.router)
