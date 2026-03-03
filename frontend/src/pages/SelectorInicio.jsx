@@ -6,6 +6,10 @@ export default function SelectorInicio() {
     const navigate = useNavigate();
     const [isDownloadingBackup, setIsDownloadingBackup] = useState(false);
     const [backupFeedback, setBackupFeedback] = useState(null);
+    const [restoreFile, setRestoreFile] = useState(null);
+    const [isRestoring, setIsRestoring] = useState(false);
+    const [restoreFeedback, setRestoreFeedback] = useState(null);
+    const [fileInputKey, setFileInputKey] = useState(0);
 
     const handleBackupDownload = async () => {
         setBackupFeedback(null);
@@ -51,6 +55,49 @@ export default function SelectorInicio() {
             setBackupFeedback({ type: "error", text: error.message || "Error desconocido." });
         } finally {
             setIsDownloadingBackup(false);
+        }
+    };
+
+    const handleRestore = async () => {
+        if (!restoreFile) {
+            setRestoreFeedback({ type: "error", text: "Selecciona un archivo .sql o .db antes de restaurar." });
+            return;
+        }
+
+        setRestoreFeedback(null);
+        setIsRestoring(true);
+
+        try {
+            const formData = new FormData();
+            formData.append("file", restoreFile);
+
+            const response = await fetch(`${BASE_URL}/backup/database`, {
+                method: "POST",
+                body: formData,
+            });
+
+            const raw = await response.text();
+            let detail = raw || "Operación completada";
+            if (raw) {
+                try {
+                    const parsed = JSON.parse(raw);
+                    detail = parsed?.detail || detail;
+                } catch (_) {
+                    // texto plano
+                }
+            }
+
+            if (!response.ok) {
+                throw new Error(detail);
+            }
+
+            setRestoreFeedback({ type: "success", text: detail });
+            setRestoreFile(null);
+            setFileInputKey((prev) => prev + 1);
+        } catch (error) {
+            setRestoreFeedback({ type: "error", text: error.message || "Error al restaurar." });
+        } finally {
+            setIsRestoring(false);
         }
     };
 
@@ -179,6 +226,51 @@ export default function SelectorInicio() {
                         {backupFeedback.text}
                     </p>
                 )}
+
+                <div style={{ marginTop: 32 }}>
+                    <h3 style={{ marginBottom: 10, color: "#0f172a" }}>Restaurar base existente</h3>
+                    <p style={{ color: "#475569", fontSize: "0.95rem", marginBottom: 12 }}>
+                        Esta acción reemplaza todos los datos actuales con el backup subido. Úsalo solo cuando necesites
+                        recuperar información y asegúrate de que nadie esté usando el sistema durante la restauración.
+                    </p>
+                    <input
+                        type="file"
+                        accept=".sql,.db"
+                        key={fileInputKey}
+                        onChange={(e) => {
+                            setRestoreFile(e.target.files?.[0] || null);
+                            setRestoreFeedback(null);
+                        }}
+                        style={{ marginBottom: 12 }}
+                    />
+                    <button
+                        onClick={handleRestore}
+                        disabled={isRestoring}
+                        style={{
+                            padding: "10px 20px",
+                            borderRadius: 10,
+                            border: "none",
+                            background: isRestoring ? "#94a3b8" : "#dc2626",
+                            color: "white",
+                            fontWeight: 600,
+                            cursor: isRestoring ? "not-allowed" : "pointer",
+                            transition: "background 0.2s"
+                        }}
+                    >
+                        {isRestoring ? "Restaurando..." : "Restaurar base de datos"}
+                    </button>
+                    {restoreFeedback && (
+                        <p
+                            style={{
+                                marginTop: 10,
+                                color: restoreFeedback.type === "error" ? "#dc2626" : "#059669",
+                                fontWeight: 500
+                            }}
+                        >
+                            {restoreFeedback.text}
+                        </p>
+                    )}
+                </div>
             </div>
 
             <button
