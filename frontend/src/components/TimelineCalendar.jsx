@@ -441,7 +441,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           nowIndicator
           height="100%"
           stickyHeaderDates
-          resourceAreaHeaderContent="Grupos"
+          resourceAreaHeaderContent="Empresas"
           resourceAreaWidth={230}
           resourceLabelContent={(arg) => {
             if (arg.resource.id === "eventos") {
