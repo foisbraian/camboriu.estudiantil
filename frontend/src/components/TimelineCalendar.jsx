@@ -441,13 +441,19 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           nowIndicator
           height="100%"
           stickyHeaderDates
-          resourceAreaHeaderContent="Empresa / Grupo"
-          resourceAreaWidth="180px"
+          resourceAreaHeaderContent="Grupos"
+          resourceAreaWidth={230}
           resourceLabelContent={(arg) => {
+            if (arg.resource.id === "eventos") {
+              return <span style={{ fontWeight: 700 }}>Servicios</span>;
+            }
+            const groupName = arg.resource.extendedProps?.grupoNombre || arg.resource.title;
+            const company = arg.resource.extendedProps?.empresaNombre;
             return (
-              <span style={{ fontWeight: arg.resource.extendedProps.parentId ? "normal" : "bold", paddingLeft: arg.resource.extendedProps.parentId ? 20 : 0 }}>
-                {arg.resource.title}
-              </span>
+              <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
+                <span style={{ fontWeight: 700, color: "#0f172a" }}>{groupName}</span>
+                {company && <span style={{ fontSize: "0.8rem", color: "#94a3b8" }}>{company}</span>}
+              </div>
             );
           }}
           eventClick={handleEventClick}

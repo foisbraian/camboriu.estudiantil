@@ -43,24 +43,23 @@ def calendario(db: Session = Depends(get_db)):
 
     empresas = db.query(models.Empresa).all()
 
-    # fila superior
-    # empresas (COMO CARPETAS/PADRES)
-    for i, e in enumerate(empresas, 1):
-        resources.append({
-            "id": f"empresa-{e.id}", # ID unico para empresa
-            "title": e.nombre,
-            "order": i,
-            # "children": [] # FullCalendar puede usar children o parentId. Usaremos parentId en los hijos.
-        })
-
-        # GRUPOS (HIJOS)
+    order_counter = 1
+    for e in empresas:
         for g in e.grupos:
             resources.append({
-                "id": g.id, # El ID del recurso es el ID del GRUPO (int)
-                "parentId": f"empresa-{e.id}",
+                "id": g.id,
                 "title": g.nombre,
-                # "eventColor": ... opcional
+                "order": order_counter,
+                "extendedProps": {
+                    "empresaNombre": e.nombre,
+                    "empresaId": e.id,
+                    "grupoNombre": g.nombre,
+                    "pax": g.cantidad_pax,
+                    "fechaEntrada": g.fecha_entrada,
+                    "fechaSalida": g.fecha_salida,
+                }
             })
+            order_counter += 1
 
     # =====================================================
     # EVENTOS GLOBALES
@@ -111,6 +110,8 @@ def calendario(db: Session = Depends(get_db)):
             "textColor": text_color,
             "extendedProps": {
                 "evento_id": f.evento_id,
+                "evento_tipo": f.evento.tipo,
+                "evento_nombre": f.evento.nombre,
                 "con_alcohol": f.con_alcohol,
                 "ocupacion": ocupacion,
                 "capacidad": capacidad,
@@ -199,6 +200,7 @@ def calendario(db: Session = Depends(get_db)):
                                 "asignacion_id": asignacion.id,
                                 "nombre_evento": asignacion.fecha_evento.evento.nombre,
                                 "evento_id_num": asignacion.fecha_evento.evento.id,
+                                "empresa_nombre": e.nombre,
                                 "tooltip": f"Asignado: {asignacion.fecha_evento.evento.nombre}"
                             }
                         })
@@ -217,13 +219,14 @@ def calendario(db: Session = Depends(get_db)):
                         "resourceId": g.id, # ID del Grupo
                         "start": current_date,
                         "end": next_date,
-                        "title": g.nombre,
+                        "title": f"{g.nombre} · {e.nombre}",
                         "backgroundColor": bg_color_grupo,
                         "borderColor": bg_color_grupo,
                         "textColor": text_color_grupo,
                         "extendedProps": {
                             "tipo": "grupo",
                             "grupo_id": g.id,
+                            "empresa_nombre": e.nombre,
                             "tooltip": tooltip
                         }
                     })
