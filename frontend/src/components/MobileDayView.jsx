@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 
 const DAY_NAMES = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 const SHORT_MONTHS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
@@ -32,11 +32,14 @@ export default function MobileDayView({ resources, events, loading }) {
     return map;
   }, [resources]);
 
-  const matchesCurrentDate = (value) => {
-    if (!value) return false;
-    const raw = value instanceof Date ? value.toISOString() : String(value);
-    return raw.slice(0, 10) === currentISO;
-  };
+  const matchesCurrentDate = useCallback(
+    (value) => {
+      if (!value) return false;
+      const raw = value instanceof Date ? value.toISOString() : String(value);
+      return raw.slice(0, 10) === currentISO;
+    },
+    [currentISO]
+  );
 
   const globalEvents = useMemo(() => {
     return events
@@ -54,7 +57,7 @@ export default function MobileDayView({ resources, events, loading }) {
           conAlcohol: props.con_alcohol,
         };
       });
-  }, [events, currentISO]);
+  }, [events, matchesCurrentDate]);
 
   const groupEntries = useMemo(() => {
     return events
@@ -81,7 +84,7 @@ export default function MobileDayView({ resources, events, loading }) {
         }
         return a.company.localeCompare(b.company);
       });
-  }, [events, currentISO, resourceInfo]);
+  }, [events, matchesCurrentDate, resourceInfo]);
 
   const changeDay = (delta) => {
     setCurrentDate((prev) => {
