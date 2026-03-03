@@ -72,16 +72,16 @@ export default function App() {
           }
         />
 
-        {/* Calendario y eventos visibles para admin y rol solo lectura */}
+        {/* Calendario compartido entre admin y rol solo lectura */}
         <Route element={<Protected allow={["admin", "calendar"]}><Layout /></Protected>}>
           <Route path="/calendario" element={<AdminCalendar />} />
-          <Route path="/eventos" element={<Eventos />} />
         </Route>
 
         {/* Resto de rutas solo para admin */}
         <Route element={<Protected allow={["admin"]}><Layout /></Protected>}>
           <Route path="/empresas" element={<Empresas />} />
           <Route path="/empresas/:id" element={<EmpresaDetalle />} />
+          <Route path="/eventos" element={<Eventos />} />
           <Route path="/tematicas" element={<Tematicas />} />
           <Route path="/finanzas" element={<FinanzasDashboard />} />
           <Route path="/finanzas/:id" element={<FinanzasDetalle />} />

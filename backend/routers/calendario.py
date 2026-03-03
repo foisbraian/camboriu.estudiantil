@@ -34,6 +34,13 @@ def calendario(db: Session = Depends(get_db)):
     resources = []
     events = []
 
+    # Fila superior para servicios/eventos globales
+    resources.append({
+        "id": "eventos",
+        "title": "Servicios",
+        "order": 0,
+    })
+
     empresas = db.query(models.Empresa).all()
 
     # fila superior
