@@ -67,7 +67,9 @@ def login(body: LoginBody):
         raise HTTPException(status_code=400, detail="Rol no soportado")
 
     if requested_role and requested_role != resolved_role:
-        raise HTTPException(status_code=401, detail="La contraseña no corresponde al rol seleccionado")
+        allowed_mismatch = requested_role == "admin" and resolved_role == "calendar"
+        if not allowed_mismatch:
+            raise HTTPException(status_code=401, detail="La contraseña no corresponde al rol seleccionado")
 
     token_map = {
         "admin": "admin_granted",

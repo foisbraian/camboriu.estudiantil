@@ -118,11 +118,10 @@ export default function Login() {
                 </div>
 
                 <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
-                     {[
-                         { label: "Administrador", value: "admin" },
-                         { label: "Validador QR", value: "validator" },
-                         { label: "Calendario (solo lectura)", value: "calendar" }
-                     ].map((option) => (
+                    {[
+                        { label: "Administrador", value: "admin" },
+                        { label: "Validador QR", value: "validator" }
+                    ].map((option) => (
                         <button
                             type="button"
                             key={option.value}
