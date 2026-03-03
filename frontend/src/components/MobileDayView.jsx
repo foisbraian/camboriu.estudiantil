@@ -60,7 +60,8 @@ export default function MobileDayView({ resources, events, loading }) {
   }, [events, matchesCurrentDate]);
 
   const groupEntries = useMemo(() => {
-    return events
+    const seen = new Set();
+    const entries = events
       .filter((evt) => evt.resourceId && evt.resourceId !== "eventos")
       .filter((evt) => matchesCurrentDate(evt.start))
       .filter((evt) => {
@@ -69,8 +70,10 @@ export default function MobileDayView({ resources, events, loading }) {
       })
       .map((evt) => {
         const info = resourceInfo.get(evt.resourceId) || {};
+        const rawKey = evt.extendedProps?.asignacion_id ?? evt.id ?? `${evt.resourceId}-${evt.start}-${evt.extendedProps?.tipo}`;
+        const uniqueKey = String(rawKey);
         return {
-          id: `${evt.resourceId}-${evt.start}-${evt.extendedProps?.tipo}`,
+          id: uniqueKey,
           company: info.company || "Empresa",
           group: info.group || "Grupo",
           label: evt.title,
@@ -78,12 +81,18 @@ export default function MobileDayView({ resources, events, loading }) {
           color: evt.backgroundColor,
         };
       })
-      .sort((a, b) => {
-        if (a.company === b.company) {
-          return a.group.localeCompare(b.group);
-        }
-        return a.company.localeCompare(b.company);
+      .filter((entry) => {
+        if (seen.has(entry.id)) return false;
+        seen.add(entry.id);
+        return true;
       });
+
+    return entries.sort((a, b) => {
+      if (a.company === b.company) {
+        return a.group.localeCompare(b.group);
+      }
+      return a.company.localeCompare(b.company);
+    });
   }, [events, matchesCurrentDate, resourceInfo]);
 
   const changeDay = (delta) => {

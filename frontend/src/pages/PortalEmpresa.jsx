@@ -61,7 +61,7 @@ export default function PortalEmpresa() {
             </h2>
             {isMobile ? (
                 <div style={{ flex: 1 }}>
-                    <MobileDayView resources={data.resources} events={data.events} loading={false} />
+                    <MobileDayView resources={data.resources} events={data.events} loading={loading} />
                 </div>
             ) : (
                 <div style={{ flex: 1, position: "relative" }}>
