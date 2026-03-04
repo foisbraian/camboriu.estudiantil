@@ -45,9 +45,23 @@ def calendario(db: Session = Depends(get_db)):
 
     order_counter = 1
     for e in empresas:
+        empresa_resource_id = f"empresa-{e.id}"
+        resources.append({
+            "id": empresa_resource_id,
+            "title": e.nombre,
+            "order": order_counter,
+            "extendedProps": {
+                "empresaNombre": e.nombre,
+                "empresaId": e.id,
+                "esEmpresa": True
+            }
+        })
+        order_counter += 1
+
         for g in e.grupos:
             resources.append({
                 "id": g.id,
+                "parentId": empresa_resource_id,
                 "title": g.nombre,
                 "order": order_counter,
                 "extendedProps": {

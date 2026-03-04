@@ -273,6 +273,9 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
 
     const resourceId = info.resource?.id;
     if (!resourceId) return;
+    if (typeof resourceId === "string" && resourceId.startsWith("empresa-")) {
+      return;
+    }
 
     const fechaISO = info.dateStr;
 
@@ -447,13 +450,20 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
             if (arg.resource.id === "eventos") {
               return <span style={{ fontWeight: 700 }}>Servicios</span>;
             }
-            const groupName = arg.resource.extendedProps?.grupoNombre || arg.resource.title;
-            const company = arg.resource.extendedProps?.empresaNombre;
-            const mainLabel = company || groupName;
-            const secondary = company ? groupName : "";
+            const props = arg.resource.extendedProps || {};
+            if (props.esEmpresa) {
+              const companyLabel = props.empresaNombre || arg.resource.title;
+              return (
+                <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
+                  <span style={{ fontWeight: 800, color: "#0f172a", textTransform: "uppercase" }}>{companyLabel}</span>
+                </div>
+              );
+            }
+            const groupName = props.grupoNombre || arg.resource.title;
+            const secondary = props.pax ? `PAX ${props.pax}` : "";
             return (
               <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
-                <span style={{ fontWeight: 700, color: "#0f172a" }}>{mainLabel}</span>
+                <span style={{ fontWeight: 600, color: "#0f172a" }}>{groupName}</span>
                 {secondary && <span style={{ fontSize: "0.8rem", color: "#94a3b8" }}>{secondary}</span>}
               </div>
             );
