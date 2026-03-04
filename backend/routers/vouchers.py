@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from database import get_db
 import models
 import secrets
@@ -192,6 +193,22 @@ def generate_voucher(asignacion_id: int, db: Session = Depends(get_db)):
     
     return Response(content=img_byte_arr, media_type="image/png")
 
+def parse_fecha_uso(raw: str | None):
+    if not raw:
+        return None
+    try:
+        return datetime.fromisoformat(raw)
+    except ValueError:
+        pass
+    formatos = ["%Y-%m-%d %H:%M:%S %Z", "%Y-%m-%d %H:%M:%S"]
+    for fmt in formatos:
+        try:
+            return datetime.strptime(raw, fmt)
+        except ValueError:
+            continue
+    return None
+
+
 @router.post("/validate")
 def validate_voucher(token_data: dict, db: Session = Depends(get_db)):
     token = token_data.get("token")
@@ -251,7 +268,75 @@ def validate_voucher(token_data: dict, db: Session = Depends(get_db)):
 
     # Marcar como usado
     voucher.usado = True
-    voucher.fecha_uso = datetime.now(BALNEARIO_TZ).strftime("%Y-%m-%d %H:%M:%S %Z")
+    voucher.fecha_uso = datetime.now(BALNEARIO_TZ).isoformat()
     db.commit()
     
     return res_detalle
+
+
+@router.get("/reporte")
+def reporte_vouchers(
+    desde: date | None = None,
+    hasta: date | None = None,
+    evento_id: int | None = None,
+    empresa_id: int | None = None,
+    db: Session = Depends(get_db)
+):
+    base_query = (
+        db.query(models.Voucher)
+        .join(models.Asignacion)
+        .join(models.FechaEvento)
+        .join(models.Evento)
+        .join(models.Grupo)
+        .join(models.Empresa)
+        .filter(models.Voucher.usado == True)
+        .filter(models.Voucher.fecha_uso.isnot(None))
+    )
+
+    if evento_id:
+        base_query = base_query.filter(models.FechaEvento.evento_id == evento_id)
+
+    if empresa_id:
+        base_query = base_query.filter(models.Grupo.empresa_id == empresa_id)
+
+    if desde:
+        base_query = base_query.filter(func.substr(models.Voucher.fecha_uso, 1, 10) >= desde.isoformat())
+    if hasta:
+        base_query = base_query.filter(func.substr(models.Voucher.fecha_uso, 1, 10) <= hasta.isoformat())
+
+    base_query = base_query.order_by(models.Voucher.fecha_uso.desc())
+
+    resultados = []
+    for voucher in base_query.all():
+        asignacion = voucher.asignacion
+        if not asignacion or not asignacion.grupo or not asignacion.fecha_evento:
+            continue
+
+        grupo = asignacion.grupo
+        empresa = grupo.empresa
+        fecha_evento = asignacion.fecha_evento
+        evento = fecha_evento.evento
+
+        scan_dt = parse_fecha_uso(voucher.fecha_uso)
+        scan_fecha = scan_dt.date().isoformat() if scan_dt else None
+        scan_hora = scan_dt.strftime("%H:%M:%S") if scan_dt else None
+
+        resultados.append({
+            "voucher_id": voucher.id,
+            "token": voucher.token,
+            "scan_fecha": scan_fecha,
+            "scan_hora": scan_hora,
+            "fecha_evento": str(fecha_evento.fecha),
+            "evento": evento.nombre if evento else None,
+            "evento_tipo": evento.tipo if evento else None,
+            "empresa": empresa.nombre if empresa else None,
+            "empresa_id": empresa.id if empresa else None,
+            "grupo": grupo.nombre,
+            "grupo_id": grupo.id,
+            "estudiantes": grupo.cantidad_estudiantes or 0,
+            "padres": grupo.cantidad_padres or 0,
+            "guias": grupo.cantidad_guias or 0,
+            "pax": getattr(grupo, "cantidad_pax", 0) or 0,
+        })
+
+    return resultados

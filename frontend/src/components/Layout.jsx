@@ -22,6 +22,7 @@ export default function Layout() {
         { label: "🎨 Temáticas", path: "/tematicas" },
         { label: "💰 Finanzas", path: "/finanzas" },
         { label: "🤝 Proveedores", path: "/proveedores" },
+        { label: "🧾 Planilla Vouchers", path: "/vouchers/planilla" },
         { label: "📲 Validar QR", path: "/panel/validar" },
     ];
     const role = localStorage.getItem("auth_role");
