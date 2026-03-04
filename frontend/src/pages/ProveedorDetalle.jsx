@@ -2,18 +2,42 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../api";
 
+const normalizeSpreadsheet = (payload) => {
+    const headers = Array.isArray(payload?.headers) ? payload.headers : [];
+    const rowsData = Array.isArray(payload?.rows) ? payload.rows : [];
+    const normalizedRows = rowsData.map((row) => {
+        if (!Array.isArray(row)) {
+            return Array(headers.length).fill("");
+        }
+        const newRow = Array(headers.length).fill("");
+        row.forEach((cell, idx) => {
+            if (idx < headers.length) {
+                newRow[idx] = cell ?? "";
+            }
+        });
+        return newRow;
+    });
+    const footerSumEnabled = headers.map((_, idx) => {
+        if (Array.isArray(payload?.footerSumEnabled) && typeof payload.footerSumEnabled[idx] === "boolean") {
+            return payload.footerSumEnabled[idx];
+        }
+        return true;
+    });
+    return { headers, rows: normalizedRows, footerSumEnabled };
+};
+
 export default function ProveedorDetalle() {
     const { id } = useParams();
     const navigate = useNavigate();
     const [proveedor, setProveedor] = useState(null);
-    const [spreadsheet, setSpreadsheet] = useState({ headers: [], rows: [] });
+    const [spreadsheet, setSpreadsheet] = useState({ headers: [], rows: [], footerSumEnabled: [] });
     const [loading, setLoading] = useState(true);
 
     const cargar = useCallback(async () => {
         try {
             const res = await api.get(`/proveedores/${id}`);
             setProveedor(res.data);
-            setSpreadsheet(JSON.parse(res.data.data));
+            setSpreadsheet(normalizeSpreadsheet(JSON.parse(res.data.data)));
         } catch (e) {
             console.error("Error al cargar detalle", e);
         } finally {
@@ -64,7 +88,8 @@ export default function ProveedorDetalle() {
     const addColumn = () => {
         const newHeaders = [...spreadsheet.headers, "Nueva Columna"];
         const newRows = spreadsheet.rows.map(row => [...row, ""]);
-        setSpreadsheet({ headers: newHeaders, rows: newRows });
+        const newFooter = [...(spreadsheet.footerSumEnabled || []), true];
+        setSpreadsheet({ ...spreadsheet, headers: newHeaders, rows: newRows, footerSumEnabled: newFooter });
     };
 
     const removeColumn = (index) => {
@@ -76,7 +101,21 @@ export default function ProveedorDetalle() {
             nr.splice(index, 1);
             return nr;
         });
-        setSpreadsheet({ headers: newHeaders, rows: newRows });
+        const newFooter = [...(spreadsheet.footerSumEnabled || [])];
+        newFooter.splice(index, 1);
+        setSpreadsheet({ ...spreadsheet, headers: newHeaders, rows: newRows, footerSumEnabled: newFooter });
+    };
+
+    const toggleFooterSum = (index) => {
+        const alignedFooter = spreadsheet.headers.map((_, idx) => {
+            if (typeof spreadsheet.footerSumEnabled?.[idx] === "boolean") {
+                return spreadsheet.footerSumEnabled[idx];
+            }
+            return true;
+        });
+        const newFooter = [...alignedFooter];
+        newFooter[index] = !newFooter[index];
+        setSpreadsheet({ ...spreadsheet, footerSumEnabled: newFooter });
     };
 
     // --- Cálculos ---
@@ -199,8 +238,31 @@ export default function ProveedorDetalle() {
                                 <td style={{ padding: 12, borderRight: "1px solid #e2e8f0" }}>∑</td>
                                 {spreadsheet.headers.map((h, i) => (
                                     <td key={i} style={{ padding: 12, borderRight: "1px solid #e2e8f0", textAlign: "right" }}>
-                                        <div style={{ fontSize: "0.7rem", color: "#94a3b8", textTransform: "uppercase", marginBottom: 2 }}>Suma Total</div>
-                                        {calculateColSum(i)}
+                                        {spreadsheet.footerSumEnabled?.[i] ? (
+                                            <>
+                                                <div style={{ fontSize: "0.7rem", color: "#94a3b8", textTransform: "uppercase", marginBottom: 2 }}>Suma Total</div>
+                                                <div>{calculateColSum(i)}</div>
+                                                <button
+                                                    id="print-controls"
+                                                    onClick={() => toggleFooterSum(i)}
+                                                    style={{ marginTop: 6, background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "0.75rem" }}
+                                                >
+                                                    Quitar suma
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div style={{ fontSize: "0.7rem", color: "#94a3b8", textTransform: "uppercase", marginBottom: 2 }}>Sin cálculo</div>
+                                                <div style={{ color: "#cbd5e1", fontWeight: 600 }}>—</div>
+                                                <button
+                                                    id="print-controls"
+                                                    onClick={() => toggleFooterSum(i)}
+                                                    style={{ marginTop: 6, background: "transparent", border: "none", color: "#16a34a", cursor: "pointer", fontSize: "0.75rem" }}
+                                                >
+                                                    Mostrar suma
+                                                </button>
+                                            </>
+                                        )}
                                     </td>
                                 ))}
                                 <td id="print-controls"></td>
