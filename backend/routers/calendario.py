@@ -219,7 +219,7 @@ def calendario(db: Session = Depends(get_db)):
                         "resourceId": g.id, # ID del Grupo
                         "start": current_date,
                         "end": next_date,
-                        "title": f"{g.nombre} · {e.nombre}",
+                        "title": g.nombre,
                         "backgroundColor": bg_color_grupo,
                         "borderColor": bg_color_grupo,
                         "textColor": text_color_grupo,
