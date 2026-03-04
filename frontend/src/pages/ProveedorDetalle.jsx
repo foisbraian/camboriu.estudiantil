@@ -23,14 +23,24 @@ const normalizeSpreadsheet = (payload) => {
         }
         return true;
     });
-    return { headers, rows: normalizedRows, footerSumEnabled };
+    const columnConfigs = headers.map((_, idx) => {
+        const raw = payload?.columnConfigs?.[idx];
+        if (raw && raw.type === "select" && Array.isArray(raw.options)) {
+            return {
+                type: "select",
+                options: raw.options.map((opt) => opt?.toString?.() ?? "").filter((opt) => opt !== "")
+            };
+        }
+        return { type: "text", options: [] };
+    });
+    return { headers, rows: normalizedRows, footerSumEnabled, columnConfigs };
 };
 
 export default function ProveedorDetalle() {
     const { id } = useParams();
     const navigate = useNavigate();
     const [proveedor, setProveedor] = useState(null);
-    const [spreadsheet, setSpreadsheet] = useState({ headers: [], rows: [], footerSumEnabled: [] });
+    const [spreadsheet, setSpreadsheet] = useState({ headers: [], rows: [], footerSumEnabled: [], columnConfigs: [] });
     const [columnFilters, setColumnFilters] = useState({});
     const [loading, setLoading] = useState(true);
 
@@ -91,7 +101,8 @@ export default function ProveedorDetalle() {
         const newHeaders = [...spreadsheet.headers, "Nueva Columna"];
         const newRows = spreadsheet.rows.map(row => [...row, ""]);
         const newFooter = [...(spreadsheet.footerSumEnabled || []), true];
-        setSpreadsheet({ ...spreadsheet, headers: newHeaders, rows: newRows, footerSumEnabled: newFooter });
+        const newColumnConfigs = [...(spreadsheet.columnConfigs || []), { type: "text", options: [] }];
+        setSpreadsheet({ ...spreadsheet, headers: newHeaders, rows: newRows, footerSumEnabled: newFooter, columnConfigs: newColumnConfigs });
     };
 
     const removeColumn = (index) => {
@@ -112,8 +123,10 @@ export default function ProveedorDetalle() {
             const k = Number(key);
             shiftedFilters[k > index ? k - 1 : k] = newFilters[key];
         });
+        const newColumnConfigs = [...(spreadsheet.columnConfigs || [])];
+        newColumnConfigs.splice(index, 1);
         setColumnFilters(shiftedFilters);
-        setSpreadsheet({ ...spreadsheet, headers: newHeaders, rows: newRows, footerSumEnabled: newFooter });
+        setSpreadsheet({ ...spreadsheet, headers: newHeaders, rows: newRows, footerSumEnabled: newFooter, columnConfigs: newColumnConfigs });
     };
 
     const toggleFooterSum = (index) => {
@@ -142,6 +155,31 @@ export default function ProveedorDetalle() {
         setColumnFilters({});
     };
 
+    const configureColumn = (index) => {
+        const alignedConfigs = spreadsheet.headers.map((_, idx) => {
+            const raw = spreadsheet.columnConfigs?.[idx];
+            if (raw && raw.type === "select" && Array.isArray(raw.options)) {
+                return raw;
+            }
+            return { type: "text", options: [] };
+        });
+        const currentConfig = alignedConfigs[index];
+        const initialValue = currentConfig.type === "select" ? currentConfig.options.join(", ") : "";
+        const response = window.prompt("Ingresa las opciones para la lista desplegable separadas por coma. Deja vacío para volver a texto libre.", initialValue);
+        if (response === null) return;
+        const options = response
+            .split(",")
+            .map((opt) => opt.trim())
+            .filter((opt) => opt.length > 0);
+        const newConfigs = [...alignedConfigs];
+        if (options.length === 0) {
+            newConfigs[index] = { type: "text", options: [] };
+        } else {
+            newConfigs[index] = { type: "select", options };
+        }
+        setSpreadsheet({ ...spreadsheet, columnConfigs: newConfigs });
+    };
+
     const columnValueOptions = spreadsheet.headers.map((_, idx) => {
         const valueSet = new Set();
         spreadsheet.rows.forEach((row) => {
@@ -150,6 +188,11 @@ export default function ProveedorDetalle() {
                 valueSet.add(value.toString());
             }
         });
+        if (spreadsheet.columnConfigs?.[idx]?.type === "select") {
+            spreadsheet.columnConfigs[idx].options.forEach((opt) => {
+                if (opt !== "") valueSet.add(opt);
+            });
+        }
         return Array.from(valueSet).sort((a, b) => a.localeCompare(b, "es", { numeric: true, sensitivity: "base" }));
     });
 
@@ -262,6 +305,10 @@ export default function ProveedorDetalle() {
                                                     outline: "none"
                                                 }}
                                             />
+                                            {spreadsheet.columnConfigs?.[i]?.type === "select" && (
+                                                <span style={{ fontSize: "0.7rem", color: "#0f172a", background: "#e2e8f0", padding: "2px 6px", borderRadius: 999 }}>Lista</span>
+                                            )}
+                                            <button id="print-controls" onClick={() => configureColumn(i)} style={{ background: "transparent", border: "none", color: "#0f172a", fontSize: "0.75rem", cursor: "pointer", padding: 0 }}>⚙️</button>
                                             <button id="print-controls" onClick={() => removeColumn(i)} style={{ background: "transparent", border: "none", color: "#94a3b8", fontSize: "0.7rem", cursor: "pointer", padding: 0 }}>✕</button>
                                         </div>
                                     </th>
@@ -309,18 +356,39 @@ export default function ProveedorDetalle() {
                                     </td>
                                     {row.map((cell, ci) => (
                                         <td key={ci} style={{ padding: 0, borderRight: "1px solid #e2e8f0" }}>
-                                            <input
-                                                value={cell}
-                                                onChange={(e) => updateCell(originalIndex, ci, e.target.value)}
-                                                style={{
-                                                    width: "100%",
-                                                    padding: 12,
-                                                    border: "none",
-                                                    outline: "none",
-                                                    fontSize: "0.95rem",
-                                                    color: "#475569"
-                                                }}
-                                            />
+                                            {spreadsheet.columnConfigs?.[ci]?.type === "select" && spreadsheet.columnConfigs?.[ci]?.options?.length ? (
+                                                <select
+                                                    value={cell}
+                                                    onChange={(e) => updateCell(originalIndex, ci, e.target.value)}
+                                                    style={{
+                                                        width: "100%",
+                                                        padding: 12,
+                                                        border: "none",
+                                                        outline: "none",
+                                                        fontSize: "0.95rem",
+                                                        color: "#0f172a",
+                                                        background: "#f8fafc"
+                                                    }}
+                                                >
+                                                    <option value="">Seleccionar...</option>
+                                                    {spreadsheet.columnConfigs[ci].options.map((opt) => (
+                                                        <option key={`${ci}-${opt}`} value={opt}>{opt}</option>
+                                                    ))}
+                                                </select>
+                                            ) : (
+                                                <input
+                                                    value={cell}
+                                                    onChange={(e) => updateCell(originalIndex, ci, e.target.value)}
+                                                    style={{
+                                                        width: "100%",
+                                                        padding: 12,
+                                                        border: "none",
+                                                        outline: "none",
+                                                        fontSize: "0.95rem",
+                                                        color: "#475569"
+                                                    }}
+                                                />
+                                            )}
                                         </td>
                                     ))}
                                     <td id="print-controls"></td>

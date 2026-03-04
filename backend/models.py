@@ -215,4 +215,4 @@ class Proveedor(Base):
     
     # Almacenamos el estado de la planilla como JSON string
     # { headers: [], rows: [] }
-    data = Column(String, default='{"headers": ["Item", "Detalle", "Monto"], "rows": [["", "", "0"]], "footerSumEnabled": [true, true, true]}')
+    data = Column(String, default='{"headers": ["Item", "Detalle", "Monto"], "rows": [["", "", "0"]], "footerSumEnabled": [true, true, true], "columnConfigs": [{"type": "text", "options": []}, {"type": "text", "options": []}, {"type": "text", "options": []}]}')
