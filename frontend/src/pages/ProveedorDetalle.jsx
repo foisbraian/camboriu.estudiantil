@@ -142,13 +142,25 @@ export default function ProveedorDetalle() {
         setColumnFilters({});
     };
 
+    const columnValueOptions = spreadsheet.headers.map((_, idx) => {
+        const valueSet = new Set();
+        spreadsheet.rows.forEach((row) => {
+            const value = row[idx];
+            if (value !== undefined && value !== null && value !== "") {
+                valueSet.add(value.toString());
+            }
+        });
+        return Array.from(valueSet).sort((a, b) => a.localeCompare(b, "es", { numeric: true, sensitivity: "base" }));
+    });
+
     const filteredRows = spreadsheet.rows
         .map((row, originalIndex) => ({ row, originalIndex }))
         .filter(({ row }) => {
             return Object.entries(columnFilters).every(([colIndex, filterValue]) => {
                 const idx = Number(colIndex);
                 const cellValue = row[idx] ?? "";
-                return cellValue.toString().toLowerCase().includes(filterValue.toLowerCase());
+                if (!filterValue) return true;
+                return cellValue.toString() === filterValue;
             });
         });
 
@@ -269,12 +281,18 @@ export default function ProveedorDetalle() {
                                 </th>
                                 {spreadsheet.headers.map((_, idx) => (
                                     <th key={`filter-${idx}`} style={{ padding: 8, borderRight: "1px solid #e2e8f0" }}>
-                                        <input
+                                        <select
                                             value={columnFilters[idx] || ""}
                                             onChange={(e) => updateFilter(idx, e.target.value)}
-                                            placeholder="Filtrar..."
-                                            style={{ width: "100%", padding: "6px 8px", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.8rem" }}
-                                        />
+                                            style={{ width: "100%", padding: "6px 8px", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.8rem", background: "white" }}
+                                        >
+                                            <option value="">Todos</option>
+                                            {columnValueOptions[idx].map((option) => (
+                                                <option key={`${idx}-${option}`} value={option}>
+                                                    {option}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </th>
                                 ))}
                                 <th></th>
