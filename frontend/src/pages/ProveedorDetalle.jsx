@@ -31,6 +31,7 @@ export default function ProveedorDetalle() {
     const navigate = useNavigate();
     const [proveedor, setProveedor] = useState(null);
     const [spreadsheet, setSpreadsheet] = useState({ headers: [], rows: [], footerSumEnabled: [] });
+    const [columnFilters, setColumnFilters] = useState({});
     const [loading, setLoading] = useState(true);
 
     const cargar = useCallback(async () => {
@@ -38,6 +39,7 @@ export default function ProveedorDetalle() {
             const res = await api.get(`/proveedores/${id}`);
             setProveedor(res.data);
             setSpreadsheet(normalizeSpreadsheet(JSON.parse(res.data.data)));
+            setColumnFilters({});
         } catch (e) {
             console.error("Error al cargar detalle", e);
         } finally {
@@ -103,6 +105,14 @@ export default function ProveedorDetalle() {
         });
         const newFooter = [...(spreadsheet.footerSumEnabled || [])];
         newFooter.splice(index, 1);
+        const newFilters = { ...columnFilters };
+        delete newFilters[index];
+        const shiftedFilters = {};
+        Object.keys(newFilters).forEach((key) => {
+            const k = Number(key);
+            shiftedFilters[k > index ? k - 1 : k] = newFilters[key];
+        });
+        setColumnFilters(shiftedFilters);
         setSpreadsheet({ ...spreadsheet, headers: newHeaders, rows: newRows, footerSumEnabled: newFooter });
     };
 
@@ -117,6 +127,30 @@ export default function ProveedorDetalle() {
         newFooter[index] = !newFooter[index];
         setSpreadsheet({ ...spreadsheet, footerSumEnabled: newFooter });
     };
+
+    const updateFilter = (index, value) => {
+        const newFilters = { ...columnFilters };
+        if (!value) {
+            delete newFilters[index];
+        } else {
+            newFilters[index] = value;
+        }
+        setColumnFilters(newFilters);
+    };
+
+    const clearFilters = () => {
+        setColumnFilters({});
+    };
+
+    const filteredRows = spreadsheet.rows
+        .map((row, originalIndex) => ({ row, originalIndex }))
+        .filter(({ row }) => {
+            return Object.entries(columnFilters).every(([colIndex, filterValue]) => {
+                const idx = Number(colIndex);
+                const cellValue = row[idx] ?? "";
+                return cellValue.toString().toLowerCase().includes(filterValue.toLowerCase());
+            });
+        });
 
     // --- Cálculos ---
     const calculateColSum = (colIndex) => {
@@ -192,21 +226,42 @@ export default function ProveedorDetalle() {
                                     <button onClick={addColumn} style={{ background: "#eff6ff", color: "#3b82f6", border: "none", borderRadius: 4, cursor: "pointer", padding: "4px 8px" }}>+</button>
                                 </th>
                             </tr>
+                            <tr id="print-controls">
+                                <th style={{ borderRight: "1px solid #e2e8f0", padding: 8, textAlign: "left", fontSize: "0.75rem", color: "#94a3b8" }}>
+                                    Filtros
+                                    {Object.keys(columnFilters).length > 0 && (
+                                        <button onClick={clearFilters} style={{ marginLeft: 8, background: "transparent", border: "none", color: "#3b82f6", cursor: "pointer", fontSize: "0.75rem" }}>
+                                            Limpiar
+                                        </button>
+                                    )}
+                                </th>
+                                {spreadsheet.headers.map((_, idx) => (
+                                    <th key={`filter-${idx}`} style={{ padding: 8, borderRight: "1px solid #e2e8f0" }}>
+                                        <input
+                                            value={columnFilters[idx] || ""}
+                                            onChange={(e) => updateFilter(idx, e.target.value)}
+                                            placeholder="Filtrar..."
+                                            style={{ width: "100%", padding: "6px 8px", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.8rem" }}
+                                        />
+                                    </th>
+                                ))}
+                                <th></th>
+                            </tr>
                         </thead>
                         <tbody>
-                            {spreadsheet.rows.map((row, ri) => (
-                                <tr key={ri} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                            {filteredRows.map(({ row, originalIndex }) => (
+                                <tr key={`row-${originalIndex}`} style={{ borderBottom: "1px solid #f1f5f9" }}>
                                     <td style={{ textAlign: "center", color: "#94a3b8", fontSize: "0.7rem", borderRight: "1px solid #e2e8f0", background: "#f8fafc" }}>
                                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                                            {ri + 1}
-                                            <button id="print-controls" onClick={() => remoteRow(ri)} style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", padding: 0, marginTop: 4 }}>🗑️</button>
+                                            {originalIndex + 1}
+                                            <button id="print-controls" onClick={() => remoteRow(originalIndex)} style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", padding: 0, marginTop: 4 }}>🗑️</button>
                                         </div>
                                     </td>
                                     {row.map((cell, ci) => (
                                         <td key={ci} style={{ padding: 0, borderRight: "1px solid #e2e8f0" }}>
                                             <input
                                                 value={cell}
-                                                onChange={(e) => updateCell(ri, ci, e.target.value)}
+                                                onChange={(e) => updateCell(originalIndex, ci, e.target.value)}
                                                 style={{
                                                     width: "100%",
                                                     padding: 12,
