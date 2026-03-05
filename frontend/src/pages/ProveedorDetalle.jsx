@@ -17,11 +17,15 @@ const normalizeSpreadsheet = (payload) => {
         });
         return newRow;
     });
-    const footerSumEnabled = headers.map((_, idx) => {
-        if (Array.isArray(payload?.footerSumEnabled) && typeof payload.footerSumEnabled[idx] === "boolean") {
-            return payload.footerSumEnabled[idx];
+    const footerCalculations = headers.map((_, idx) => {
+        const raw = payload?.footerCalculations?.[idx];
+        if (raw === "sum" || raw === "count" || raw === "none") {
+            return raw;
         }
-        return true;
+        if (Array.isArray(payload?.footerSumEnabled) && payload.footerSumEnabled[idx] === false) {
+            return "none";
+        }
+        return "sum";
     });
     const columnConfigs = headers.map((_, idx) => {
         const raw = payload?.columnConfigs?.[idx];
@@ -33,14 +37,14 @@ const normalizeSpreadsheet = (payload) => {
         }
         return { type: "text", options: [] };
     });
-    return { headers, rows: normalizedRows, footerSumEnabled, columnConfigs };
+    return { headers, rows: normalizedRows, footerCalculations, columnConfigs };
 };
 
 export default function ProveedorDetalle() {
     const { id } = useParams();
     const navigate = useNavigate();
     const [proveedor, setProveedor] = useState(null);
-    const [spreadsheet, setSpreadsheet] = useState({ headers: [], rows: [], footerSumEnabled: [], columnConfigs: [] });
+    const [spreadsheet, setSpreadsheet] = useState({ headers: [], rows: [], footerCalculations: [], columnConfigs: [] });
     const [columnFilters, setColumnFilters] = useState({});
     const [loading, setLoading] = useState(true);
 
@@ -100,9 +104,9 @@ export default function ProveedorDetalle() {
     const addColumn = () => {
         const newHeaders = [...spreadsheet.headers, "Nueva Columna"];
         const newRows = spreadsheet.rows.map(row => [...row, ""]);
-        const newFooter = [...(spreadsheet.footerSumEnabled || []), true];
+        const newFooter = [...(spreadsheet.footerCalculations || []), "sum"];
         const newColumnConfigs = [...(spreadsheet.columnConfigs || []), { type: "text", options: [] }];
-        setSpreadsheet({ ...spreadsheet, headers: newHeaders, rows: newRows, footerSumEnabled: newFooter, columnConfigs: newColumnConfigs });
+        setSpreadsheet({ ...spreadsheet, headers: newHeaders, rows: newRows, footerCalculations: newFooter, columnConfigs: newColumnConfigs });
     };
 
     const removeColumn = (index) => {
@@ -114,7 +118,7 @@ export default function ProveedorDetalle() {
             nr.splice(index, 1);
             return nr;
         });
-        const newFooter = [...(spreadsheet.footerSumEnabled || [])];
+        const newFooter = [...(spreadsheet.footerCalculations || [])];
         newFooter.splice(index, 1);
         const newFilters = { ...columnFilters };
         delete newFilters[index];
@@ -126,19 +130,22 @@ export default function ProveedorDetalle() {
         const newColumnConfigs = [...(spreadsheet.columnConfigs || [])];
         newColumnConfigs.splice(index, 1);
         setColumnFilters(shiftedFilters);
-        setSpreadsheet({ ...spreadsheet, headers: newHeaders, rows: newRows, footerSumEnabled: newFooter, columnConfigs: newColumnConfigs });
+        setSpreadsheet({ ...spreadsheet, headers: newHeaders, rows: newRows, footerCalculations: newFooter, columnConfigs: newColumnConfigs });
     };
 
-    const toggleFooterSum = (index) => {
+    const setFooterCalculationMode = (index, mode) => {
+        const allowed = new Set(["sum", "count", "none"]);
+        const normalizedMode = allowed.has(mode) ? mode : "sum";
         const alignedFooter = spreadsheet.headers.map((_, idx) => {
-            if (typeof spreadsheet.footerSumEnabled?.[idx] === "boolean") {
-                return spreadsheet.footerSumEnabled[idx];
+            const raw = spreadsheet.footerCalculations?.[idx];
+            if (raw === "sum" || raw === "count" || raw === "none") {
+                return raw;
             }
-            return true;
+            return "sum";
         });
         const newFooter = [...alignedFooter];
-        newFooter[index] = !newFooter[index];
-        setSpreadsheet({ ...spreadsheet, footerSumEnabled: newFooter });
+        newFooter[index] = normalizedMode;
+        setSpreadsheet({ ...spreadsheet, footerCalculations: newFooter });
     };
 
     const updateFilter = (index, value) => {
@@ -244,6 +251,21 @@ export default function ProveedorDetalle() {
             if (!isNaN(val)) sum += val;
         });
         return sum.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' });
+    };
+
+    const calculateColCount = (colIndex) => {
+        let count = 0;
+        spreadsheet.rows.forEach(row => {
+            const raw = row[colIndex];
+            if (raw === 0) {
+                count += 1;
+                return;
+            }
+            if (raw === null || raw === undefined) return;
+            if (raw.toString().trim() === "") return;
+            count += 1;
+        });
+        return count;
     };
 
     if (loading) return <div style={{ padding: 40 }}>Cargando...</div>;
@@ -411,31 +433,43 @@ export default function ProveedorDetalle() {
                                 <td style={{ padding: 12, borderRight: "1px solid #e2e8f0" }}>∑</td>
                                 {spreadsheet.headers.map((h, i) => (
                                     <td key={i} style={{ padding: 12, borderRight: "1px solid #e2e8f0", textAlign: "right" }}>
-                                        {spreadsheet.footerSumEnabled?.[i] ? (
-                                            <>
-                                                <div style={{ fontSize: "0.7rem", color: "#94a3b8", textTransform: "uppercase", marginBottom: 2 }}>Suma Total</div>
-                                                <div>{calculateColSum(i)}</div>
-                                                <button
-                                                    id="print-controls"
-                                                    onClick={() => toggleFooterSum(i)}
-                                                    style={{ marginTop: 6, background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "0.75rem" }}
-                                                >
-                                                    Quitar suma
-                                                </button>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <div style={{ fontSize: "0.7rem", color: "#94a3b8", textTransform: "uppercase", marginBottom: 2 }}>Sin cálculo</div>
-                                                <div style={{ color: "#cbd5e1", fontWeight: 600 }}>—</div>
-                                                <button
-                                                    id="print-controls"
-                                                    onClick={() => toggleFooterSum(i)}
-                                                    style={{ marginTop: 6, background: "transparent", border: "none", color: "#16a34a", cursor: "pointer", fontSize: "0.75rem" }}
-                                                >
-                                                    Mostrar suma
-                                                </button>
-                                            </>
-                                        )}
+                                        {(() => {
+                                            const mode = spreadsheet.footerCalculations?.[i] || "sum";
+                                            if (mode === "sum") {
+                                                return (
+                                                    <>
+                                                        <div style={{ fontSize: "0.7rem", color: "#94a3b8", textTransform: "uppercase", marginBottom: 2 }}>Suma Total</div>
+                                                        <div>{calculateColSum(i)}</div>
+                                                    </>
+                                                );
+                                            }
+                                            if (mode === "count") {
+                                                return (
+                                                    <>
+                                                        <div style={{ fontSize: "0.7rem", color: "#94a3b8", textTransform: "uppercase", marginBottom: 2 }}>Conteo Activos</div>
+                                                        <div style={{ fontSize: "1.1rem" }}>{calculateColCount(i)}</div>
+                                                    </>
+                                                );
+                                            }
+                                            return (
+                                                <>
+                                                    <div style={{ fontSize: "0.7rem", color: "#94a3b8", textTransform: "uppercase", marginBottom: 2 }}>Sin cálculo</div>
+                                                    <div style={{ color: "#cbd5e1", fontWeight: 600 }}>—</div>
+                                                </>
+                                            );
+                                        })()}
+                                        <div id="print-controls" style={{ marginTop: 8 }}>
+                                            <label style={{ display: "block", fontSize: "0.65rem", color: "#94a3b8", textTransform: "uppercase", marginBottom: 2 }}>Modo</label>
+                                            <select
+                                                value={spreadsheet.footerCalculations?.[i] || "sum"}
+                                                onChange={(e) => setFooterCalculationMode(i, e.target.value)}
+                                                style={{ width: "100%", padding: "4px 6px", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: "0.75rem", background: "white" }}
+                                            >
+                                                <option value="sum">Suma</option>
+                                                <option value="count">Conteo</option>
+                                                <option value="none">Sin cálculo</option>
+                                            </select>
+                                        </div>
                                     </td>
                                 ))}
                                 <td id="print-controls"></td>
