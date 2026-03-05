@@ -22,7 +22,7 @@ engine = create_engine(
     connect_args=connect_args
 )
 
-print(f"📡 CONECTADO A: {DATABASE_URL.split('://')[0]}://*** (Persistence: {'OK' if not is_sqlite else 'NO - Ephemeral'})")
+print(f"CONECTADO A: {DATABASE_URL.split('://')[0]}://*** (Persistence: {'OK' if not is_sqlite else 'NO - Ephemeral'})")
 
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 

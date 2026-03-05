@@ -73,8 +73,22 @@ export default function AdminCalendar() {
     }
   }
 
+  const runMigrate = async () => {
+    if (!window.confirm("Ejecutar migración de eventos privados?")) return;
+    try {
+      await api.post("/debug/migrate-privado");
+      alert("Migración ejecutada. Recargá la página.");
+      cargar();
+    } catch (e) {
+      alert("Error: " + e.message);
+    }
+  };
+
   return (
     <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden" }}>
+      <button onClick={runMigrate} style={{ position: "absolute", top: 10, right: 10, zIndex: 9999, fontSize: 10, padding: "4px 8px" }}>
+        Migrar BD
+      </button>
       {isMobile ? (
         <MobileDayView resources={resources} events={events} loading={loading} />
       ) : (
