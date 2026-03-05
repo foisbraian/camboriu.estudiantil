@@ -58,9 +58,6 @@ export default function Hoteleria() {
             <section style={{ marginBottom: 30 }}>
                 <p style={{ letterSpacing: "0.3em", fontSize: "0.75rem", textTransform: "uppercase", color: "rgba(248,250,252,0.7)" }}>Operaciones</p>
                 <h1 style={{ margin: 0, fontSize: "2.8rem", fontWeight: 800 }}>🏨 Hotelería</h1>
-                <p style={{ maxWidth: 600, lineHeight: 1.5, color: "rgba(248,250,252,0.85)" }}>
-                    Centralizamos las planillas de cada hotel para coordinar rooming, amenities y extras con la misma lógica flexible de proveedores.
-                </p>
             </section>
 
             <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 24, alignItems: "flex-start" }}>
@@ -109,7 +106,7 @@ export default function Hoteleria() {
                             hideBackButton
                             customTitle={`Hotel ${selectedHotel.proveedor.nombre}`}
                             subheading="Gestioná habitaciones, amenities y extras desde una sola planilla"
-                            containerStyle={{ padding: 0, background: "transparent" }}
+                            containerStyle={{ padding: "28px 36px", background: "transparent" }}
                         />
                     ) : (
                         <div style={{ padding: 60, textAlign: "center", color: "#64748b" }}>
