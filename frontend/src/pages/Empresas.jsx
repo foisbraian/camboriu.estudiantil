@@ -112,13 +112,15 @@ export default function Empresas() {
                 {e.codigo_acceso}
               </span>
               <button
-                onClick={() => {
-                  navigator.clipboard.writeText(e.codigo_acceso);
-                  alert("Código copiado: " + e.codigo_acceso);
+                onClick={(event) => {
+                  event.stopPropagation();
+                  const link = `https://camboriu-estudiantil-front.vercel.app/portal/${e.codigo_acceso}`;
+                  navigator.clipboard.writeText(link);
+                  alert(`Link copiado: ${link}`);
                 }}
                 style={{ padding: "4px 8px", fontSize: "0.8rem", background: "#f0f0f0", border: "1px solid #ccc" }}
               >
-                Copiar
+                Copiar link
               </button>
             </div>
           </div>
