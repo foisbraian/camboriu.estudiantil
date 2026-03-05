@@ -344,11 +344,11 @@ export default function EmpresaDetalle() {
   }, [cargar]);
 
   function set(k, v) {
-    setForm({ ...form, [k]: v });
+    setForm(prev => ({ ...prev, [k]: v }));
   }
 
   function setEdit(k, v) {
-    setEditForm({ ...editForm, [k]: v });
+    setEditForm(prev => ({ ...prev, [k]: v }));
   }
 
   async function crearGrupo(e) {
