@@ -4,6 +4,7 @@ import api from "../api";
 
 export default function Login() {
     const [pass, setPass] = useState("");
+    const [showPass, setShowPass] = useState(false);
     const [loading, setLoading] = useState(false);
     const [role, setRole] = useState("admin");
     const navigate = useNavigate();
@@ -145,7 +146,7 @@ export default function Login() {
 
                 <div style={{ position: "relative", marginBottom: 20 }}>
                     <input
-                        type="password"
+                        type={showPass ? "text" : "password"}
                         placeholder="Introduce tu contraseña"
                         value={pass}
                         onChange={(e) => setPass(e.target.value)}
@@ -159,10 +160,32 @@ export default function Login() {
                             color: "white",
                             fontSize: "1rem",
                             outline: "none",
-                            transition: "all 0.3s ease",
-                            boxSizing: "border-box"
+                             transition: "all 0.3s ease",
+                             boxSizing: "border-box",
+                             paddingRight: 60
+                         }}
+                     />
+                    <button
+                        type="button"
+                        onClick={() => setShowPass((prev) => !prev)}
+                        style={{
+                            position: "absolute",
+                            top: "50%",
+                            right: 12,
+                            transform: "translateY(-50%)",
+                            background: "rgba(15, 23, 42, 0.4)",
+                            border: "1px solid rgba(255, 255, 255, 0.1)",
+                            color: "white",
+                            fontSize: "0.8rem",
+                            padding: "6px 10px",
+                            borderRadius: 999,
+                            cursor: "pointer",
+                            letterSpacing: "0.05em",
+                            textTransform: "uppercase"
                         }}
-                    />
+                    >
+                        {showPass ? "Ocultar" : "Ver"}
+                    </button>
                 </div>
 
                 <button
