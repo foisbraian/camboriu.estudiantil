@@ -50,7 +50,8 @@ export default function PlanillaProveedor({
     subheading,
     extraHeaderContent = null,
     containerStyle = {},
-    showFooterNote = true
+    showFooterNote = true,
+    showPrintButton = true
 }) {
     const [proveedor, setProveedor] = useState(null);
     const [spreadsheet, setSpreadsheet] = useState(initialSpreadsheetState);
@@ -314,9 +315,11 @@ export default function PlanillaProveedor({
                     <button onClick={exportToExcel} style={{ background: "#f1f5f9", color: "#0f172a", padding: "10px 20px", border: "1px solid #cbd5e1", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>
                         ⬇️ Exportar Excel
                     </button>
-                    <button onClick={() => window.print()} style={{ background: "#10b981", color: "white", padding: "10px 20px", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>
-                        🖨️ Imprimir Planilla
-                    </button>
+                    {showPrintButton && (
+                        <button onClick={() => window.print()} style={{ background: "#10b981", color: "white", padding: "10px 20px", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>
+                            🖨️ Imprimir Planilla
+                        </button>
+                    )}
                 </div>
             </div>
 

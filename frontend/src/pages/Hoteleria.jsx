@@ -107,6 +107,7 @@ export default function Hoteleria() {
                             customTitle={`Hotel ${selectedHotel.proveedor.nombre}`}
                             subheading="Gestioná habitaciones, amenities y extras desde una sola planilla"
                             containerStyle={{ padding: "28px 36px", background: "transparent" }}
+                            showPrintButton={false}
                         />
                     ) : (
                         <div style={{ padding: 60, textAlign: "center", color: "#64748b" }}>
