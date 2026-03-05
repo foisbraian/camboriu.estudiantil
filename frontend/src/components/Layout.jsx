@@ -21,6 +21,7 @@ export default function Layout() {
         { label: "🎉 Eventos", path: "/eventos" },
         { label: "🎨 Temáticas", path: "/tematicas" },
         { label: "💰 Finanzas", path: "/finanzas" },
+        { label: "🏨 Hotelería", path: "/hoteleria" },
         { label: "🤝 Proveedores", path: "/proveedores" },
         { label: "🧾 Planilla Vouchers", path: "/vouchers/planilla" },
         { label: "📲 Validar QR", path: "/panel/validar" },

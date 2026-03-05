@@ -17,6 +17,7 @@ import ImprimirTodosVouchers from "./pages/ImprimirTodosVouchers";
 import Proveedores from "./pages/Proveedores";
 import ProveedorDetalle from "./pages/ProveedorDetalle";
 import VouchersPlanilla from "./pages/VouchersPlanilla";
+import Hoteleria from "./pages/Hoteleria";
 
 const hasStoredRole = (role) => {
   const storedRole = localStorage.getItem("auth_role");
@@ -92,6 +93,7 @@ export default function App() {
           <Route path="/proveedores" element={<Proveedores />} />
           <Route path="/proveedores/:id" element={<ProveedorDetalle />} />
           <Route path="/vouchers/planilla" element={<VouchersPlanilla />} />
+          <Route path="/hoteleria" element={<Hoteleria />} />
         </Route>
 
         {/* Rutas Públicas */}
