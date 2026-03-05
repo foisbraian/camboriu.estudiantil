@@ -3,9 +3,9 @@ import PlanillaProveedor from "../components/PlanillaProveedor";
 import api from "../api";
 
 const HOTEL_CATALOG = [
-    { key: "bhally", nombre: "BHALLY", descripcion: "Frente al mar, ideal para grupos grandes", color: "#0ea5e9" },
-    { key: "hbiin", nombre: "HBIIN", descripcion: "Estilo boutique, habitaciones premium", color: "#f97316" },
-    { key: "suiza", nombre: "SUIZA FABER", descripcion: "Experiencia clásica con servicio cálido", color: "#a855f7" }
+    { key: "bhally", nombre: "BHALLY", color: "#0ea5e9" },
+    { key: "hbiin", nombre: "HBIIN", color: "#f97316" },
+    { key: "suiza", nombre: "SUIZA FABER", color: "#a855f7" }
 ];
 
 export default function Hoteleria() {
@@ -82,7 +82,6 @@ export default function Hoteleria() {
                                     }}
                                 >
                                     <div style={{ fontWeight: 700, fontSize: "1.1rem" }}>{hotel.nombre}</div>
-                                    <p style={{ margin: "4px 0 0", fontSize: "0.85rem", color: "rgba(248,250,252,0.7)" }}>{hotel.descripcion}</p>
                                 </button>
                             );
                         })}
