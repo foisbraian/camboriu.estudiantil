@@ -231,9 +231,12 @@ const DateRangeField = ({
                       const inRange = isBetween(day, tempRange.start, tempRange.end);
                       return (
                         <button
-                          key={`${label}-${day.toISOString()}`}
+                          key={day.getTime()}
                           type="button"
-                          onClick={() => handleDayClick(day)}
+                          onClick={() => {
+                            console.log("Clicked day:", day);
+                            handleDayClick(day);
+                          }}
                           style={{
                             height: 40,
                             borderRadius: selectedStart || selectedEnd ? 12 : 8,
