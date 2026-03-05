@@ -90,21 +90,6 @@ def login(body: LoginBody):
     token = token_map.get(resolved_role, "admin_granted")
     return {"auth": True, "token": token, "role": resolved_role}
 
-@app.post("/debug/migrate-privado")
-def migrar_privado():
-    from sqlalchemy import text
-    with engine.connect() as conn:
-        try:
-            conn.execute(text("ALTER TABLE fechas_evento ADD COLUMN es_privado BOOLEAN DEFAULT FALSE"))
-        except Exception:
-            pass
-        try:
-            conn.execute(text("ALTER TABLE fechas_evento ADD COLUMN empresa_privada_id INTEGER REFERENCES empresas(id)"))
-        except Exception:
-            pass
-        conn.commit()
-    return {"ok": True}
-
 app.include_router(empresas.router)
 app.include_router(grupos.router)
 app.include_router(eventos.router)

@@ -149,7 +149,8 @@ def calendario(db: Session = Depends(get_db)):
                 "tematica_nombre": f.tematica.nombre if f.tematica else None,
                 "es_privado": f.es_privado,
                 "empresa_privada_id": f.empresa_privada_id,
-                "empresa_privada_nombre": f.empresa_privada.nombre if f.empresa_privada else None
+                "empresa_privada_nombre": f.empresa_privada.nombre if f.empresa_privada else None,
+                "empresa_privada": f.empresa_privada.nombre if f.empresa_privada else None
             }
         })
 

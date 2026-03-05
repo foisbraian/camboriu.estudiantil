@@ -184,7 +184,8 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
   };
 
   const getEmpresaIdFromResource = useCallback((resourceId) => {
-    const resource = resources.find((res) => res.id === resourceId);
+    const resourceIdStr = String(resourceId);
+    const resource = resources.find((res) => String(res.id) === resourceIdStr);
     if (!resource) return null;
     if (resource.extendedProps?.empresaId) {
       return resource.extendedProps.empresaId;
@@ -317,14 +318,16 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
 
     const resourceId = info.resource?.id;
     if (!resourceId) return;
-    if (typeof resourceId === "string" && resourceId.startsWith("empresa-")) {
+    
+    const resourceIdStr = String(resourceId);
+    if (resourceIdStr.startsWith("empresa-")) {
       return;
     }
 
     const fechaISO = info.dateStr;
 
     // A. CLIC EN FILA DE EVENTOS GLOBAL (No debería pasar mucho si está lleno, pero por si acaso)
-    if (resourceId === "eventos") {
+    if (resourceIdStr === "eventos") {
       abrirNuevoGlobal(info.date);
       return;
     }
@@ -611,7 +614,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
                     // Buscamos en localEvents
                     const instancia = localEvents.find(e =>
                       e.resourceId === "eventos" &&
-                      e.extendedProps?.evento_id === ev.id &&
+                      Number(e.extendedProps?.evento_id) === Number(ev.id) &&
                       e.start.startsWith(selectedDate)
                     );
 
