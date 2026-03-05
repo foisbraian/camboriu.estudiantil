@@ -234,12 +234,13 @@ export default function PlanillaProveedor({
             });
         });
 
-    const formatCSVValue = (value) => {
+    const escapeHTML = (value) => {
         const str = (value ?? "").toString();
-        if (/[",\n]/.test(str)) {
-            return `"${str.replace(/"/g, '""')}"`;
-        }
-        return str;
+        return str
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
     };
 
     const exportToExcel = () => {
@@ -247,16 +248,18 @@ export default function PlanillaProveedor({
             alert("No hay datos para exportar");
             return;
         }
-        const headerRow = spreadsheet.headers.map(formatCSVValue).join(",");
-        const dataRows = spreadsheet.rows.map((row) => row.map(formatCSVValue).join(","));
-        const csvContent = [headerRow, ...dataRows].join("\n");
-        const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+        const tableHeader = `<tr>${spreadsheet.headers.map((h) => `<th style="font-weight:bold; background:#f8fafc;">${escapeHTML(h)}</th>`).join("")}</tr>`;
+        const tableRows = spreadsheet.rows
+            .map((row) => `<tr>${row.map((cell) => `<td>${escapeHTML(cell)}</td>`).join("")}</tr>`)
+            .join("");
+        const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8" /></head><body><table border="1" style="border-collapse:collapse;">${tableHeader}${tableRows}</table></body></html>`;
+        const blob = new Blob([htmlContent], { type: "application/vnd.ms-excel" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         const safeName = proveedor?.nombre ? proveedor.nombre.replace(/[^a-zA-Z0-9-_]/g, "_") : "planilla";
         const date = new Date().toISOString().split("T")[0];
         link.href = url;
-        link.download = `${safeName}-${date}.csv`;
+        link.download = `${safeName}-${date}.xls`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
