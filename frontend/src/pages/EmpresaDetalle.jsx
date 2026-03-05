@@ -88,8 +88,10 @@ const DateRangeField = ({
   }, [start, end, isOpen]);
 
   const handleDayClick = (day) => {
+    console.log("handleDayClick called, tempRange:", tempRange);
     const dayDate = new Date(day.getFullYear(), day.getMonth(), day.getDate());
     if (!tempRange.start || (tempRange.start && tempRange.end)) {
+      console.log("Setting START:", formatISODate(dayDate));
       setTempRange({ start: dayDate, end: null });
       onStartChange(formatISODate(dayDate));
       onEndChange("");
@@ -353,6 +355,7 @@ export default function EmpresaDetalle() {
   }, [cargar]);
 
   function set(k, v) {
+    console.log("set called:", k, v);
     setForm({ ...form, [k]: v });
   }
 
