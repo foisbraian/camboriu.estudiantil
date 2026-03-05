@@ -298,7 +298,7 @@ export default function PlanillaProveedor({
     const subtitle = subheading || "Planilla personalizada estilo Excel";
 
     return (
-        <div style={{ padding: "30px 40px", height: "100%", overflowY: "auto", ...containerStyle }}>
+        <div className="planilla-proveedor" style={{ padding: "30px 40px", height: "100%", overflowY: "auto", ...containerStyle }}>
 
             {(!hideBackButton && onBack) && (
                 <div style={{ marginBottom: 10 }}>

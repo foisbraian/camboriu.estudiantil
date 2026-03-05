@@ -54,14 +54,14 @@ export default function Hoteleria() {
     const selectedHotel = hoteles[selectedKey];
 
     return (
-        <div style={{ minHeight: "100%", padding: "30px 40px", background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 35%, #312e81 100%)", color: "white" }}>
-            <section style={{ marginBottom: 30 }}>
+        <div className="hoteleria-shell" style={{ minHeight: "100%", padding: "30px 40px", background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 35%, #312e81 100%)", color: "white" }}>
+            <section className="hoteleria-hero" style={{ marginBottom: 30 }}>
                 <p style={{ letterSpacing: "0.3em", fontSize: "0.75rem", textTransform: "uppercase", color: "rgba(248,250,252,0.7)" }}>Operaciones</p>
                 <h1 style={{ margin: 0, fontSize: "2.8rem", fontWeight: 800 }}>🏨 Hotelería</h1>
             </section>
 
             <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 24, alignItems: "flex-start" }}>
-                <div style={{ background: "rgba(15,23,42,0.65)", borderRadius: 18, padding: 18, boxShadow: "0 20px 45px rgba(15,15,42,0.35)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                <div className="hoteleria-sidebar" style={{ background: "rgba(15,23,42,0.65)", borderRadius: 18, padding: 18, boxShadow: "0 20px 45px rgba(15,15,42,0.35)", border: "1px solid rgba(255,255,255,0.08)" }}>
                     <p style={{ margin: "0 0 12px 0", fontSize: "0.85rem", letterSpacing: "0.08em", color: "rgba(248,250,252,0.7)", textTransform: "uppercase" }}>Hoteles</p>
                     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                         {HOTEL_CATALOG.map((hotel) => {
@@ -92,7 +92,7 @@ export default function Hoteleria() {
                     </div>
                 </div>
 
-                <div style={{ background: "white", borderRadius: 28, boxShadow: "0 30px 80px rgba(15,23,42,0.25)", overflow: "hidden" }}>
+                <div className="hoteleria-planilla" style={{ background: "white", borderRadius: 28, boxShadow: "0 30px 80px rgba(15,23,42,0.25)", overflow: "hidden" }}>
                     {error && (
                         <div style={{ padding: 20, background: "#fee2e2", color: "#b91c1c", fontWeight: 600 }}>
                             {error}
@@ -115,6 +115,15 @@ export default function Hoteleria() {
                     )}
                 </div>
             </div>
+            <style>{`
+                @media print {
+                    body, html { background: white !important; }
+                    .hoteleria-shell { padding: 0 !important; background: white !important; }
+                    .hoteleria-hero, .hoteleria-sidebar { display: none !important; }
+                    .hoteleria-planilla { box-shadow: none !important; border-radius: 0 !important; }
+                    .planilla-proveedor { padding: 0 !important; }
+                }
+            `}</style>
         </div>
     );
 }
