@@ -234,36 +234,25 @@ export default function PlanillaProveedor({
             });
         });
 
-    const escapeHTML = (value) => {
-        const str = (value ?? "").toString();
-        return str
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;");
-    };
-
-    const exportToExcel = () => {
-        if (!spreadsheet.headers.length) {
-            alert("No hay datos para exportar");
-            return;
+    const exportToExcel = async () => {
+        if (!proveedorId) return;
+        try {
+            const response = await api.get(`/proveedores/${proveedorId}/excel`, { responseType: "blob" });
+            const blob = new Blob([response.data], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            const timestamp = new Date().toISOString().split("T")[0];
+            const safeName = (proveedor?.nombre || "planilla").replace(/[^a-zA-Z0-9-_]/g, "_");
+            link.href = url;
+            link.download = `${safeName}-${timestamp}.xlsx`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error("No se pudo exportar planilla", err);
+            alert("No pudimos exportar la planilla. Intenta nuevamente.");
         }
-        const tableHeader = `<tr>${spreadsheet.headers.map((h) => `<th style="font-weight:bold; background:#f8fafc;">${escapeHTML(h)}</th>`).join("")}</tr>`;
-        const tableRows = spreadsheet.rows
-            .map((row) => `<tr>${row.map((cell) => `<td>${escapeHTML(cell)}</td>`).join("")}</tr>`)
-            .join("");
-        const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8" /></head><body><table border="1" style="border-collapse:collapse;">${tableHeader}${tableRows}</table></body></html>`;
-        const blob = new Blob([htmlContent], { type: "application/vnd.ms-excel" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        const safeName = proveedor?.nombre ? proveedor.nombre.replace(/[^a-zA-Z0-9-_]/g, "_") : "planilla";
-        const date = new Date().toISOString().split("T")[0];
-        link.href = url;
-        link.download = `${safeName}-${date}.xls`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
     };
 
     const calculateColSum = (colIndex) => {
@@ -337,7 +326,7 @@ export default function PlanillaProveedor({
                 </div>
             )}
 
-            <div style={{ background: "white", borderRadius: 16, boxShadow: "0 10px 30px rgba(0,0,0,0.06)", overflow: "hidden", border: "1px solid #e2e8f0" }}>
+            <div className="planilla-proveedor__table" style={{ background: "white", borderRadius: 16, boxShadow: "0 10px 30px rgba(0,0,0,0.06)", overflow: "hidden", border: "1px solid #e2e8f0" }}>
 
                 <div style={{ overflowX: "auto" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 600 }}>
@@ -516,6 +505,35 @@ export default function PlanillaProveedor({
                 </p>
             )}
 
+            <style>{`
+                @media print {
+                    .planilla-proveedor {
+                        padding: 0 !important;
+                        overflow: visible !important;
+                        background: white !important;
+                    }
+                    .planilla-proveedor__table {
+                        border-radius: 0 !important;
+                        box-shadow: none !important;
+                    }
+                    .planilla-proveedor table {
+                        min-width: auto !important;
+                        width: 100% !important;
+                    }
+                    .planilla-proveedor #print-controls,
+                    .planilla-proveedor button {
+                        display: none !important;
+                    }
+                    .planilla-proveedor input,
+                    .planilla-proveedor select {
+                        border: none !important;
+                        background: transparent !important;
+                        box-shadow: none !important;
+                        pointer-events: none !important;
+                        color: #0f172a !important;
+                    }
+                }
+            `}</style>
         </div>
     );
 }
