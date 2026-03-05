@@ -557,20 +557,22 @@ def editar_fecha_evento(fecha_evento_id: int, body: EditarFechaEventoBody, db: S
     setattr(f, "con_alcohol", body.con_alcohol)
     setattr(f, "tematica_id", body.tematica_id)
 
+    # Solo cambiar es_privado/empresa_privada_id si hay un cambio real
+    # NO borrar asignaciones al marcar como privado
     if body.es_privado:
         if not body.empresa_privada_id:
             raise HTTPException(400, "Selecciona una empresa para eventos privados")
-        if f.asignaciones and body.empresa_privada_id != f.empresa_privada_id:
-            raise HTTPException(400, "Quita las asignaciones antes de cambiar la empresa del evento privado")
         empresa = db.get(models.Empresa, body.empresa_privada_id)
         if not empresa:
             raise HTTPException(400, "Empresa no válida")
-        for asig in f.asignaciones:
-            if asig.grupo and asig.grupo.empresa_id != body.empresa_privada_id:
-                raise HTTPException(400, "Hay grupos de otra empresa asignados. Eliminá esas asignaciones antes de marcar como privado.")
         setattr(f, "es_privado", True)
         setattr(f, "empresa_privada_id", body.empresa_privada_id)
     else:
+        # Si se está quitando lo privado, verificar que no haya grupos de otras empresas
+        if f.es_privado and f.empresa_privada_id:
+            for asig in f.asignaciones:
+                if asig.grupo and asig.grupo.empresa_id != f.empresa_privada_id:
+                    raise HTTPException(400, "Hay grupos de otra empresa asignados. Eliminá esas asignaciones antes de quitar lo privado.")
         setattr(f, "es_privado", False)
         setattr(f, "empresa_privada_id", None)
 

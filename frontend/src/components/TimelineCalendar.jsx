@@ -630,9 +630,13 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
                     }
 
                     const esPrivadoEvento = Boolean(instancia?.extendedProps?.es_privado);
-                    const empresaPrivadaEvento = instancia?.extendedProps?.empresa_privada_id ?? null;
+                    const empresaPrivadaEvento = instancia?.extendedProps?.empresa_privada_id != null 
+                      ? Number(instancia.extendedProps.empresa_privada_id) 
+                      : null;
+                    const empresaObjId = empresaObjetivo != null ? Number(empresaObjetivo) : null;
+                    
                     if (grupoAsignando && esPrivadoEvento) {
-                      if (!empresaObjetivo || empresaPrivadaEvento !== empresaObjetivo) {
+                      if (!empresaObjId || empresaPrivadaEvento !== empresaObjId) {
                         return null;
                       }
                     }
