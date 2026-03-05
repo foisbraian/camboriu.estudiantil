@@ -88,26 +88,18 @@ const DateRangeField = ({
   }, [start, end, isOpen]);
 
   const handleDayClick = (day) => {
-    console.log("handleDayClick called, tempRange:", tempRange);
     const dayDate = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+    let newRange;
     if (!tempRange.start || (tempRange.start && tempRange.end)) {
-      console.log("Setting START:", formatISODate(dayDate));
-      setTempRange({ start: dayDate, end: null });
-      onStartChange(formatISODate(dayDate));
-      onEndChange("");
-      return;
+      newRange = { start: dayDate, end: null };
+    } else if (dayDate < tempRange.start) {
+      newRange = { start: dayDate, end: tempRange.start };
+    } else {
+      newRange = { start: tempRange.start, end: dayDate };
     }
-    if (dayDate < tempRange.start) {
-      const newRange = { start: dayDate, end: tempRange.start };
-      setTempRange(newRange);
-      onStartChange(formatISODate(newRange.start));
-      onEndChange(formatISODate(newRange.end));
-      return;
-    }
-    const newRange = { start: tempRange.start, end: dayDate };
     setTempRange(newRange);
     onStartChange(formatISODate(newRange.start));
-    onEndChange(formatISODate(newRange.end));
+    onEndChange(formatISODate(newRange.end || ""));
   };
 
   const clearRange = () => {
@@ -235,10 +227,7 @@ const DateRangeField = ({
                         <button
                           key={day.getTime()}
                           type="button"
-                          onClick={() => {
-                            console.log("Clicked day:", day);
-                            handleDayClick(day);
-                          }}
+                          onClick={() => handleDayClick(day)}
                           style={{
                             height: 40,
                             borderRadius: selectedStart || selectedEnd ? 12 : 8,
@@ -355,7 +344,6 @@ export default function EmpresaDetalle() {
   }, [cargar]);
 
   function set(k, v) {
-    console.log("set called:", k, v);
     setForm({ ...form, [k]: v });
   }
 
