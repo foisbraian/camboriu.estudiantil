@@ -81,6 +81,8 @@ class FechaEventoCreate(BaseModel):
     fecha: date  # solo date, Pydantic convertirá "YYYY-MM-DD"
     con_alcohol: bool = False
     tematica_id: Union[int, None] = None  # opcional, solo para discos
+    es_privado: bool = False
+    empresa_privada_id: Union[int, None] = None
 
 
 # ========= ASIGNACION =========

@@ -1,9 +1,13 @@
+"""Rutas del calendario."""
+# pyright: reportGeneralTypeIssues=false
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
 import models
 from datetime import timedelta, date
 from pydantic import BaseModel
+from typing import Optional, Any, cast
 
 router = APIRouter(prefix="/calendario", tags=["Calendario"])
 
@@ -22,7 +26,9 @@ class EditarFechaEventoBody(BaseModel):
     evento_id: int
     fecha_nueva: date
     con_alcohol: bool
-    tematica_id: int = None
+    tematica_id: Optional[int] = None
+    es_privado: bool = False
+    empresa_privada_id: Optional[int] = None
 
 
 # =========================================================
@@ -91,9 +97,13 @@ def calendario(db: Session = Depends(get_db)):
 
         color = "red" if f.con_alcohol else color_map.get(f.evento.tipo, "gray")
         
-        # Text Color: Black if fondo claro
-        text_color = "black" if color in ("yellow", "#e2e8f0") else "white"
-
+        if f.es_privado:
+            color = "#ede9fe"
+            text_color = "#4c1d95"
+        else:
+            # Text Color: Black if fondo claro
+            text_color = "black" if color in ("yellow", "#e2e8f0") else "white"
+        
         # Calcular ocupación (Sumar PAX de los grupos asignados)
         ocupacion = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo)
         capacidad = f.evento.capacidad_maxima
@@ -114,12 +124,16 @@ def calendario(db: Session = Depends(get_db)):
         if f.tematica:
             titulo += f"\n{f.tematica.nombre}"
         
+        titulo_extra = ""
+        if f.es_privado and f.empresa_privada:
+            titulo_extra = f"\nPrivado: {f.empresa_privada.nombre}"
+
         events.append({
             "id": f"id-{f.id}",
             "resourceId": "eventos",
             "start": f.fecha,
             "end": f.fecha + timedelta(days=1),
-            "title": titulo, 
+            "title": titulo + titulo_extra, 
             "backgroundColor": color,
             "textColor": text_color,
             "extendedProps": {
@@ -132,7 +146,10 @@ def calendario(db: Session = Depends(get_db)):
                 "con_comida": con_comida,
                 "sin_comida": sin_comida,
                 "tematica_id": f.tematica_id,
-                "tematica_nombre": f.tematica.nombre if f.tematica else None
+                "tematica_nombre": f.tematica.nombre if f.tematica else None,
+                "es_privado": f.es_privado,
+                "empresa_privada_id": f.empresa_privada_id,
+                "empresa_privada_nombre": f.empresa_privada.nombre if f.empresa_privada else None
             }
         })
 
@@ -372,6 +389,9 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
             color_map = {"DISCO": "yellow", "PARQUE": "green", "POOL": "skyblue", "CENA": "#e2e8f0"}
             color = "red" if f.con_alcohol else color_map.get(f.evento.tipo, "gray")
             text_color = "black" if color in ("yellow", "#e2e8f0") else "white"
+            if f.es_privado:
+                color = "#ede9fe"
+                text_color = "#4c1d95"
 
             # Opcional: Ocultar ocupacion real total? 
             # El usuario dijo: "vean solo su programación... con el nombre y todo"
@@ -383,12 +403,16 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
             if f.tematica:
                 titulo_portal += f"\n{f.tematica.nombre}"
             
+            titulo_extra = ""
+            if f.es_privado and f.empresa_privada:
+                titulo_extra = f"\nPrivado: {f.empresa_privada.nombre}"
+
             events.append({
                 "id": f"id-{f.id}",
                 "resourceId": "eventos",
                 "start": f.fecha,
                 "end": f.fecha + timedelta(days=1),
-                "title": titulo_portal, 
+                "title": titulo_portal + titulo_extra, 
                 "backgroundColor": color,
                 "textColor": text_color,
                 "extendedProps": {"tipo": "global_readonly"}
@@ -406,7 +430,10 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
     fecha = body.fecha
     evento_id = body.evento_id
 
-    grupo = db.get(models.Grupo, grupo_id)
+    grupo_obj = db.get(models.Grupo, grupo_id)
+    if not grupo_obj:
+        raise HTTPException(404, "Grupo no encontrado")
+    grupo = cast(Any, grupo_obj)
 
     if not (grupo.fecha_entrada <= fecha < grupo.fecha_salida):
         raise HTTPException(400, "Fuera de estadía")
@@ -417,6 +444,12 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
 
     if not nuevo_evento_fecha:
         raise HTTPException(400, "No existe evento ese día")
+
+    if nuevo_evento_fecha.es_privado:
+        if not nuevo_evento_fecha.empresa_privada_id:
+            raise HTTPException(400, "Este evento privado no tiene empresa asociada")
+        if grupo.empresa_id != nuevo_evento_fecha.empresa_privada_id:
+            raise HTTPException(400, "Evento privado reservado para otra empresa")
 
     tipo_nuevo = nuevo_evento_fecha.evento.tipo
 
@@ -511,17 +544,35 @@ def eliminar_asignacion(grupo_id: int, body: AsignarEventoBody, db: Session = De
 # =========================================================
 @router.put("/fecha/{fecha_evento_id}")
 def editar_fecha_evento(fecha_evento_id: int, body: EditarFechaEventoBody, db: Session = Depends(get_db)):
-    f = db.get(models.FechaEvento, fecha_evento_id)
-    if not f:
+    f_obj = db.get(models.FechaEvento, fecha_evento_id)
+    if not f_obj:
         raise HTTPException(404, "FechaEvento no encontrada")
+    f = cast(Any, f_obj)
 
     # Actualizar campos
     antiguo_con_alcohol = f.con_alcohol
-    f.evento_id = body.evento_id
+    setattr(f, "evento_id", body.evento_id)
     if body.fecha_nueva:
-        f.fecha = body.fecha_nueva
-    f.con_alcohol = body.con_alcohol
-    f.tematica_id = body.tematica_id
+        setattr(f, "fecha", body.fecha_nueva)
+    setattr(f, "con_alcohol", body.con_alcohol)
+    setattr(f, "tematica_id", body.tematica_id)
+
+    if body.es_privado:
+        if not body.empresa_privada_id:
+            raise HTTPException(400, "Selecciona una empresa para eventos privados")
+        if f.asignaciones and body.empresa_privada_id != f.empresa_privada_id:
+            raise HTTPException(400, "Quita las asignaciones antes de cambiar la empresa del evento privado")
+        empresa = db.get(models.Empresa, body.empresa_privada_id)
+        if not empresa:
+            raise HTTPException(400, "Empresa no válida")
+        for asig in f.asignaciones:
+            if asig.grupo and asig.grupo.empresa_id != body.empresa_privada_id:
+                raise HTTPException(400, "Hay grupos de otra empresa asignados. Eliminá esas asignaciones antes de marcar como privado.")
+        setattr(f, "es_privado", True)
+        setattr(f, "empresa_privada_id", body.empresa_privada_id)
+    else:
+        setattr(f, "es_privado", False)
+        setattr(f, "empresa_privada_id", None)
 
     # Lógica: Si cambia el estado de alcohol, quitar grupos incompatibles
     if f.con_alcohol != antiguo_con_alcohol:

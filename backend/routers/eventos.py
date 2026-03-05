@@ -31,7 +31,16 @@ def crear_evento(data: schemas.EventoCreate, db: Session = Depends(get_db)):
 # =====================================
 @router.post("/fecha")
 def crear_fecha_evento(data: schemas.FechaEventoCreate, db: Session = Depends(get_db)):
-    f = models.FechaEvento(**data.dict())
+    payload = data.dict()
+    if data.es_privado:
+        if not data.empresa_privada_id:
+            raise HTTPException(400, "Debes seleccionar una empresa para eventos privados")
+        empresa = db.get(models.Empresa, data.empresa_privada_id)
+        if not empresa:
+            raise HTTPException(400, "Empresa no válida para evento privado")
+    else:
+        payload["empresa_privada_id"] = None
+    f = models.FechaEvento(**payload)
     db.add(f)
     db.commit()
     db.refresh(f)

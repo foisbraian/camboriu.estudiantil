@@ -84,6 +84,10 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
 
   const [tematicas, setTematicas] = useState([]);
   const [tematicaSeleccionada, setTematicaSeleccionada] = useState("");
+  const [esPrivado, setEsPrivado] = useState(false);
+  const [empresaPrivadaId, setEmpresaPrivadaId] = useState("");
+  const [empresas, setEmpresas] = useState([]);
+  const [empresaObjetivo, setEmpresaObjetivo] = useState(null);
 
   const [editando, setEditando] = useState(null);
   const [grupoAsignando, setGrupoAsignando] = useState(null);
@@ -97,6 +101,18 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
 
   useEffect(() => {
     cargarTematicas();
+  }, []);
+
+  useEffect(() => {
+    const cargarEmpresas = async () => {
+      try {
+        const res = await api.get("/empresas");
+        setEmpresas(res.data);
+      } catch (e) {
+        console.error("Error cargando empresas", e);
+      }
+    };
+    cargarEmpresas();
   }, []);
 
   const cargarTematicas = async () => {
@@ -167,6 +183,28 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
     return Number(idStr);
   };
 
+  const getEmpresaIdFromResource = useCallback((resourceId) => {
+    const resource = resources.find((res) => res.id === resourceId);
+    if (!resource) return null;
+    if (resource.extendedProps?.empresaId) {
+      return resource.extendedProps.empresaId;
+    }
+    const parentId = resource.parentId;
+    if (typeof parentId === "string" && parentId.startsWith("empresa-")) {
+      const [, empresaId] = parentId.split("-");
+      return Number(empresaId);
+    }
+    return null;
+  }, [resources]);
+
+  useEffect(() => {
+    if (grupoAsignando) {
+      setEmpresaObjetivo(getEmpresaIdFromResource(grupoAsignando));
+    } else {
+      setEmpresaObjetivo(null);
+    }
+  }, [grupoAsignando, getEmpresaIdFromResource]);
+
   // =========================================================
   // HEADER CLICK → NUEVO EVENTO GLOBAL
   // =========================================================
@@ -179,6 +217,8 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
     setEventoSeleccionado("");
     setConAlcohol(false);
     setTematicaSeleccionada("");
+    setEsPrivado(false);
+    setEmpresaPrivadaId("");
 
     // Para crear global, mostramos TODOS los eventos posibles para elegir
     const res = await api.get("/eventos/");
@@ -204,6 +244,8 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
       setSelectedDate(props.fecha);
       setGrupoAsignando(props.grupo_id);
       setEditando(null);
+      setEsPrivado(false);
+      setEmpresaPrivadaId("");
 
       setEditando({
         id: props.asignacion_id,
@@ -233,6 +275,8 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
       setEventoSeleccionado(props.evento_id);
       setConAlcohol(props.con_alcohol);
       setTematicaSeleccionada(props.tematica_id || "");
+      setEsPrivado(Boolean(props.es_privado));
+      setEmpresaPrivadaId(props.empresa_privada_id ? String(props.empresa_privada_id) : "");
 
       // CRITICAL FIX: Do NOT spread info.event directly. It's a complex object.
       // Extract what we need.
@@ -293,6 +337,8 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
     setSelectedDate(fechaISO);
     setGrupoAsignando(resourceId);
     setEditando(null); // Modo "crear asignación"
+    setEsPrivado(false);
+    setEmpresaPrivadaId("");
 
     setModalOpen(true);
   };
@@ -303,6 +349,10 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
   const guardar = async () => {
     try {
       if (!eventoSeleccionado && !editando) return;
+      if (!grupoAsignando && esPrivado && !empresaPrivadaId) {
+        alert("Seleccioná la empresa para el evento privado");
+        return;
+      }
 
       // 1. Asignar a grupo (Nueva asignación)
       if (grupoAsignando && !editando) {
@@ -320,6 +370,8 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           fecha_nueva: selectedDate,
           con_alcohol: conAlcohol,
           tematica_id: tematicaSeleccionada ? Number(tematicaSeleccionada) : null,
+          es_privado: esPrivado,
+          empresa_privada_id: esPrivado ? Number(empresaPrivadaId) : null,
         });
       }
 
@@ -330,6 +382,8 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           fecha: selectedDate,
           con_alcohol: conAlcohol,
           tematica_id: tematicaSeleccionada ? Number(tematicaSeleccionada) : null,
+          es_privado: esPrivado,
+          empresa_privada_id: esPrivado ? Number(empresaPrivadaId) : null,
         });
       }
 
@@ -423,6 +477,8 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
     setModalOpen(false);
     setEditando(null);
     setGrupoAsignando(null);
+    setEsPrivado(false);
+    setEmpresaPrivadaId("");
     refresh();
   };
 
@@ -573,6 +629,18 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
                       label += ` [Cap: ${ev.capacidad_maxima}]`;
                     }
 
+                    const esPrivadoEvento = Boolean(instancia?.extendedProps?.es_privado);
+                    const empresaPrivadaEvento = instancia?.extendedProps?.empresa_privada_id ?? null;
+                    if (grupoAsignando && esPrivadoEvento) {
+                      if (!empresaObjetivo || empresaPrivadaEvento !== empresaObjetivo) {
+                        return null;
+                      }
+                    }
+
+                    if (esPrivadoEvento && instancia?.extendedProps?.empresa_privada_nombre) {
+                      label += ` [Privado: ${instancia.extendedProps.empresa_privada_nombre}]`;
+                    }
+
                     return (
                       <option key={ev.id} value={ev.id}>
                         {label}
@@ -585,6 +653,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
                   // Determinar si el evento seleccionado es tipo DISCO
                   const eventoObj = eventosDisponibles.find(ev => ev.id === Number(eventoSeleccionado));
                   const esDisco = eventoObj?.tipo === "DISCO";
+                  const bloqueoEmpresaPrivada = Boolean(editando?.tipo === "global" && (editando?.ocupacion || 0) > 0);
 
                   return (
                     <>
@@ -614,6 +683,39 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
                               </option>
                             ))}
                           </select>
+                        </div>
+                      )}
+
+                      <label style={{ display: "block", marginTop: 12 }}>
+                        <input
+                          type="checkbox"
+                          checked={esPrivado}
+                          onChange={(e) => setEsPrivado(e.target.checked)}
+                        />
+                        Evento privado para una empresa
+                      </label>
+
+                      {esPrivado && (
+                        <div style={{ marginTop: 10 }}>
+                          <label style={{ display: "block", marginBottom: 5 }}>Empresa asignada:</label>
+                          <select
+                            value={empresaPrivadaId}
+                            onChange={(e) => setEmpresaPrivadaId(e.target.value)}
+                            style={{ width: "100%" }}
+                            disabled={bloqueoEmpresaPrivada}
+                          >
+                            <option value="">Seleccionar empresa</option>
+                            {empresas.map((empresa) => (
+                              <option key={empresa.id} value={empresa.id}>
+                                {empresa.nombre}
+                              </option>
+                            ))}
+                          </select>
+                          {bloqueoEmpresaPrivada && (
+                            <p style={{ fontSize: "0.8rem", color: "#ef4444", marginTop: 6 }}>
+                              El evento tiene grupos asignados. Eliminá las asignaciones para cambiar de empresa.
+                            </p>
+                          )}
                         </div>
                       )}
                     </>

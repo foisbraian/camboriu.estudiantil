@@ -119,9 +119,13 @@ class FechaEvento(Base):
     # temática (opcional, solo para discos)
     tematica_id = Column(Integer, ForeignKey("tematicas.id"), nullable=True)
 
+    es_privado = Column(Boolean, default=False)
+    empresa_privada_id = Column(Integer, ForeignKey("empresas.id"), nullable=True)
+
     evento = relationship("Evento", back_populates="fechas")
     asignaciones = relationship("Asignacion", back_populates="fecha_evento")
     tematica = relationship("Tematica", back_populates="fechas_evento")
+    empresa_privada = relationship("Empresa", foreign_keys=[empresa_privada_id])
 
 
 # =============================
