@@ -1,6 +1,57 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api";
+
+const parseISODate = (value) => {
+  if (!value) return null;
+  const [y, m, d] = value.split("-").map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+};
+
+const formatISODate = (date) => {
+  if (!date) return "";
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+};
+
+const formatHumanDate = (date) => {
+  if (!date) return "Seleccionar";
+  return date.toLocaleDateString("es-AR", { day: "2-digit", month: "short" }).replace(".", "");
+};
+
+const addMonths = (date, count) => {
+  const d = new Date(date.getFullYear(), date.getMonth() + count, 1);
+  return d;
+};
+
+const startOfCalendar = (date) => {
+  const first = new Date(date.getFullYear(), date.getMonth(), 1);
+  const weekday = (first.getDay() + 6) % 7; // lunes como inicio
+  first.setDate(first.getDate() - weekday);
+  return first;
+};
+
+const buildCalendarGrid = (date) => {
+  const start = startOfCalendar(date);
+  return Array.from({ length: 42 }, (_, idx) => {
+    const d = new Date(start);
+    d.setDate(start.getDate() + idx);
+    return d;
+  });
+};
+
+const isSameDay = (a, b) => {
+  if (!a || !b) return false;
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+};
+
+const isBetween = (target, start, end) => {
+  if (!start || !end) return false;
+  return target > start && target < end;
+};
 
 const DateRangeField = ({
   label = "Fechas",
@@ -10,63 +61,239 @@ const DateRangeField = ({
   onEndChange,
   compact = false
 }) => {
+  const containerRef = useRef(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [visibleMonth, setVisibleMonth] = useState(() => parseISODate(start) || parseISODate(end) || new Date());
+  const [tempRange, setTempRange] = useState({ start: parseISODate(start), end: parseISODate(end) });
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClickOutside = (event) => {
+      if (!containerRef.current) return;
+      if (!containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen) return;
+    setTempRange({ start: parseISODate(start), end: parseISODate(end) });
+    const newBase = parseISODate(start) || parseISODate(end);
+    if (newBase) {
+      setVisibleMonth(newBase);
+    }
+  }, [start, end, isOpen]);
+
+  const handleDayClick = (day) => {
+    const dayDate = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+    if (!tempRange.start || (tempRange.start && tempRange.end)) {
+      setTempRange({ start: dayDate, end: null });
+      onStartChange(formatISODate(dayDate));
+      onEndChange("");
+      return;
+    }
+    if (dayDate < tempRange.start) {
+      const newRange = { start: dayDate, end: tempRange.start };
+      setTempRange(newRange);
+      onStartChange(formatISODate(newRange.start));
+      onEndChange(formatISODate(newRange.end));
+      return;
+    }
+    const newRange = { start: tempRange.start, end: dayDate };
+    setTempRange(newRange);
+    onStartChange(formatISODate(newRange.start));
+    onEndChange(formatISODate(newRange.end));
+  };
+
+  const clearRange = () => {
+    setTempRange({ start: null, end: null });
+    onStartChange("");
+    onEndChange("");
+  };
+
+  const openPicker = () => {
+    setTempRange({ start: parseISODate(start), end: parseISODate(end) });
+    setVisibleMonth(parseISODate(start) || parseISODate(end) || new Date());
+    setIsOpen(true);
+  };
+
+  const monthsToRender = [0, 1].map((offset) => addMonths(visibleMonth, offset));
+
+  const summaryStyle = {
+    fontSize: compact ? "0.9rem" : "1rem",
+    color: "#0f172a",
+    fontWeight: 600
+  };
+
   return (
-    <div style={{ width: "100%" }}>
+    <div style={{ width: "100%", position: "relative" }} ref={containerRef}>
       <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>{label}</label>
-      <div
+      <button
+        type="button"
+        onClick={openPicker}
         style={{
-          display: "flex",
-          alignItems: "stretch",
-          borderRadius: 14,
+          width: "100%",
+          borderRadius: 16,
           border: "1px solid #e2e8f0",
-          background: "#fff",
-          boxShadow: "0 8px 20px rgba(15, 23, 42, 0.08)",
-          overflow: "hidden",
-          minHeight: compact ? 48 : 64
+          background: "linear-gradient(135deg, rgba(15,23,42,0.9), rgba(30,58,138,0.9))",
+          color: "white",
+          padding: compact ? "12px 16px" : "16px 22px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          cursor: "pointer",
+          boxShadow: "0 18px 30px rgba(15, 23, 42, 0.25)",
+          gap: 18,
+          textAlign: "left"
         }}
       >
-        {[{
-          title: "Entrada",
-          value: start,
-          onChange: onStartChange,
-          placeholder: "AAAA-MM-DD"
-        }, {
-          title: "Salida",
-          value: end,
-          onChange: onEndChange,
-          placeholder: "AAAA-MM-DD"
-        }].map((segment, idx) => (
-          <div
-            key={segment.title}
-            style={{
-              flex: 1,
-              padding: compact ? "10px 14px" : "14px 18px",
-              borderLeft: idx === 1 ? "1px solid #e2e8f0" : "none",
-              display: "flex",
-              flexDirection: "column",
-              gap: 4,
-              background: "linear-gradient(135deg, rgba(37,99,235,0.04), rgba(236,72,153,0.04))"
-            }}
-          >
-            <span style={{ fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "#64748b" }}>
-              {segment.title}
-            </span>
-            <input
-              type="date"
-              value={segment.value}
-              onChange={(e) => segment.onChange(e.target.value)}
-              placeholder={segment.placeholder}
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: "0.7rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(248,250,252,0.7)", marginBottom: 2 }}>
+            Entrada
+          </div>
+          <div style={summaryStyle}>{formatHumanDate(parseISODate(start))}</div>
+        </div>
+        <div style={{ width: 32, height: 2, background: "rgba(248,250,252,0.4)", borderRadius: 999 }}></div>
+        <div style={{ flex: 1, textAlign: "right" }}>
+          <div style={{ fontSize: "0.7rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(248,250,252,0.7)", marginBottom: 2 }}>
+            Salida
+          </div>
+          <div style={{ ...summaryStyle, textAlign: "right" }}>{formatHumanDate(parseISODate(end))}</div>
+        </div>
+      </button>
+
+      {isOpen && (
+        <div
+          style={{
+            position: "absolute",
+            zIndex: 20,
+            top: "calc(100% + 8px)",
+            left: 0,
+            right: 0,
+            background: "white",
+            borderRadius: 20,
+            boxShadow: "0 30px 60px rgba(15,23,42,0.2)",
+            padding: 20
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <button
+              type="button"
+              onClick={() => setVisibleMonth(addMonths(visibleMonth, -1))}
+              style={{
+                border: "none",
+                background: "rgba(15,23,42,0.05)",
+                width: 36,
+                height: 36,
+                borderRadius: 12,
+                cursor: "pointer"
+              }}
+            >
+              ‹
+            </button>
+            <span style={{ fontWeight: 700, color: "#0f172a" }}>Seleccioná tu estadía</span>
+            <button
+              type="button"
+              onClick={() => setVisibleMonth(addMonths(visibleMonth, 1))}
+              style={{
+                border: "none",
+                background: "rgba(15,23,42,0.05)",
+                width: 36,
+                height: 36,
+                borderRadius: 12,
+                cursor: "pointer"
+              }}
+            >
+              ›
+            </button>
+          </div>
+
+          <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+            {monthsToRender.map((monthDate) => {
+              const grid = buildCalendarGrid(monthDate);
+              const label = monthDate.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
+              return (
+                <div key={label} style={{ flex: "1 1 260px" }}>
+                  <div style={{ textTransform: "capitalize", fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>{label}</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, fontSize: "0.75rem", color: "#94a3b8", marginBottom: 6 }}>
+                    {["Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"].map((day) => (
+                      <div key={day} style={{ textAlign: "center" }}>{day}</div>
+                    ))}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
+                    {grid.map((day) => {
+                      const isCurrentMonth = day.getMonth() === monthDate.getMonth();
+                      const selectedStart = tempRange.start && isSameDay(day, tempRange.start);
+                      const selectedEnd = tempRange.end && isSameDay(day, tempRange.end);
+                      const inRange = isBetween(day, tempRange.start, tempRange.end);
+                      return (
+                        <button
+                          key={`${label}-${day.toISOString()}`}
+                          type="button"
+                          onClick={() => handleDayClick(day)}
+                          style={{
+                            height: 40,
+                            borderRadius: selectedStart || selectedEnd ? 12 : 8,
+                            border: "none",
+                            cursor: "pointer",
+                            fontWeight: selectedStart || selectedEnd ? 700 : 500,
+                            background: selectedStart || selectedEnd
+                              ? "linear-gradient(135deg, #2563eb, #ec4899)"
+                              : inRange
+                                ? "rgba(37,99,235,0.1)"
+                                : "transparent",
+                            color: selectedStart || selectedEnd
+                              ? "white"
+                              : isCurrentMonth
+                                ? "#0f172a"
+                                : "#cbd5f5"
+                          }}
+                        >
+                          {day.getDate()}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 20 }}>
+            <button
+              type="button"
+              onClick={clearRange}
               style={{
                 border: "none",
                 background: "transparent",
-                fontSize: compact ? "0.9rem" : "1rem",
-                color: "#0f172a",
-                outline: "none"
+                color: "#ef4444",
+                fontWeight: 600,
+                cursor: "pointer"
               }}
-            />
+            >
+              Limpiar
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              style={{
+                border: "none",
+                background: "linear-gradient(135deg, #2563eb, #ec4899)",
+                color: "white",
+                padding: "10px 28px",
+                borderRadius: 999,
+                cursor: "pointer",
+                fontWeight: 700
+              }}
+            >
+              Cerrar
+            </button>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
