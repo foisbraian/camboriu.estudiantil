@@ -2,6 +2,75 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api";
 
+const DateRangeField = ({
+  label = "Fechas",
+  start,
+  end,
+  onStartChange,
+  onEndChange,
+  compact = false
+}) => {
+  return (
+    <div style={{ width: "100%" }}>
+      <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>{label}</label>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "stretch",
+          borderRadius: 14,
+          border: "1px solid #e2e8f0",
+          background: "#fff",
+          boxShadow: "0 8px 20px rgba(15, 23, 42, 0.08)",
+          overflow: "hidden",
+          minHeight: compact ? 48 : 64
+        }}
+      >
+        {[{
+          title: "Entrada",
+          value: start,
+          onChange: onStartChange,
+          placeholder: "AAAA-MM-DD"
+        }, {
+          title: "Salida",
+          value: end,
+          onChange: onEndChange,
+          placeholder: "AAAA-MM-DD"
+        }].map((segment, idx) => (
+          <div
+            key={segment.title}
+            style={{
+              flex: 1,
+              padding: compact ? "10px 14px" : "14px 18px",
+              borderLeft: idx === 1 ? "1px solid #e2e8f0" : "none",
+              display: "flex",
+              flexDirection: "column",
+              gap: 4,
+              background: "linear-gradient(135deg, rgba(37,99,235,0.04), rgba(236,72,153,0.04))"
+            }}
+          >
+            <span style={{ fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "#64748b" }}>
+              {segment.title}
+            </span>
+            <input
+              type="date"
+              value={segment.value}
+              onChange={(e) => segment.onChange(e.target.value)}
+              placeholder={segment.placeholder}
+              style={{
+                border: "none",
+                background: "transparent",
+                fontSize: compact ? "0.9rem" : "1rem",
+                color: "#0f172a",
+                outline: "none"
+              }}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export default function EmpresaDetalle() {
   const { id } = useParams();
 
@@ -221,25 +290,13 @@ export default function EmpresaDetalle() {
         </div>
 
         {/* ================= FECHAS ================= */}
-        <div style={{ display: "flex", gap: 20 }}>
-          <div>
-            <label>Fecha entrada</label>
-            <input
-              type="date"
-              value={form.fecha_entrada}
-              onChange={(e) => set("fecha_entrada", e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label>Fecha salida</label>
-            <input
-              type="date"
-              value={form.fecha_salida}
-              onChange={(e) => set("fecha_salida", e.target.value)}
-            />
-          </div>
-        </div>
+        <DateRangeField
+          label="Fechas del viaje"
+          start={form.fecha_entrada}
+          end={form.fecha_salida}
+          onStartChange={(value) => set("fecha_entrada", value)}
+          onEndChange={(value) => set("fecha_salida", value)}
+        />
 
         {/* ================= ALCOHOL ================= */}
         <label>
@@ -364,10 +421,14 @@ export default function EmpresaDetalle() {
                 <label>Discos: <input type="number" value={editForm.discos_compradas} onChange={e => setEdit("discos_compradas", e.target.value)} /></label>
               </div>
 
-              <div style={{ display: "flex", gap: 10 }}>
-                <label>Entrada: <input type="date" value={editForm.fecha_entrada} onChange={e => setEdit("fecha_entrada", e.target.value)} /></label>
-                <label>Salida: <input type="date" value={editForm.fecha_salida} onChange={e => setEdit("fecha_salida", e.target.value)} /></label>
-              </div>
+              <DateRangeField
+                label="Fechas"
+                start={editForm.fecha_entrada}
+                end={editForm.fecha_salida}
+                onStartChange={(value) => setEdit("fecha_entrada", value)}
+                onEndChange={(value) => setEdit("fecha_salida", value)}
+                compact
+              />
 
               <label><input type="checkbox" checked={editForm.permite_alcohol} onChange={e => setEdit("permite_alcohol", e.target.checked)} /> Alcohol</label>
 
