@@ -124,7 +124,7 @@ const DateRangeField = ({
 
   const summaryStyle = {
     fontSize: compact ? "0.9rem" : "1rem",
-    color: "#0f172a",
+    color: "rgba(248,250,252,0.95)",
     fontWeight: 600
   };
 
