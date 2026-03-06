@@ -220,9 +220,28 @@ button {
   min-width: 110px !important;
 }
 
+/* Compact timeline rows and resource columns */
+.fc-datagrid-cell-frame,
+.fc-datagrid-cell-cushion,
+.fc-timeline-slot-frame,
+.fc-timeline-slot-cushion,
+.fc-timeline-lane {
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
+}
+
+/* Minimize event vertical gap */
+.fc-timeline-event-harness {
+  margin-top: 2px !important;
+  margin-bottom: 2px !important;
+}
+
 .fc-timeline-event {
   border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1px 4px !important;
+  margin: 0 !important;
+  font-size: 0.85em;
 }
 
 .fc-col-header-cell {
