@@ -318,7 +318,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
 
     const resourceId = info.resource?.id;
     if (!resourceId) return;
-    
+
     const resourceIdStr = String(resourceId);
     if (resourceIdStr.startsWith("empresa-")) {
       return;
@@ -487,7 +487,14 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
 
   return (
     <>
-      <div className="fc-print-wrapper" style={{ width: "100%", height: "100%" }}>
+      <div
+        className="fc-print-wrapper timeline-zoom-wrapper"
+        style={{
+          width: "100%",
+          height: "100%",
+          "--zoom-ratio": Math.max(0.5, slotWidth / 110)
+        }}
+      >
         <FullCalendar
           ref={calendarRef}
           plugins={[resourceTimelinePlugin, interactionPlugin]}
@@ -507,23 +514,23 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           resourceAreaWidth={230}
           resourceLabelContent={(arg) => {
             if (arg.resource.id === "eventos") {
-              return <span style={{ fontWeight: 700 }}>Servicios</span>;
+              return <span style={{ fontWeight: 700, fontSize: "1em" }}>Servicios</span>;
             }
             const props = arg.resource.extendedProps || {};
             if (props.esEmpresa) {
               const companyLabel = props.empresaNombre || arg.resource.title;
               return (
-                <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
-                  <span style={{ fontWeight: 800, color: "#0f172a", textTransform: "uppercase" }}>{companyLabel}</span>
+                <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
+                  <span style={{ fontWeight: 800, color: "#0f172a", textTransform: "uppercase", fontSize: "0.95em" }}>{companyLabel}</span>
                 </div>
               );
             }
             const groupName = props.grupoNombre || arg.resource.title;
             const secondary = props.pax ? `PAX ${props.pax}` : "";
             return (
-              <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
-                <span style={{ fontWeight: 600, color: "#0f172a" }}>{groupName}</span>
-                {secondary && <span style={{ fontSize: "0.8rem", color: "#94a3b8" }}>{secondary}</span>}
+              <div style={{ display: "flex", flexDirection: "column", lineHeight: 0.9 }}>
+                <span style={{ fontWeight: 500, color: "#0f172a", fontSize: "0.95em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{groupName}</span>
+                {secondary && <span style={{ fontSize: "0.8em", color: "#94a3b8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{secondary}</span>}
               </div>
             );
           }}
@@ -633,11 +640,11 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
                     }
 
                     const esPrivadoEvento = Boolean(instancia?.extendedProps?.es_privado);
-                    const empresaPrivadaEvento = instancia?.extendedProps?.empresa_privada_id != null 
-                      ? Number(instancia.extendedProps.empresa_privada_id) 
+                    const empresaPrivadaEvento = instancia?.extendedProps?.empresa_privada_id != null
+                      ? Number(instancia.extendedProps.empresa_privada_id)
                       : null;
                     const empresaObjId = empresaObjetivo != null ? Number(empresaObjetivo) : null;
-                    
+
                     if (grupoAsignando && esPrivadoEvento) {
                       if (!empresaObjId || empresaPrivadaEvento !== empresaObjId) {
                         return null;
