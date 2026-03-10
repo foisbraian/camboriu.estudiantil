@@ -29,7 +29,7 @@ export default function Hoteleria() {
 
     const [showPagoModal, setShowPagoModal] = useState(false);
     const [pagoForm, setPagoForm] = useState({
-        empresa_id: "", monto: "", fecha: "", metodo: "Transferencia", nota: ""
+        empresa_id: "", reserva_id: "", monto: "", fecha: "", metodo: "Transferencia", nota: ""
     });
 
     const [liqEmpresaId, setLiqEmpresaId] = useState("");
@@ -103,7 +103,7 @@ export default function Hoteleria() {
     const handleCreatePago = async (e) => {
         e.preventDefault();
         try {
-            const payload = { ...pagoForm, hotel_id: selectedHotelId };
+            const payload = { ...pagoForm, hotel_id: selectedHotelId, reserva_id: pagoForm.reserva_id || null };
             await api.post("/hoteleria/pagos/", payload);
             // Re-fetch
             fetchData();
@@ -121,6 +121,7 @@ export default function Hoteleria() {
     const selectedHotel = hoteles.find(h => h.id === selectedHotelId);
     const hotelReservas = reservas.filter(r => r.hotel_id === selectedHotelId);
     const hotelPagos = pagos.filter(p => p.hotel_id === selectedHotelId);
+    const empresaReservas = hotelReservas.filter(r => String(r.empresa_id) === String(pagoForm.empresa_id));
 
     return (
         <div style={{ minHeight: "100%", padding: "30px 40px", background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 35%, #312e81 100%)", color: "white" }}>
@@ -267,7 +268,7 @@ export default function Hoteleria() {
                                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
                                             <h2 style={{ margin: 0 }}>Pagos y Señas a {selectedHotel.nombre}</h2>
                                             <button onClick={() => {
-                                                setPagoForm({ empresa_id: "", monto: "", fecha: "", metodo: "Transferencia", nota: "" });
+                                                setPagoForm({ empresa_id: "", reserva_id: "", monto: "", fecha: "", metodo: "Transferencia", nota: "" });
                                                 setShowPagoModal(true);
                                             }} style={{ background: "#10b981", color: "#fff", border: "none", padding: "8px 16px", borderRadius: 6, cursor: "pointer", fontWeight: "bold" }}>+ Registrar Pago</button>
                                         </div>
@@ -277,19 +278,23 @@ export default function Hoteleria() {
                                                 <tr style={{ borderBottom: "2px solid #e2e8f0", textAlign: "left", color: "#64748b" }}>
                                                     <th style={{ padding: 12 }}>Fecha</th>
                                                     <th style={{ padding: 12 }}>Empresa Pagadora</th>
+                                                    <th style={{ padding: 12 }}>Reserva / Grupo</th>
                                                     <th style={{ padding: 12 }}>Monto</th>
                                                     <th style={{ padding: 12 }}>Método</th>
                                                     <th style={{ padding: 12 }}>Nota</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {hotelPagos.length === 0 && <tr><td colSpan="5" style={{ padding: 20, textAlign: "center", color: "#94a3b8" }}>No hay pagos registrados</td></tr>}
+                                                {hotelPagos.length === 0 && <tr><td colSpan="6" style={{ padding: 20, textAlign: "center", color: "#94a3b8" }}>No hay pagos registrados</td></tr>}
                                                 {hotelPagos.map(p => {
                                                     const emp = empresas.find(e => e.id === p.empresa_id);
+                                                    const reserva = reservas.find(r => r.id === p.reserva_id);
+                                                    const reservaLabel = reserva ? `#${reserva.id} · ${reserva.fecha_ingreso} - ${reserva.fecha_salida}` : "General";
                                                     return (
                                                         <tr key={p.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
                                                             <td style={{ padding: 12 }}>{p.fecha}</td>
                                                             <td style={{ padding: 12, fontWeight: "bold" }}>{emp?.nombre}</td>
+                                                            <td style={{ padding: 12, color: "#475569" }}>{reservaLabel}</td>
                                                             <td style={{ padding: 12, fontWeight: "bold", color: "#10b981" }}>${p.monto.toLocaleString()}</td>
                                                             <td style={{ padding: 12 }}>{p.metodo}</td>
                                                             <td style={{ padding: 12, color: "#64748b" }}>{p.nota}</td>
@@ -407,9 +412,18 @@ export default function Hoteleria() {
                         <form onSubmit={handleCreatePago} style={{ display: "flex", flexDirection: "column", gap: 15 }}>
                             <div>
                                 <label style={labelStyle}>Empresa</label>
-                                <select required value={pagoForm.empresa_id} onChange={e => setPagoForm({ ...pagoForm, empresa_id: e.target.value })} style={inputStyle}>
+                                <select required value={pagoForm.empresa_id} onChange={e => setPagoForm({ ...pagoForm, empresa_id: e.target.value, reserva_id: "" })} style={inputStyle}>
                                     <option value="">Selecciona empresa</option>
                                     {empresas.map(emp => <option key={emp.id} value={emp.id}>{emp.nombre}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label style={labelStyle}>Reserva / Grupo (opcional)</label>
+                                <select value={pagoForm.reserva_id} onChange={e => setPagoForm({ ...pagoForm, reserva_id: e.target.value })} style={inputStyle} disabled={!pagoForm.empresa_id}>
+                                    <option value="">Pago general de liquidación</option>
+                                    {empresaReservas.map(res => (
+                                        <option key={res.id} value={res.id}>#{res.id} · {res.fecha_ingreso} - {res.fecha_salida}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>

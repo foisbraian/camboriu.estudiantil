@@ -263,6 +263,7 @@ class ReservaHotel(Base):
 
     empresa = relationship("Empresa", back_populates="reservas_hotel")
     hotel = relationship("Hotel", back_populates="reservas")
+    pagos = relationship("PagoHotel", back_populates="reserva")
 
 
 class PagoHotel(Base):
@@ -271,6 +272,7 @@ class PagoHotel(Base):
     id = Column(Integer, primary_key=True)
     empresa_id = Column(Integer, ForeignKey("empresas.id", ondelete="CASCADE"))
     hotel_id = Column(Integer, ForeignKey("hoteles.id", ondelete="CASCADE"))
+    reserva_id = Column(Integer, ForeignKey("reservas_hotel.id", ondelete="SET NULL"), nullable=True)
     
     monto = Column(Integer)
     fecha = Column(Date)
@@ -278,4 +280,6 @@ class PagoHotel(Base):
     nota = Column(String, nullable=True)
 
     empresa = relationship("Empresa", back_populates="pagos_hotel")
+    hotel = relationship("Hotel", back_populates="pagos")
+    reserva = relationship("ReservaHotel", back_populates="pagos")
     hotel = relationship("Hotel", back_populates="pagos")

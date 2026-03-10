@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, cast
 from database import get_db
 import models
 import schemas
@@ -64,6 +64,14 @@ def get_pagos(db: Session = Depends(get_db)):
 
 @router.post("/pagos/", response_model=schemas.PagoHotelOut, status_code=status.HTTP_201_CREATED)
 def create_pago(pago: schemas.PagoHotelCreate, db: Session = Depends(get_db)):
+    if pago.reserva_id is not None:
+        reserva = db.query(models.ReservaHotel).filter(models.ReservaHotel.id == pago.reserva_id).first()
+        if not reserva:
+            raise HTTPException(status_code=404, detail="Reserva no encontrada")
+        reserva_empresa_id = cast(int, reserva.empresa_id)
+        reserva_hotel_id = cast(int, reserva.hotel_id)
+        if reserva_empresa_id != pago.empresa_id or reserva_hotel_id != pago.hotel_id:
+            raise HTTPException(status_code=400, detail="La reserva no corresponde a la empresa u hotel seleccionado")
     db_pago = models.PagoHotel(**pago.model_dump())
     db.add(db_pago)
     db.commit()

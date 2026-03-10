@@ -198,6 +198,7 @@ class ReservaHotelWithRelations(ReservaHotelOut):
 class PagoHotelCreate(BaseModel):
     empresa_id: int
     hotel_id: int
+    reserva_id: Union[int, None] = None
     monto: int
     fecha: date
     metodo: str
