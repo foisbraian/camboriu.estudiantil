@@ -121,6 +121,12 @@ export default function SelectorInicio() {
             color: "#8b5cf6",
         },
         {
+            title: "🏨 Hotelería",
+            desc: "Administrar reservas de hoteles, habitaciones y registrar pagos.",
+            path: "/hoteleria",
+            color: "#0ea5e9",
+        },
+        {
             title: "📲 Validación de QR",
             desc: "Leer códigos QR y verificar la validez de vouchers desde un solo lugar.",
             path: "/panel/validar",
