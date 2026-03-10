@@ -26,6 +26,8 @@ class Empresa(Base):
     codigo_acceso = Column(String, default=generar_codigo, unique=True)
 
     grupos = relationship("Grupo", back_populates="empresa")
+    reservas_hotel = relationship("ReservaHotel", back_populates="empresa")
+    pagos_hotel = relationship("PagoHotel", back_populates="empresa")
 
 
 # =============================
@@ -220,3 +222,60 @@ class Proveedor(Base):
     # Almacenamos el estado de la planilla como JSON string
     # { headers: [], rows: [] }
     data = Column(String, default='{"headers": ["Item", "Detalle", "Monto"], "rows": [["", "", "0"]], "footerCalculations": ["sum", "sum", "sum"], "columnConfigs": [{"type": "text", "options": []}, {"type": "text", "options": []}, {"type": "text", "options": []}]}')
+
+# =============================
+# HOTELERIA
+# =============================
+
+class Hotel(Base):
+    __tablename__ = "hoteles"
+
+    id = Column(Integer, primary_key=True)
+    nombre = Column(String, unique=True, index=True)
+
+    reservas = relationship("ReservaHotel", back_populates="hotel")
+    pagos = relationship("PagoHotel", back_populates="hotel")
+
+
+class ReservaHotel(Base):
+    __tablename__ = "reservas_hotel"
+
+    id = Column(Integer, primary_key=True)
+    empresa_id = Column(Integer, ForeignKey("empresas.id", ondelete="CASCADE"))
+    hotel_id = Column(Integer, ForeignKey("hoteles.id", ondelete="CASCADE"))
+
+    fecha_ingreso = Column(Date)
+    fecha_salida = Column(Date)
+
+    # Cantidad de habitaciones
+    cant_single = Column(Integer, default=0)
+    cant_doble = Column(Integer, default=0)
+    cant_triple = Column(Integer, default=0)
+    cant_cuadruple = Column(Integer, default=0)
+    cant_quintuple = Column(Integer, default=0)
+
+    # Tarifas (por noche)
+    tarifa_single = Column(Integer, default=0)
+    tarifa_doble = Column(Integer, default=0)
+    tarifa_triple = Column(Integer, default=0)
+    tarifa_cuadruple = Column(Integer, default=0)
+    tarifa_quintuple = Column(Integer, default=0)
+
+    empresa = relationship("Empresa", back_populates="reservas_hotel")
+    hotel = relationship("Hotel", back_populates="reservas")
+
+
+class PagoHotel(Base):
+    __tablename__ = "pagos_hotel"
+
+    id = Column(Integer, primary_key=True)
+    empresa_id = Column(Integer, ForeignKey("empresas.id", ondelete="CASCADE"))
+    hotel_id = Column(Integer, ForeignKey("hoteles.id", ondelete="CASCADE"))
+    
+    monto = Column(Integer)
+    fecha = Column(Date)
+    metodo = Column(String)  # Transferencia, Efectivo, Cheque, etc.
+    nota = Column(String, nullable=True)
+
+    empresa = relationship("Empresa", back_populates="pagos_hotel")
+    hotel = relationship("Hotel", back_populates="pagos")
