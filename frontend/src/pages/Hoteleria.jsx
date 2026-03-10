@@ -81,7 +81,7 @@ export default function Hoteleria() {
         e.preventDefault();
         try {
             const payload = { ...reservaForm, hotel_id: selectedHotelId };
-            const res = await api.post("/hoteleria/reservas/", payload);
+            await api.post("/hoteleria/reservas/", payload);
             // Re-fetch everything to get relations or update locally
             fetchData();
             setShowReservaModal(false);
@@ -104,7 +104,7 @@ export default function Hoteleria() {
         e.preventDefault();
         try {
             const payload = { ...pagoForm, hotel_id: selectedHotelId };
-            const res = await api.post("/hoteleria/pagos/", payload);
+            await api.post("/hoteleria/pagos/", payload);
             // Re-fetch
             fetchData();
             setShowPagoModal(false);
