@@ -285,12 +285,6 @@ export default function FinanzasDetalle() {
                         >
                             📄 Excel
                         </button>
-                        <button
-                            onClick={() => window.open(`${BASE_URL}/excel/finanzas/todas`, "_blank")}
-                            style={{ padding: "8px 15px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 6, cursor: "pointer", fontSize: "0.85rem" }}
-                        >
-                            📄 Excel Todas
-                        </button>
                     </div>
                 </div>
 

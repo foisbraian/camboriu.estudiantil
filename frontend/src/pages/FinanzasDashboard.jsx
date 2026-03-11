@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../api";
+import api, { BASE_URL } from "../api";
 
 export default function FinanzasDashboard() {
     const [data, setData] = useState([]);
@@ -32,7 +32,15 @@ export default function FinanzasDashboard() {
 
     return (
         <div style={{ padding: "40px 20px", maxWidth: "1200px" }}>
-            <h1 style={{ color: "#1e293b", marginBottom: 30 }}>💰 Dashboard Financiero</h1>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 30, gap: 12, flexWrap: "wrap" }}>
+                <h1 style={{ color: "#1e293b", margin: 0 }}>💰 Dashboard Financiero</h1>
+                <button
+                    onClick={() => window.open(`${BASE_URL}/excel/finanzas/todas`, "_blank")}
+                    style={{ padding: "10px 16px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, cursor: "pointer", fontSize: "0.85rem", fontWeight: 600 }}
+                >
+                    📄 Excel Todas
+                </button>
+            </div>
 
             {/* KPIs */}
             <div style={{ display: "flex", gap: 20, marginBottom: 40, flexWrap: "wrap" }}>
