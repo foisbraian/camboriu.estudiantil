@@ -212,7 +212,6 @@ def exportar_finanzas_todas(background_tasks: BackgroundTasks, db: Session = Dep
     ws.append([
         "Empresa",
         "Total PAX",
-        "Total Venta",
         "Total Cobrado",
         "Saldo",
         "Total a Pagar"
@@ -225,7 +224,6 @@ def exportar_finanzas_todas(background_tasks: BackgroundTasks, db: Session = Dep
         ws.append([
             e.nombre,
             total_pax,
-            res["total_venta"],
             res["total_pagado"],
             res["saldo"],
             res["total_venta"]
