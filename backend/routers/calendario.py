@@ -92,7 +92,8 @@ def calendario(db: Session = Depends(get_db)):
             "DISCO": "yellow",
             "PARQUE": "green",
             "POOL": "skyblue",
-            "CENA": "#e2e8f0"
+            "CENA": "#e2e8f0",
+            "HIELO": "#e0f2fe"
         }
 
         color = "red" if f.con_alcohol else color_map.get(f.evento.tipo, "gray")
@@ -102,7 +103,7 @@ def calendario(db: Session = Depends(get_db)):
             text_color = "#4c1d95"
         else:
             # Text Color: Black if fondo claro
-            text_color = "black" if color in ("yellow", "#e2e8f0") else "white"
+            text_color = "black" if color in ("yellow", "#e2e8f0", "#e0f2fe") else "white"
         
         # Calcular ocupación (Sumar PAX de los grupos asignados)
         ocupacion = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo)
@@ -185,7 +186,8 @@ def calendario(db: Session = Depends(get_db)):
                 f"----------------\n"
                 f"Alcohol: {alcohol_txt}\n"
                 f"Parque: {parque_txt}\n"
-                f"Pool: {pool_txt}"
+                f"Pool: {pool_txt}\n"
+                f"Bar de hielo: {'SI' if g.bar_hielo else 'NO'}"
             )
 
             # Color Logic
@@ -213,9 +215,11 @@ def calendario(db: Session = Depends(get_db)):
                             "DISCO": "#000000",    # Negro
                             "PARQUE": "#16a34a",   # Verde
                             "POOL": "#0ea5e9",     # Azul claro
-                            "CENA": "#94a3b8"      # Gris
+                            "CENA": "#94a3b8",     # Gris
+                            "HIELO": "#e0f2fe"     # Celeste claro
                         }
                         bg_color_asig = color_map.get(asignacion.fecha_evento.evento.tipo, "gray")
+                        text_color_asig = "black" if bg_color_asig == "#e0f2fe" else "white"
 
                         events.append({
                             "resourceId": g.id, # ID del Grupo ahora es la fila
@@ -224,7 +228,7 @@ def calendario(db: Session = Depends(get_db)):
                             "title": asignacion.fecha_evento.evento.nombre,
                             "backgroundColor": bg_color_asig,
                             "borderColor": "transparent",
-                            "textColor": "white",
+                            "textColor": text_color_asig,
                             "extendedProps": {
                                 "tipo": "asignacion",
                                 "grupo_id": g.id,
@@ -331,7 +335,8 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
             f"----------------\n"
             f"Alcohol: {alcohol_txt}\n"
             f"Parque: {parque_txt}\n"
-            f"Pool: {pool_txt}"
+            f"Pool: {pool_txt}\n"
+            f"Bar de hielo: {'SI' if g.bar_hielo else 'NO'}"
         )
 
         bg_color_grupo = "#ef4444" if g.permite_alcohol else "#FFFF00"
@@ -350,8 +355,9 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
 
             if asignaciones_dia:
                 for asignacion in asignaciones_dia:
-                    color_map = {"DISCO": "#000000", "PARQUE": "#16a34a", "POOL": "#0ea5e9", "CENA": "#94a3b8"}
+                    color_map = {"DISCO": "#000000", "PARQUE": "#16a34a", "POOL": "#0ea5e9", "CENA": "#94a3b8", "HIELO": "#e0f2fe"}
                     bg_color_asig = color_map.get(asignacion.fecha_evento.evento.tipo, "gray")
+                    text_color_asig = "black" if bg_color_asig == "#e0f2fe" else "white"
 
                     events.append({
                         "resourceId": g.id, 
@@ -360,7 +366,7 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                         "title": asignacion.fecha_evento.evento.nombre,
                         "backgroundColor": bg_color_asig,
                         "borderColor": "transparent",
-                        "textColor": "white",
+                        "textColor": text_color_asig,
                         # Sin extendedProps complejas porque es read-only, pero dejamos tipo
                         "extendedProps": {
                             "tipo": "asignacion_readonly",
@@ -387,9 +393,9 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
         fechas_globales = db.query(models.FechaEvento).filter(models.FechaEvento.id.in_(fecha_eventos_asignados_ids)).all()
         
         for f in fechas_globales:
-            color_map = {"DISCO": "yellow", "PARQUE": "green", "POOL": "skyblue", "CENA": "#e2e8f0"}
+            color_map = {"DISCO": "yellow", "PARQUE": "green", "POOL": "skyblue", "CENA": "#e2e8f0", "HIELO": "#e0f2fe"}
             color = "red" if f.con_alcohol else color_map.get(f.evento.tipo, "gray")
-            text_color = "black" if color in ("yellow", "#e2e8f0") else "white"
+            text_color = "black" if color in ("yellow", "#e2e8f0", "#e0f2fe") else "white"
             if f.es_privado:
                 color = "#ede9fe"
                 text_color = "#4c1d95"
@@ -482,6 +488,10 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
     # Validacion POOL
     if tipo_nuevo == "POOL" and not grupo.pool_acceso:
         raise HTTPException(400, "El grupo no tiene acceso a POOL")
+
+    # Validacion BAR DE HIELO
+    if tipo_nuevo == "HIELO" and not grupo.bar_hielo:
+        raise HTTPException(400, "El grupo no tiene Bar de Hielo")
 
 
     # Buscar asignaciones existente en el mismo día

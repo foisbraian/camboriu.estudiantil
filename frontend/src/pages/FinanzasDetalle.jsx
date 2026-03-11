@@ -21,6 +21,7 @@ export default function FinanzasDetalle() {
         precio_pool_con_comida: 0,
         precio_pool_sin_comida: 0,
         precio_cena_velas: 0,
+        precio_bar_hielo: 0,
         es_combo: false,
         precio_combo: 0,
         combo_discos: 0,
@@ -251,6 +252,15 @@ export default function FinanzasDetalle() {
                                         value={configForm.precio_cena_velas}
                                         onChange={e => setConfigForm({ ...configForm, precio_cena_velas: Number(e.target.value) })}
                                         style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #fcd34d" }}
+                                    />
+                                </div>
+                                <div style={{ padding: 15, background: "#eff6ff", borderRadius: 8 }}>
+                                    <p style={{ margin: "0 0 6px 0", fontSize: "0.8rem", color: "#1d4ed8" }}>Bar de hielo</p>
+                                    <input
+                                        type="number"
+                                        value={configForm.precio_bar_hielo}
+                                        onChange={e => setConfigForm({ ...configForm, precio_bar_hielo: Number(e.target.value) })}
+                                        style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #bfdbfe" }}
                                     />
                                 </div>
                             </div>

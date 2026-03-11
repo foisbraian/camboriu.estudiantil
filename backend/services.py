@@ -13,6 +13,9 @@ def validar_servicio(grupo, evento):
     if evento.tipo == "POOL" and not grupo.pool_acceso:
         raise Exception("Grupo no compró pool")
 
+    if evento.tipo == "HIELO" and not grupo.bar_hielo:
+        raise Exception("Grupo no compró bar de hielo")
+
 
 def validar_capacidad(db, fecha_evento, grupo):
     total = 0

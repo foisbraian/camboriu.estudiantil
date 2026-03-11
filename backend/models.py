@@ -66,6 +66,7 @@ class Grupo(Base):
     pool_acceso = Column(Boolean, default=False)
     pool_con_comida = Column(Boolean, default=False)
     cena_velas = Column(Boolean, default=False)
+    bar_hielo = Column(Boolean, default=False)
 
     empresa = relationship("Empresa", back_populates="grupos")
     asignaciones = relationship("Asignacion", back_populates="grupo")
@@ -167,6 +168,7 @@ class FinanzasEmpresa(Base):
     precio_pool_con_comida = Column(Integer, default=0)
     precio_pool_sin_comida = Column(Integer, default=0)
     precio_cena_velas = Column(Integer, default=0)
+    precio_bar_hielo = Column(Integer, default=0)
     
     es_combo = Column(Boolean, default=False)
     precio_combo = Column(Integer, default=0)

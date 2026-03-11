@@ -8,6 +8,7 @@ const EVENT_GRADIENTS = {
     PARQUE: "linear-gradient(120deg, #0ea5e9, #22c55e)",
     POOL: "linear-gradient(120deg, #06b6d4, #2563eb)",
     CENA: "linear-gradient(120deg, #cbd5f5, #94a3b8)",
+    HIELO: "linear-gradient(120deg, #e0f2fe, #0ea5e9)",
     DEFAULT: "linear-gradient(120deg, #1d4ed8, #9333ea)"
 };
 

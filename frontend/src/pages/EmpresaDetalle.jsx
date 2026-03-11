@@ -312,6 +312,7 @@ export default function EmpresaDetalle() {
     pool_acceso: false,
     pool_con_comida: false,
     cena_velas: false,
+    bar_hielo: false,
   });
 
   const [editingGroup, setEditingGroup] = useState(null);
@@ -331,6 +332,7 @@ export default function EmpresaDetalle() {
     pool_acceso: false,
     pool_con_comida: false,
     cena_velas: false,
+    bar_hielo: false,
   });
 
 
@@ -381,6 +383,7 @@ export default function EmpresaDetalle() {
       pool_acceso: false,
       pool_con_comida: false,
       cena_velas: false,
+      bar_hielo: false,
     });
 
     cargar();
@@ -402,6 +405,7 @@ export default function EmpresaDetalle() {
       pool_acceso: g.pool_acceso,
       pool_con_comida: g.pool_con_comida,
       cena_velas: g.cena_velas,
+      bar_hielo: g.bar_hielo,
     });
   }
 
@@ -592,6 +596,19 @@ export default function EmpresaDetalle() {
           </label>
         </fieldset>
 
+        {/* ================= BAR DE HIELO ================= */}
+        <fieldset style={{ padding: 10 }}>
+          <legend>Bar de hielo</legend>
+          <label>
+            <input
+              type="checkbox"
+              checked={form.bar_hielo}
+              onChange={(e) => set("bar_hielo", e.target.checked)}
+            />
+            Contratar bar de hielo
+          </label>
+        </fieldset>
+
         <button>Crear grupo</button>
       </form>
 
@@ -685,6 +702,11 @@ export default function EmpresaDetalle() {
               <div style={{ border: "1px solid #eee", padding: 5 }}>
                 <b>Cena de velas:</b>
                 <label><input type="checkbox" checked={editForm.cena_velas} onChange={e => setEdit("cena_velas", e.target.checked)} /> Contratar cena</label>
+              </div>
+
+              <div style={{ border: "1px solid #eee", padding: 5 }}>
+                <b>Bar de hielo:</b>
+                <label><input type="checkbox" checked={editForm.bar_hielo} onChange={e => setEdit("bar_hielo", e.target.checked)} /> Contratar bar de hielo</label>
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 10 }}>

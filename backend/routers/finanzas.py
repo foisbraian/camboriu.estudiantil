@@ -217,6 +217,23 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
                 "padres": g.cantidad_padres or 0,
                 "guias": g.cantidad_guias or 0
             })
+
+        if g.bar_hielo:
+            p_hielo = (config.precio_bar_hielo or 0)
+            costo_hielo = total_pax_grupo * p_hielo
+            costo_grupo += costo_hielo
+            servicios_detalle.append({
+                "servicio": "Bar de hielo",
+                "descripcion": "Servicio adicional",
+                "precio_u": p_hielo,
+                "cantidad": 1,
+                "pax": total_pax_grupo,
+                "subtotal": costo_hielo,
+                "pax_original": total_pax_grupo,
+                "estudiantes": g.cantidad_estudiantes or 0,
+                "padres": g.cantidad_padres or 0,
+                "guias": g.cantidad_guias or 0
+            })
             
         total_venta += costo_grupo
         detalle_grupos.append({
@@ -260,7 +277,9 @@ def get_asignaciones_pagadas(empresa_id: int, db: Session):
                 
                 tipo = a.fecha_evento.evento.tipo
                 costo = 0
-                if config.es_combo:
+                if tipo == "HIELO":
+                    costo = (g.cantidad_pax or 0) * (config.precio_bar_hielo or 0)
+                elif config.es_combo:
                     asigs_g_sorted = sorted(asigs_grupo, key=lambda x: x.fecha_evento.fecha if x.fecha_evento else date.max)
                     if asigs_g_sorted and a.id == asigs_g_sorted[0].id:
                         pax = calcular_pax_cobrar(g, config.disco_liberados_ratio, config.disco_padres_gratis, config.disco_guias_gratis)
@@ -283,6 +302,9 @@ def get_asignaciones_pagadas(empresa_id: int, db: Session):
                             precio_u = (config.precio_pool_con_comida or 0) or (config.precio_pool_individual or 0)
                         else:
                             precio_u = (config.precio_pool_sin_comida or 0) or (config.precio_pool_individual or 0)
+                    elif tipo == "HIELO":
+                        ratio, p_gratis, g_gratis = 0, False, False
+                        precio_u = config.precio_bar_hielo or 0
                     
                     pax = calcular_pax_cobrar(g, ratio, p_gratis, g_gratis)
                     costo = pax * precio_u
