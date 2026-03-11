@@ -76,6 +76,9 @@ class EventoCreate(BaseModel):
     tipo: str
     capacidad_maxima: int
 
+class EventoUpdate(BaseModel):
+    capacidad_maxima: int
+
 
 # ⭐ FIX 422 DEFINITIVO
 class FechaEventoCreate(BaseModel):

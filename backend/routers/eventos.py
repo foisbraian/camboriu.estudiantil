@@ -65,6 +65,17 @@ def eliminar_fecha_evento(fecha_evento_id: int, db: Session = Depends(get_db)):
 # =====================================
 # ELIMINAR EVENTO (Definición)
 # =====================================
+@router.put("/{evento_id}")
+def editar_evento(evento_id: int, data: schemas.EventoUpdate, db: Session = Depends(get_db)):
+    e = db.get(models.Evento, evento_id)
+    if not e:
+        raise HTTPException(404, "Evento no encontrado")
+
+    e.capacidad_maxima = data.capacidad_maxima
+    db.commit()
+    db.refresh(e)
+    return e
+
 @router.delete("/{evento_id}")
 def eliminar_evento(evento_id: int, db: Session = Depends(get_db)):
     e = db.get(models.Evento, evento_id)

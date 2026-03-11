@@ -6,6 +6,8 @@ export default function Eventos() {
   const [tipo, setTipo] = useState("DISCO");
   const [capacidad, setCapacidad] = useState(0);
   const [lista, setLista] = useState([]);
+  const [editId, setEditId] = useState(null);
+  const [editCapacidad, setEditCapacidad] = useState(0);
 
   useEffect(() => {
     cargar();
@@ -34,6 +36,15 @@ export default function Eventos() {
     } catch (e) {
       alert("Error al eliminar");
     }
+  }
+
+  async function guardarCapacidad(id) {
+    await api.put(`/eventos/${id}`, {
+      capacidad_maxima: Number(editCapacidad)
+    });
+    setEditId(null);
+    setEditCapacidad(0);
+    cargar();
   }
 
   return (
@@ -76,8 +87,29 @@ export default function Eventos() {
                 <td>{ev.id}</td>
                 <td>{ev.nombre}</td>
                 <td>{ev.tipo}</td>
-                <td>{ev.capacidad_maxima}</td>
                 <td>
+                  {editId === ev.id ? (
+                    <input
+                      type="number"
+                      value={editCapacidad}
+                      onChange={(e) => setEditCapacidad(e.target.value)}
+                      style={{ width: 90 }}
+                    />
+                  ) : (
+                    ev.capacidad_maxima
+                  )}
+                </td>
+                <td>
+                  {editId === ev.id ? (
+                    <>
+                      <button onClick={() => guardarCapacidad(ev.id)}>Guardar</button>
+                      <button onClick={() => setEditId(null)} style={{ marginLeft: 6 }}>Cancelar</button>
+                    </>
+                  ) : (
+                    <button onClick={() => { setEditId(ev.id); setEditCapacidad(ev.capacidad_maxima); }}>
+                      Editar capacidad
+                    </button>
+                  )}
                   <button style={{ background: "red", color: "white" }} onClick={() => eliminar(ev.id)}>
                     Eliminar
                   </button>
