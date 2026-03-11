@@ -311,6 +311,7 @@ export default function EmpresaDetalle() {
     parque_con_comida: false,
     pool_acceso: false,
     pool_con_comida: false,
+    cena_velas: false,
   });
 
   const [editingGroup, setEditingGroup] = useState(null);
@@ -329,6 +330,7 @@ export default function EmpresaDetalle() {
     parque_con_comida: false,
     pool_acceso: false,
     pool_con_comida: false,
+    cena_velas: false,
   });
 
 
@@ -378,6 +380,7 @@ export default function EmpresaDetalle() {
       parque_con_comida: false,
       pool_acceso: false,
       pool_con_comida: false,
+      cena_velas: false,
     });
 
     cargar();
@@ -398,6 +401,7 @@ export default function EmpresaDetalle() {
       parque_con_comida: g.parque_con_comida,
       pool_acceso: g.pool_acceso,
       pool_con_comida: g.pool_con_comida,
+      cena_velas: g.cena_velas,
     });
   }
 
@@ -575,6 +579,19 @@ export default function EmpresaDetalle() {
           </label>
         </fieldset>
 
+        {/* ================= CENA DE VELAS ================= */}
+        <fieldset style={{ padding: 10 }}>
+          <legend>Cena de velas</legend>
+          <label>
+            <input
+              type="checkbox"
+              checked={form.cena_velas}
+              onChange={(e) => set("cena_velas", e.target.checked)}
+            />
+            Contratar cena
+          </label>
+        </fieldset>
+
         <button>Crear grupo</button>
       </form>
 
@@ -663,6 +680,11 @@ export default function EmpresaDetalle() {
                 <b>Pool:</b>
                 <label><input type="checkbox" checked={editForm.pool_acceso} onChange={e => setEdit("pool_acceso", e.target.checked)} /> Acceso</label>
                 <label style={{ marginLeft: 10 }}><input type="checkbox" checked={editForm.pool_con_comida} onChange={e => setEdit("pool_con_comida", e.target.checked)} /> Comida</label>
+              </div>
+
+              <div style={{ border: "1px solid #eee", padding: 5 }}>
+                <b>Cena de velas:</b>
+                <label><input type="checkbox" checked={editForm.cena_velas} onChange={e => setEdit("cena_velas", e.target.checked)} /> Contratar cena</label>
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 10 }}>

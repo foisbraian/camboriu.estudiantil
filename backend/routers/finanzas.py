@@ -180,12 +180,17 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
             # Pool
             if g.pool_con_comida or db.query(models.FechaEvento).join(models.Asignacion).filter(models.Asignacion.grupo_id == g.id).join(models.Evento).filter(models.Evento.tipo == "POOL").first():
                 pax_cobrar = calcular_pax_cobrar(g, config.pool_liberados_ratio, config.pool_padres_gratis, config.pool_guias_gratis)
-                p_pool = (config.precio_pool_individual or 0)
+                if g.pool_con_comida:
+                    p_pool = (config.precio_pool_con_comida or 0) or (config.precio_pool_individual or 0)
+                    descripcion_pool = "Acceso con comida"
+                else:
+                    p_pool = (config.precio_pool_sin_comida or 0) or (config.precio_pool_individual or 0)
+                    descripcion_pool = "Acceso sin comida"
                 costo_pool = pax_cobrar * p_pool
                 costo_grupo += costo_pool
                 servicios_detalle.append({
                     "servicio": "Pool / Water",
-                    "descripcion": "Acceso Individual",
+                    "descripcion": descripcion_pool,
                     "precio_u": p_pool,
                     "cantidad": 1,
                     "pax": pax_cobrar,
@@ -195,6 +200,23 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
                     "padres": g.cantidad_padres or 0,
                     "guias": g.cantidad_guias or 0
                 })
+
+        if g.cena_velas:
+            p_cena = (config.precio_cena_velas or 0)
+            costo_cena = total_pax_grupo * p_cena
+            costo_grupo += costo_cena
+            servicios_detalle.append({
+                "servicio": "Cena de velas",
+                "descripcion": "Servicio adicional",
+                "precio_u": p_cena,
+                "cantidad": 1,
+                "pax": total_pax_grupo,
+                "subtotal": costo_cena,
+                "pax_original": total_pax_grupo,
+                "estudiantes": g.cantidad_estudiantes or 0,
+                "padres": g.cantidad_padres or 0,
+                "guias": g.cantidad_guias or 0
+            })
             
         total_venta += costo_grupo
         detalle_grupos.append({
@@ -257,7 +279,10 @@ def get_asignaciones_pagadas(empresa_id: int, db: Session):
                             precio_u = (config.precio_parque_sin_comida or 0) or (config.precio_parque_individual or 0)
                     elif tipo == "POOL":
                         ratio, p_gratis, g_gratis = config.pool_liberados_ratio, config.pool_padres_gratis, config.pool_guias_gratis
-                        precio_u = config.precio_pool_individual or 0
+                        if g.pool_con_comida:
+                            precio_u = (config.precio_pool_con_comida or 0) or (config.precio_pool_individual or 0)
+                        else:
+                            precio_u = (config.precio_pool_sin_comida or 0) or (config.precio_pool_individual or 0)
                     
                     pax = calcular_pax_cobrar(g, ratio, p_gratis, g_gratis)
                     costo = pax * precio_u
@@ -334,5 +359,9 @@ def get_dashboard(db: Session = Depends(get_db)):
 def migracion_parque_precios(db: Session = Depends(get_db)):
     db.execute(text("ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS precio_parque_con_comida INTEGER DEFAULT 0"))
     db.execute(text("ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS precio_parque_sin_comida INTEGER DEFAULT 0"))
+    db.execute(text("ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS precio_pool_con_comida INTEGER DEFAULT 0"))
+    db.execute(text("ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS precio_pool_sin_comida INTEGER DEFAULT 0"))
+    db.execute(text("ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS precio_cena_velas INTEGER DEFAULT 0"))
+    db.execute(text("ALTER TABLE grupos ADD COLUMN IF NOT EXISTS cena_velas BOOLEAN DEFAULT FALSE"))
     db.commit()
     return {"ok": True}

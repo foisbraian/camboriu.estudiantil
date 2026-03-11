@@ -38,6 +38,7 @@ class GrupoCreate(BaseModel):
 
     pool_acceso: bool
     pool_con_comida: bool
+    cena_velas: bool = False
 
     @model_validator(mode="after")
     def fecha_salida_posterior(self):
@@ -101,6 +102,9 @@ class FinanzasEmpresaCreate(BaseModel):
     precio_parque_con_comida: int = 0
     precio_parque_sin_comida: int = 0
     precio_pool_individual: int = 0
+    precio_pool_con_comida: int = 0
+    precio_pool_sin_comida: int = 0
+    precio_cena_velas: int = 0
     es_combo: bool = False
     precio_combo: int = 0
     combo_discos: int = 0

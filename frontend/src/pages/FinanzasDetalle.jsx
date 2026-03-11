@@ -18,6 +18,9 @@ export default function FinanzasDetalle() {
         precio_parque_con_comida: 0,
         precio_parque_sin_comida: 0,
         precio_pool_individual: 0,
+        precio_pool_con_comida: 0,
+        precio_pool_sin_comida: 0,
+        precio_cena_velas: 0,
         es_combo: false,
         precio_combo: 0,
         combo_discos: 0,
@@ -218,8 +221,37 @@ export default function FinanzasDetalle() {
                                             onChange={e => setConfigForm({ ...configForm, precio_pool_individual: Number(e.target.value) })}
                                             style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
                                         />
+                                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
+                                            <div>
+                                                <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Con comida</p>
+                                                <input
+                                                    type="number"
+                                                    value={configForm.precio_pool_con_comida}
+                                                    onChange={e => setConfigForm({ ...configForm, precio_pool_con_comida: Number(e.target.value) })}
+                                                    style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
+                                                />
+                                            </div>
+                                            <div>
+                                                <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Sin comida</p>
+                                                <input
+                                                    type="number"
+                                                    value={configForm.precio_pool_sin_comida}
+                                                    onChange={e => setConfigForm({ ...configForm, precio_pool_sin_comida: Number(e.target.value) })}
+                                                    style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
+                                                />
+                                            </div>
+                                        </div>
                                         <LiberadosInputs prefix="pool" label="Pool" />
                                     </div>
+                                </div>
+                                <div style={{ padding: 15, background: "#fefce8", borderRadius: 8 }}>
+                                    <p style={{ margin: "0 0 6px 0", fontSize: "0.8rem", color: "#92400e" }}>Cena de velas</p>
+                                    <input
+                                        type="number"
+                                        value={configForm.precio_cena_velas}
+                                        onChange={e => setConfigForm({ ...configForm, precio_cena_velas: Number(e.target.value) })}
+                                        style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #fcd34d" }}
+                                    />
                                 </div>
                             </div>
                         ) : (
