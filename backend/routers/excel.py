@@ -245,7 +245,7 @@ def exportar_finanzas_todas(background_tasks: BackgroundTasks, db: Session = Dep
     )
 
 
-@router.get("/finanzas/{empresa_id}")
+@router.get("/finanzas/{empresa_id:int}")
 def exportar_finanzas(empresa_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     from routers.finanzas import get_resumen_empresa
     
