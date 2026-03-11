@@ -256,3 +256,51 @@ def exportar_finanzas(empresa_id: int, background_tasks: BackgroundTasks, db: Se
         filename=filename,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
+
+# ==========================================
+# EXPORTAR RESUMEN FINANCIERO DE TODAS
+# ==========================================
+
+@router.get("/finanzas/todas")
+def exportar_finanzas_todas(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    from routers.finanzas import get_resumen_empresa
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Resumen Empresas"
+
+    ws.append([
+        "Empresa",
+        "Total PAX",
+        "Total Venta",
+        "Total Cobrado",
+        "Saldo",
+        "Total a Pagar"
+    ])
+
+    empresas = db.query(models.Empresa).all()
+    for e in empresas:
+        res = get_resumen_empresa(e.id, db)
+        total_pax = sum(g.get("pax", 0) for g in res.get("grupos", []))
+        ws.append([
+            e.nombre,
+            total_pax,
+            res["total_venta"],
+            res["total_pagado"],
+            res["saldo"],
+            res["total_venta"]
+        ])
+
+    filename = f"reporte_financiero_todas_{datetime.now().strftime('%Y%m%d')}.xlsx"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
+        filepath = tmp.name
+
+    wb.save(filepath)
+    background_tasks.add_task(_cleanup_file, filepath)
+
+    return FileResponse(
+        filepath,
+        filename=filename,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
