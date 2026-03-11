@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from database import get_db
 import models, schemas
@@ -327,3 +328,11 @@ def get_dashboard(db: Session = Depends(get_db)):
         })
         
     return resumen_global
+
+
+@router.post("/migracion-parque-precios")
+def migracion_parque_precios(db: Session = Depends(get_db)):
+    db.execute(text("ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS precio_parque_con_comida INTEGER DEFAULT 0"))
+    db.execute(text("ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS precio_parque_sin_comida INTEGER DEFAULT 0"))
+    db.commit()
+    return {"ok": True}
