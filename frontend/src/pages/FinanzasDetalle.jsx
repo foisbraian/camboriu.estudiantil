@@ -15,6 +15,8 @@ export default function FinanzasDetalle() {
     const [configForm, setConfigForm] = useState({
         precio_disco_individual: 0,
         precio_parque_individual: 0,
+        precio_parque_con_comida: 0,
+        precio_parque_sin_comida: 0,
         precio_pool_individual: 0,
         es_combo: false,
         precio_combo: 0,
@@ -179,15 +181,35 @@ export default function FinanzasDetalle() {
                                 </div>
                                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                                     <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                                        <p style={{ margin: "0 0 4px 0", fontSize: "0.8rem", color: "#64748b" }}>Precio Parque</p>
-                                        <input
-                                            type="number"
-                                            value={configForm.precio_parque_individual}
-                                            onChange={e => setConfigForm({ ...configForm, precio_parque_individual: Number(e.target.value) })}
-                                            style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
-                                        />
-                                        <LiberadosInputs prefix="parque" label="Parque" />
+                                    <p style={{ margin: "0 0 4px 0", fontSize: "0.8rem", color: "#64748b" }}>Precio Parque</p>
+                                    <input
+                                        type="number"
+                                        value={configForm.precio_parque_individual}
+                                        onChange={e => setConfigForm({ ...configForm, precio_parque_individual: Number(e.target.value) })}
+                                        style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
+                                    />
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
+                                        <div>
+                                            <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Con comida</p>
+                                            <input
+                                                type="number"
+                                                value={configForm.precio_parque_con_comida}
+                                                onChange={e => setConfigForm({ ...configForm, precio_parque_con_comida: Number(e.target.value) })}
+                                                style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Sin comida</p>
+                                            <input
+                                                type="number"
+                                                value={configForm.precio_parque_sin_comida}
+                                                onChange={e => setConfigForm({ ...configForm, precio_parque_sin_comida: Number(e.target.value) })}
+                                                style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
+                                            />
+                                        </div>
                                     </div>
+                                    <LiberadosInputs prefix="parque" label="Parque" />
+                                </div>
                                     <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                                         <p style={{ margin: "0 0 4px 0", fontSize: "0.8rem", color: "#64748b" }}>Precio Pool</p>
                                         <input

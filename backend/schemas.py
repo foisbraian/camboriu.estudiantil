@@ -98,6 +98,8 @@ class FinanzasEmpresaCreate(BaseModel):
     empresa_id: int
     precio_disco_individual: int = 0
     precio_parque_individual: int = 0
+    precio_parque_con_comida: int = 0
+    precio_parque_sin_comida: int = 0
     precio_pool_individual: int = 0
     es_combo: bool = False
     precio_combo: int = 0

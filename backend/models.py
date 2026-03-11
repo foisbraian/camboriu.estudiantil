@@ -160,6 +160,8 @@ class FinanzasEmpresa(Base):
     
     precio_disco_individual = Column(Integer, default=0)
     precio_parque_individual = Column(Integer, default=0)
+    precio_parque_con_comida = Column(Integer, default=0)
+    precio_parque_sin_comida = Column(Integer, default=0)
     precio_pool_individual = Column(Integer, default=0)
     
     es_combo = Column(Boolean, default=False)
