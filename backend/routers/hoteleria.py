@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException, status
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from typing import List, cast
 from database import get_db
@@ -77,3 +78,10 @@ def create_pago(pago: schemas.PagoHotelCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_pago)
     return db_pago
+
+
+@router.post("/migracion-reserva-id")
+def migracion_reserva_id(db: Session = Depends(get_db)):
+    db.execute(text("ALTER TABLE pagos_hotel ADD COLUMN IF NOT EXISTS reserva_id INTEGER"))
+    db.commit()
+    return {"ok": True}
