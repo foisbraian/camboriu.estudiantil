@@ -41,16 +41,6 @@ export default function FinanzasDashboard() {
                     >
                         📄 Excel Todas
                     </button>
-                    <button
-                        onClick={async () => {
-                            if (!window.confirm("Aplicar migración de precios Parque con/sin comida?")) return;
-                            await api.post("/finanzas/migracion-parque-precios");
-                            alert("Migración aplicada");
-                        }}
-                        style={{ padding: "10px 16px", background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 8, cursor: "pointer", fontSize: "0.85rem", fontWeight: 600, color: "#9a3412" }}
-                    >
-                        ⚠️ Aplicar migración
-                    </button>
                 </div>
             </div>
 
