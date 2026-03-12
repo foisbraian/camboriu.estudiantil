@@ -85,3 +85,10 @@ def migracion_reserva_id(db: Session = Depends(get_db)):
     db.execute(text("ALTER TABLE pagos_hotel ADD COLUMN IF NOT EXISTS reserva_id INTEGER"))
     db.commit()
     return {"ok": True}
+
+
+@router.post("/migracion-total-habitaciones")
+def migracion_total_habitaciones(db: Session = Depends(get_db)):
+    db.execute(text("ALTER TABLE reservas_hotel ADD COLUMN IF NOT EXISTS total_habitaciones INTEGER DEFAULT 0"))
+    db.commit()
+    return {"ok": True}

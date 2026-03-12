@@ -177,6 +177,7 @@ class ReservaHotelCreate(BaseModel):
     fecha_ingreso: date
     fecha_salida: date
 
+    total_habitaciones: int = 0
     cant_single: int = 0
     cant_doble: int = 0
     cant_triple: int = 0

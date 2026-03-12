@@ -256,6 +256,7 @@ class ReservaHotel(Base):
     fecha_salida = Column(Date)
 
     # Cantidad de habitaciones
+    total_habitaciones = Column(Integer, default=0)
     cant_single = Column(Integer, default=0)
     cant_doble = Column(Integer, default=0)
     cant_triple = Column(Integer, default=0)

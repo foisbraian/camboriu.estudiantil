@@ -20,6 +20,7 @@ export default function Hoteleria() {
     const [showReservaModal, setShowReservaModal] = useState(false);
     const [reservaForm, setReservaForm] = useState({
         empresa_id: "", fecha_ingreso: "", fecha_salida: "",
+        total_habitaciones: 0,
         cant_single: 0, tarifa_single: 0,
         cant_doble: 0, tarifa_doble: 0,
         cant_triple: 0, tarifa_triple: 0,
@@ -201,7 +202,7 @@ export default function Hoteleria() {
                                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
                                             <h2 style={{ margin: 0 }}>Reservas en {selectedHotel.nombre}</h2>
                                             <button onClick={() => {
-                                                setReservaForm({ empresa_id: "", fecha_ingreso: "", fecha_salida: "", cant_single: 0, tarifa_single: 0, cant_doble: 0, tarifa_doble: 0, cant_triple: 0, tarifa_triple: 0, cant_cuadruple: 0, tarifa_cuadruple: 0, cant_quintuple: 0, tarifa_quintuple: 0 });
+                                                setReservaForm({ empresa_id: "", fecha_ingreso: "", fecha_salida: "", total_habitaciones: 0, cant_single: 0, tarifa_single: 0, cant_doble: 0, tarifa_doble: 0, cant_triple: 0, tarifa_triple: 0, cant_cuadruple: 0, tarifa_cuadruple: 0, cant_quintuple: 0, tarifa_quintuple: 0 });
                                                 setShowReservaModal(true);
                                             }} style={{ background: "#10b981", color: "#fff", border: "none", padding: "8px 16px", borderRadius: 6, cursor: "pointer", fontWeight: "bold" }}>+ Agregar Reserva</button>
                                         </div>
@@ -236,6 +237,7 @@ export default function Hoteleria() {
                                                         const subtotal = tarNoche * noches;
 
                                                         const habs = [];
+                                                        if (r.total_habitaciones > 0) habs.push(`TOTAL(${r.total_habitaciones})`);
                                                         if (r.cant_single > 0) habs.push(`SGL(${r.cant_single})`);
                                                         if (r.cant_doble > 0) habs.push(`DBL(${r.cant_doble})`);
                                                         if (r.cant_triple > 0) habs.push(`TPL(${r.cant_triple})`);
@@ -247,7 +249,7 @@ export default function Hoteleria() {
                                                                 <td style={{ padding: 12, fontWeight: "bold" }}>{r.empresa?.nombre}</td>
                                                                 <td style={{ padding: 12 }}>{r.fecha_ingreso} <br /> {r.fecha_salida}</td>
                                                                 <td style={{ padding: 12 }}>{noches}</td>
-                                                                <td style={{ padding: 12, fontSize: "0.85rem", color: "#475569" }}>{habs.join(", ")}</td>
+                                                                <td style={{ padding: 12, fontSize: "0.85rem", color: "#475569" }}>{habs.length ? habs.join(", ") : "—"}</td>
                                                                 <td style={{ padding: 12 }}>${tarNoche.toLocaleString()}</td>
                                                                 <td style={{ padding: 12, fontWeight: "bold", color: "#0ea5e9" }}>${subtotal.toLocaleString()}</td>
                                                                 <td style={{ padding: 12 }}>
@@ -382,6 +384,15 @@ export default function Hoteleria() {
 
                             <hr style={{ border: "0.5px solid #e2e8f0" }} />
                             <p style={{ margin: 0, fontWeight: "bold", fontSize: "0.9rem", color: "#475569" }}>Habitaciones y Tarifas (por noche)</p>
+
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                                <div>
+                                    <label style={labelStyle}>Total habitaciones (sin tipologia)</label>
+                                    <input type="number" min="0" placeholder="Cantidad total"
+                                        value={reservaForm.total_habitaciones}
+                                        onChange={e => setReservaForm({ ...reservaForm, total_habitaciones: parseInt(e.target.value) || 0 })} style={inputStyle} />
+                                </div>
+                            </div>
 
                             <div style={{ display: "grid", gridTemplateColumns: "80px 1fr 1fr", gap: 10, alignItems: "center" }}>
                                 <span />
