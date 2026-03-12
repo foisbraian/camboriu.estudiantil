@@ -128,13 +128,24 @@ export default function Hoteleria() {
         <div style={{ minHeight: "100%", padding: "30px 40px", background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 35%, #312e81 100%)", color: "white" }}>
             <section style={{ marginBottom: 30 }}>
                 <p style={{ letterSpacing: "0.3em", fontSize: "0.75rem", textTransform: "uppercase", color: "rgba(248,250,252,0.7)" }}>Operaciones</p>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                     <h1 style={{ margin: 0, fontSize: "2.8rem", fontWeight: 800 }}>🏨 Hotelería</h1>
-                    <button
-                        onClick={() => setShowHotelModal(true)}
-                        style={{ background: "#0ea5e9", color: "#fff", border: "none", padding: "10px 20px", borderRadius: 8, fontWeight: "bold", cursor: "pointer" }}>
-                        + Nuevo Hotel
-                    </button>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                        <button
+                            onClick={async () => {
+                                if (!window.confirm("Aplicar migracion de hoteleria para total habitaciones?")) return;
+                                await api.post("/hoteleria/migracion-total-habitaciones");
+                                alert("Migracion aplicada");
+                            }}
+                            style={{ background: "#fff7ed", color: "#9a3412", border: "1px solid #fed7aa", padding: "10px 16px", borderRadius: 8, fontWeight: "bold", cursor: "pointer" }}>
+                            ⚠️ Aplicar migracion
+                        </button>
+                        <button
+                            onClick={() => setShowHotelModal(true)}
+                            style={{ background: "#0ea5e9", color: "#fff", border: "none", padding: "10px 20px", borderRadius: 8, fontWeight: "bold", cursor: "pointer" }}>
+                            + Nuevo Hotel
+                        </button>
+                    </div>
                 </div>
             </section>
 
