@@ -127,24 +127,13 @@ export default function Hoteleria() {
         <div style={{ minHeight: "100%", padding: "30px 40px", background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 35%, #312e81 100%)", color: "white" }}>
             <section style={{ marginBottom: 30 }}>
                 <p style={{ letterSpacing: "0.3em", fontSize: "0.75rem", textTransform: "uppercase", color: "rgba(248,250,252,0.7)" }}>Operaciones</p>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <h1 style={{ margin: 0, fontSize: "2.8rem", fontWeight: 800 }}>🏨 Hotelería</h1>
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                        <button
-                            onClick={async () => {
-                                if (!window.confirm("Aplicar migracion de hoteleria para pagos con reserva?")) return;
-                                await api.post("/hoteleria/migracion-reserva-id");
-                                alert("Migracion aplicada");
-                            }}
-                            style={{ background: "#fff7ed", color: "#9a3412", border: "1px solid #fed7aa", padding: "10px 16px", borderRadius: 8, fontWeight: "bold", cursor: "pointer" }}>
-                            ⚠️ Aplicar migracion
-                        </button>
-                        <button
-                            onClick={() => setShowHotelModal(true)}
-                            style={{ background: "#0ea5e9", color: "#fff", border: "none", padding: "10px 20px", borderRadius: 8, fontWeight: "bold", cursor: "pointer" }}>
-                            + Nuevo Hotel
-                        </button>
-                    </div>
+                    <button
+                        onClick={() => setShowHotelModal(true)}
+                        style={{ background: "#0ea5e9", color: "#fff", border: "none", padding: "10px 20px", borderRadius: 8, fontWeight: "bold", cursor: "pointer" }}>
+                        + Nuevo Hotel
+                    </button>
                 </div>
             </section>
 
@@ -393,6 +382,12 @@ export default function Hoteleria() {
 
                             <hr style={{ border: "0.5px solid #e2e8f0" }} />
                             <p style={{ margin: 0, fontWeight: "bold", fontSize: "0.9rem", color: "#475569" }}>Habitaciones y Tarifas (por noche)</p>
+
+                            <div style={{ display: "grid", gridTemplateColumns: "80px 1fr 1fr", gap: 10, alignItems: "center" }}>
+                                <span />
+                                <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Habitaciones</span>
+                                <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Tarifa</span>
+                            </div>
 
                             {["single", "doble", "triple", "cuadruple", "quintuple"].map(tipo => (
                                 <div key={tipo} style={{ display: "grid", gridTemplateColumns: "80px 1fr 1fr", gap: 10, alignItems: "center" }}>
