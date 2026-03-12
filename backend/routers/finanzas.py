@@ -360,7 +360,7 @@ def get_asignaciones_grupo(grupo_id: int, db: Session = Depends(get_db)):
 
 @router.get("/dashboard")
 def get_dashboard(db: Session = Depends(get_db)):
-    empresas = db.query(models.Empresa).all()
+    empresas = db.query(models.Empresa).join(models.Grupo).distinct().all()
     resumen_global = []
     
     for e in empresas:

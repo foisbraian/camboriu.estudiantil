@@ -47,7 +47,7 @@ def calendario(db: Session = Depends(get_db)):
         "order": 0,
     })
 
-    empresas = db.query(models.Empresa).all()
+    empresas = db.query(models.Empresa).join(models.Grupo).distinct().all()
 
     order_counter = 1
     for e in empresas:
