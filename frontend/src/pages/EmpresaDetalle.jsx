@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import api from "../api";
 
 const parseISODate = (value) => {
@@ -294,9 +294,13 @@ const DateRangeField = ({
 
 export default function EmpresaDetalle() {
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const [empresa, setEmpresa] = useState(null);
   const [grupos, setGrupos] = useState([]);
+  const [empresaNombre, setEmpresaNombre] = useState("");
+  const [editandoEmpresa, setEditandoEmpresa] = useState(false);
+  const [empresaError, setEmpresaError] = useState("");
 
   const [form, setForm] = useState({
     nombre: "",
@@ -339,6 +343,7 @@ export default function EmpresaDetalle() {
   const cargar = useCallback(async () => {
     const e = await api.get(`/empresas/${id}`);
     setEmpresa(e.data);
+    setEmpresaNombre(e.data.nombre || "");
     const g = await api.get(`/grupos/empresa/${id}`);
     setGrupos(g.data);
   }, [id]);
@@ -441,11 +446,81 @@ export default function EmpresaDetalle() {
     }
   }
 
+  async function guardarEmpresa(e) {
+    e.preventDefault();
+    setEmpresaError("");
+
+    if (!empresaNombre.trim()) {
+      setEmpresaError("El nombre no puede estar vacío");
+      return;
+    }
+
+    try {
+      const res = await api.put(`/empresas/${id}`, { nombre: empresaNombre });
+      setEmpresa(res.data);
+      setEditandoEmpresa(false);
+      alert("Empresa actualizada");
+    } catch (error) {
+      setEmpresaError(error.response?.data?.detail || "Error al actualizar la empresa");
+    }
+  }
+
+  function cancelarEdicionEmpresa() {
+    setEmpresaNombre(empresa?.nombre || "");
+    setEditandoEmpresa(false);
+    setEmpresaError("");
+  }
+
+  async function eliminarEmpresa() {
+    const mensaje = "¿Eliminar empresa? Se borrarán grupos, asignaciones, vouchers, pagos, reservas y eventos privados relacionados.";
+    if (!window.confirm(mensaje)) return;
+    try {
+      await api.delete(`/empresas/${id}`);
+      alert("Empresa eliminada");
+      navigate("/empresas");
+    } catch (error) {
+      alert(error.response?.data?.detail || "Error al eliminar la empresa");
+    }
+  }
+
   if (!empresa) return <p>Cargando...</p>;
 
   return (
     <div style={{ padding: 20, maxWidth: 900 }}>
-      <h2>{empresa.nombre}</h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <div style={{ flex: 1, minWidth: 220 }}>
+          {!editandoEmpresa ? (
+            <h2 style={{ margin: 0 }}>{empresa.nombre}</h2>
+          ) : (
+            <form onSubmit={guardarEmpresa} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input
+                value={empresaNombre}
+                onChange={(e) => setEmpresaNombre(e.target.value)}
+                style={{ width: "100%", maxWidth: 340 }}
+                placeholder="Nombre de empresa"
+              />
+              <button>Guardar</button>
+              <button type="button" onClick={cancelarEdicionEmpresa} style={{ background: "#e2e8f0" }}>
+                Cancelar
+              </button>
+            </form>
+          )}
+          {empresaError && <p style={{ color: "red", marginTop: 6 }}>{empresaError}</p>}
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          {!editandoEmpresa && (
+            <button onClick={() => setEditandoEmpresa(true)} style={{ padding: "6px 12px" }}>
+              Editar empresa
+            </button>
+          )}
+          <button
+            onClick={eliminarEmpresa}
+            style={{ padding: "6px 12px", background: "#fef2f2", color: "#ef4444", border: "1px solid #fee2e2", borderRadius: 4 }}
+          >
+            Eliminar empresa
+          </button>
+        </div>
+      </div>
 
       {/* ================= NUEVO GRUPO ================= */}
       <h3>Nuevo Grupo</h3>

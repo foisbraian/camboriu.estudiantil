@@ -125,6 +125,28 @@ def eliminar_empresa(empresa_id: int, db: Session = Depends(get_db)):
     if not empresa:
         raise HTTPException(404, "Empresa no encontrada")
 
+    grupo_ids = [gid for (gid,) in db.query(models.Grupo.id).filter(models.Grupo.empresa_id == empresa_id).all()]
+    if grupo_ids:
+        asignacion_ids = [aid for (aid,) in db.query(models.Asignacion.id).filter(models.Asignacion.grupo_id.in_(grupo_ids)).all()]
+        if asignacion_ids:
+            db.query(models.Voucher).filter(models.Voucher.asignacion_id.in_(asignacion_ids)).delete(synchronize_session=False)
+            db.query(models.Asignacion).filter(models.Asignacion.id.in_(asignacion_ids)).delete(synchronize_session=False)
+        db.query(models.Grupo).filter(models.Grupo.id.in_(grupo_ids)).delete(synchronize_session=False)
+
+    fecha_privada_ids = [fid for (fid,) in db.query(models.FechaEvento.id).filter(models.FechaEvento.empresa_privada_id == empresa_id).all()]
+    if fecha_privada_ids:
+        asignacion_privada_ids = [aid for (aid,) in db.query(models.Asignacion.id).filter(models.Asignacion.fecha_evento_id.in_(fecha_privada_ids)).all()]
+        if asignacion_privada_ids:
+            db.query(models.Voucher).filter(models.Voucher.asignacion_id.in_(asignacion_privada_ids)).delete(synchronize_session=False)
+            db.query(models.Asignacion).filter(models.Asignacion.id.in_(asignacion_privada_ids)).delete(synchronize_session=False)
+        db.query(models.FechaEvento).filter(models.FechaEvento.id.in_(fecha_privada_ids)).delete(synchronize_session=False)
+
+    db.query(models.PagoHotel).filter(models.PagoHotel.empresa_id == empresa_id).delete(synchronize_session=False)
+    db.query(models.ReservaHotel).filter(models.ReservaHotel.empresa_id == empresa_id).delete(synchronize_session=False)
+
+    db.query(models.Pago).filter(models.Pago.empresa_id == empresa_id).delete(synchronize_session=False)
+    db.query(models.FinanzasEmpresa).filter(models.FinanzasEmpresa.empresa_id == empresa_id).delete(synchronize_session=False)
+
     db.delete(empresa)
     db.commit()
 
