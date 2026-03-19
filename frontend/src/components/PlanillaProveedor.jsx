@@ -509,6 +509,9 @@ export default function PlanillaProveedor({
             )}
 
             <style>{`
+                @page {
+                    size: landscape;
+                }
                 @media print {
                     .planilla-proveedor {
                         padding: 0 !important;

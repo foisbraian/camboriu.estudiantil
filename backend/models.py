@@ -119,88 +119,7 @@ class FechaEvento(Base):
 
     # solo discos usan esto
     con_alcohol = Column(Boolean, default=False)
-    
-    # temática (opcional, solo para discos)
-    tematica_id = Column(Integer, ForeignKey("tematicas.id"), nullable=True)
 
-    es_privado = Column(Boolean, default=False)
-    empresa_privada_id = Column(Integer, ForeignKey("empresas.id"), nullable=True)
-
-    evento = relationship("Evento", back_populates="fechas")
-    asignaciones = relationship("Asignacion", back_populates="fecha_evento")
-    tematica = relationship("Tematica", back_populates="fechas_evento")
-    empresa_privada = relationship("Empresa", foreign_keys=[empresa_privada_id])
-
-
-# =============================
-# ASIGNACION
-# grupo -> evento en fecha
-# =============================
-
-class Asignacion(Base):
-    __tablename__ = "asignaciones"
-
-    id = Column(Integer, primary_key=True)
-
-    grupo_id = Column(Integer, ForeignKey("grupos.id", ondelete="CASCADE"))
-    fecha_evento_id = Column(Integer, ForeignKey("fechas_evento.id", ondelete="CASCADE"))
-
-    grupo = relationship("Grupo", back_populates="asignaciones")
-    fecha_evento = relationship("FechaEvento", back_populates="asignaciones")
-    vouchers = relationship("Voucher", back_populates="asignacion")
-
-    empresa = relationship("Empresa", back_populates="grupos")
-    asignaciones = relationship("Asignacion", back_populates="grupo")
-
-
-# =============================
-# EVENTO BASE (Eclipse / Parque / Pool)
-# =============================
-
-class Evento(Base):
-    __tablename__ = "eventos"
-
-    id = Column(Integer, primary_key=True)
-
-    nombre = Column(String)  # Eclipse / Parque Norte / Pool Sunset
-    tipo = Column(String)    # DISCO | PARQUE | POOL
-
-    capacidad_maxima = Column(Integer)
-
-    fechas = relationship("FechaEvento", back_populates="evento")
-
-
-# =============================
-# TEMATICA
-# (para eventos de discoteca)
-# =============================
-
-class Tematica(Base):
-    __tablename__ = "tematicas"
-
-    id = Column(Integer, primary_key=True)
-    nombre = Column(String, unique=True)
-    descripcion = Column(String, nullable=True)
-
-    fechas_evento = relationship("FechaEvento", back_populates="tematica")
-
-
-# =============================
-# FECHA DE EVENTO
-# (cada día que abre)
-# =============================
-
-class FechaEvento(Base):
-    __tablename__ = "fechas_evento"
-
-    id = Column(Integer, primary_key=True)
-
-    evento_id = Column(Integer, ForeignKey("eventos.id"))
-    fecha = Column(Date)
-
-    # solo discos usan esto
-    con_alcohol = Column(Boolean, default=False)
-    
     # temática (opcional, solo para discos)
     tematica_id = Column(Integer, ForeignKey("tematicas.id"), nullable=True)
 
@@ -241,7 +160,7 @@ class FinanzasEmpresa(Base):
     id = Column(Integer, primary_key=True)
     empresa_id = Column(Integer, ForeignKey("empresas.id"), unique=True)
     moneda = Column(String, default="ARS")
-    
+
     precio_disco_individual = Column(Integer, default=0)
     precio_parque_individual = Column(Integer, default=0)
     precio_parque_con_comida = Column(Integer, default=0)
@@ -251,7 +170,7 @@ class FinanzasEmpresa(Base):
     precio_pool_sin_comida = Column(Integer, default=0)
     precio_cena_velas = Column(Integer, default=0)
     precio_bar_hielo = Column(Integer, default=0)
-    
+
     es_combo = Column(Boolean, default=False)
     precio_combo = Column(Integer, default=0)
     combo_discos = Column(Integer, default=0)
@@ -259,7 +178,7 @@ class FinanzasEmpresa(Base):
     combo_pool = Column(Boolean, default=False)
 
     # Liberados (Free entries)
-    disco_liberados_ratio = Column(Integer, default=0) # 20:1
+    disco_liberados_ratio = Column(Integer, default=0)  # 20:1
     disco_padres_gratis = Column(Boolean, default=False)
     disco_guias_gratis = Column(Boolean, default=False)
 
@@ -283,7 +202,7 @@ class Pago(Base):
 
     id = Column(Integer, primary_key=True)
     empresa_id = Column(Integer, ForeignKey("empresas.id"))
-    
+
     monto = Column(Integer)
     fecha = Column(Date)
     metodo = Column(String)  # Transferencia, Efectivo, etc.
@@ -298,7 +217,7 @@ class Voucher(Base):
     token = Column(String, unique=True, index=True)
     asignacion_id = Column(Integer, ForeignKey("asignaciones.id", ondelete="CASCADE"))
     usado = Column(Boolean, default=False)
-    fecha_uso = Column(String, nullable=True) # datetime string
+    fecha_uso = Column(String, nullable=True)  # datetime string
 
     asignacion = relationship("Asignacion", back_populates="vouchers")
 
@@ -308,7 +227,7 @@ class Proveedor(Base):
 
     id = Column(Integer, primary_key=True)
     nombre = Column(String, unique=True, index=True)
-    
+
     # Almacenamos el estado de la planilla como JSON string
     # { headers: [], rows: [] }
     data = Column(String, default='{"headers": ["Item", "Detalle", "Monto"], "rows": [["", "", "0"]], "footerCalculations": ["sum", "sum", "sum"], "columnConfigs": [{"type": "text", "options": []}, {"type": "text", "options": []}, {"type": "text", "options": []}]}')
@@ -364,7 +283,7 @@ class PagoHotel(Base):
     empresa_id = Column(Integer, ForeignKey("empresas.id", ondelete="CASCADE"))
     hotel_id = Column(Integer, ForeignKey("hoteles.id", ondelete="CASCADE"))
     reserva_id = Column(Integer, ForeignKey("reservas_hotel.id", ondelete="SET NULL"), nullable=True)
-    
+
     monto = Column(Integer)
     fecha = Column(Date)
     metodo = Column(String)  # Transferencia, Efectivo, Cheque, etc.
@@ -373,4 +292,3 @@ class PagoHotel(Base):
     empresa = relationship("Empresa", back_populates="pagos_hotel")
     hotel = relationship("Hotel", back_populates="pagos")
     reserva = relationship("ReservaHotel", back_populates="pagos")
-    hotel = relationship("Hotel", back_populates="pagos")
