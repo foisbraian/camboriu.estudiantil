@@ -85,7 +85,8 @@ export default function FinanzasDetalle() {
         try {
             const resR = await api.get(`/finanzas/resumen/${id}`);
             setResumen(resR.data);
-            setConfigForm(resR.data.config);
+            const cfg = resR.data.config || {};
+            setConfigForm({ ...cfg, moneda: cfg.moneda || "ARS" });
 
             const resP = await api.get(`/finanzas/pagos/${id}`);
             setPagos(resP.data);
