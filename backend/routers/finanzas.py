@@ -389,5 +389,6 @@ def migracion_parque_precios(db: Session = Depends(get_db)):
     db.execute(text("ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS precio_bar_hielo INTEGER DEFAULT 0"))
     db.execute(text("ALTER TABLE grupos ADD COLUMN IF NOT EXISTS cena_velas BOOLEAN DEFAULT FALSE"))
     db.execute(text("ALTER TABLE grupos ADD COLUMN IF NOT EXISTS bar_hielo BOOLEAN DEFAULT FALSE"))
+    db.execute(text("UPDATE finanzas_empresa SET moneda = 'ARS' WHERE moneda IS NULL"))
     db.commit()
     return {"ok": True}
