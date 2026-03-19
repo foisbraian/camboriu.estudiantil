@@ -101,6 +101,7 @@ class AsignacionCreate(BaseModel):
 
 class FinanzasEmpresaCreate(BaseModel):
     empresa_id: int
+    moneda: str = "ARS"
     precio_disco_individual: int = 0
     precio_parque_individual: int = 0
     precio_parque_con_comida: int = 0

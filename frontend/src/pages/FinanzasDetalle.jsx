@@ -13,6 +13,7 @@ export default function FinanzasDetalle() {
 
     // Form para configuración
     const [configForm, setConfigForm] = useState({
+        moneda: "ARS",
         precio_disco_individual: 0,
         precio_parque_individual: 0,
         precio_parque_con_comida: 0,
@@ -139,7 +140,14 @@ export default function FinanzasDetalle() {
         cargarTodo();
     }
 
-    const formatMoney = (val) => new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(val || 0);
+    const formatMoney = (val) => {
+        const moneda = (configForm && configForm.moneda) ? configForm.moneda : "ARS";
+        return new Intl.NumberFormat("es-AR", { 
+            style: "currency", 
+            currency: moneda, 
+            maximumFractionDigits: 0 
+        }).format(val || 0);
+    };
 
     if (!resumen) return <div style={{ padding: 40 }}>Cargando datos...</div>;
 
@@ -162,14 +170,29 @@ export default function FinanzasDetalle() {
                 <div style={{ background: "white", padding: 25, borderRadius: 12, boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" }}>
                     <h3 style={{ marginTop: 0, marginBottom: 20 }}>⚙️ Configuración de Precios</h3>
                     <div style={{ display: "flex", flexDirection: "column", gap: 15 }}>
-                        <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontWeight: 600 }}>
-                            <input
-                                type="checkbox"
-                                checked={configForm.es_combo}
-                                onChange={e => setConfigForm({ ...configForm, es_combo: e.target.checked })}
-                            />
-                            Manejar por COMBO
-                        </label>
+                        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+                            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontWeight: 600 }}>
+                                <input
+                                    type="checkbox"
+                                    checked={configForm.es_combo}
+                                    onChange={e => setConfigForm({ ...configForm, es_combo: e.target.checked })}
+                                />
+                                Manejar por COMBO
+                            </label>
+
+                            <label style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 600 }}>
+                                Moneda:
+                                <select 
+                                    value={configForm.moneda} 
+                                    onChange={e => setConfigForm({ ...configForm, moneda: e.target.value })}
+                                    style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #cbd5e1" }}
+                                >
+                                    <option value="ARS">ARS ($)</option>
+                                    <option value="USD">USD (US$)</option>
+                                    <option value="BRL">BRL (R$)</option>
+                                </select>
+                            </label>
+                        </div>
 
                         {!configForm.es_combo ? (
                             <div style={{ padding: 15, background: "#f8fafc", borderRadius: 8, display: "flex", flexDirection: "column", gap: 10 }}>

@@ -368,6 +368,7 @@ def get_dashboard(db: Session = Depends(get_db)):
         resumen_global.append({
             "id": e.id,
             "nombre": e.nombre,
+            "moneda": res["config"].moneda,
             "total_venta": res["total_venta"],
             "total_pagado": res["total_pagado"],
             "saldo": res["saldo"],
@@ -379,6 +380,7 @@ def get_dashboard(db: Session = Depends(get_db)):
 
 @router.post("/migracion-parque-precios")
 def migracion_parque_precios(db: Session = Depends(get_db)):
+    db.execute(text("ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS moneda VARCHAR DEFAULT 'ARS'"))
     db.execute(text("ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS precio_parque_con_comida INTEGER DEFAULT 0"))
     db.execute(text("ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS precio_parque_sin_comida INTEGER DEFAULT 0"))
     db.execute(text("ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS precio_pool_con_comida INTEGER DEFAULT 0"))

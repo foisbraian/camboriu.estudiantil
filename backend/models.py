@@ -149,6 +149,87 @@ class Asignacion(Base):
     fecha_evento = relationship("FechaEvento", back_populates="asignaciones")
     vouchers = relationship("Voucher", back_populates="asignacion")
 
+    empresa = relationship("Empresa", back_populates="grupos")
+    asignaciones = relationship("Asignacion", back_populates="grupo")
+
+
+# =============================
+# EVENTO BASE (Eclipse / Parque / Pool)
+# =============================
+
+class Evento(Base):
+    __tablename__ = "eventos"
+
+    id = Column(Integer, primary_key=True)
+
+    nombre = Column(String)  # Eclipse / Parque Norte / Pool Sunset
+    tipo = Column(String)    # DISCO | PARQUE | POOL
+
+    capacidad_maxima = Column(Integer)
+
+    fechas = relationship("FechaEvento", back_populates="evento")
+
+
+# =============================
+# TEMATICA
+# (para eventos de discoteca)
+# =============================
+
+class Tematica(Base):
+    __tablename__ = "tematicas"
+
+    id = Column(Integer, primary_key=True)
+    nombre = Column(String, unique=True)
+    descripcion = Column(String, nullable=True)
+
+    fechas_evento = relationship("FechaEvento", back_populates="tematica")
+
+
+# =============================
+# FECHA DE EVENTO
+# (cada día que abre)
+# =============================
+
+class FechaEvento(Base):
+    __tablename__ = "fechas_evento"
+
+    id = Column(Integer, primary_key=True)
+
+    evento_id = Column(Integer, ForeignKey("eventos.id"))
+    fecha = Column(Date)
+
+    # solo discos usan esto
+    con_alcohol = Column(Boolean, default=False)
+    
+    # temática (opcional, solo para discos)
+    tematica_id = Column(Integer, ForeignKey("tematicas.id"), nullable=True)
+
+    es_privado = Column(Boolean, default=False)
+    empresa_privada_id = Column(Integer, ForeignKey("empresas.id"), nullable=True)
+
+    evento = relationship("Evento", back_populates="fechas")
+    asignaciones = relationship("Asignacion", back_populates="fecha_evento")
+    tematica = relationship("Tematica", back_populates="fechas_evento")
+    empresa_privada = relationship("Empresa", foreign_keys=[empresa_privada_id])
+
+
+# =============================
+# ASIGNACION
+# grupo -> evento en fecha
+# =============================
+
+class Asignacion(Base):
+    __tablename__ = "asignaciones"
+
+    id = Column(Integer, primary_key=True)
+
+    grupo_id = Column(Integer, ForeignKey("grupos.id", ondelete="CASCADE"))
+    fecha_evento_id = Column(Integer, ForeignKey("fechas_evento.id", ondelete="CASCADE"))
+
+    grupo = relationship("Grupo", back_populates="asignaciones")
+    fecha_evento = relationship("FechaEvento", back_populates="asignaciones")
+    vouchers = relationship("Voucher", back_populates="asignacion")
+
 
 # =============================
 # FINANZAS - CONFIGURACION
@@ -159,6 +240,7 @@ class FinanzasEmpresa(Base):
 
     id = Column(Integer, primary_key=True)
     empresa_id = Column(Integer, ForeignKey("empresas.id"), unique=True)
+    moneda = Column(String, default="ARS")
     
     precio_disco_individual = Column(Integer, default=0)
     precio_parque_individual = Column(Integer, default=0)

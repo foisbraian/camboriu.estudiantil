@@ -22,11 +22,15 @@ export default function FinanzasDashboard() {
         }
     }
 
-    const totalVentaGlobal = data.reduce((acc, curr) => acc + curr.total_venta, 0);
-    const totalPagadoGlobal = data.reduce((acc, curr) => acc + curr.total_pagado, 0);
-    const totalSaldoGlobal = totalVentaGlobal - totalPagadoGlobal;
+    const formatMoney = (val, currencyCode = "ARS") => new Intl.NumberFormat("es-AR", { style: "currency", currency: currencyCode, maximumFractionDigits: 0 }).format(val);
 
-    const formatMoney = (val) => new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(val);
+    const totalsByCurrency = data.reduce((acc, curr) => {
+        const c = curr.moneda || "ARS";
+        if (!acc[c]) acc[c] = { venta: 0, pagado: 0 };
+        acc[c].venta += curr.total_venta;
+        acc[c].pagado += curr.total_pagado;
+        return acc;
+    }, {});
 
     if (loading) return <div style={{ padding: 40 }}>Cargando dashboard...</div>;
 
@@ -45,11 +49,23 @@ export default function FinanzasDashboard() {
             </div>
 
             {/* KPIs */}
-            <div style={{ display: "flex", gap: 20, marginBottom: 40, flexWrap: "wrap" }}>
-                <KPIBox title="Total General" value={formatMoney(totalVentaGlobal)} color="#3b82f6" />
-                <KPIBox title="Total Cobrado" value={formatMoney(totalPagadoGlobal)} color="#10b981" />
-                <KPIBox title="Saldo Pendiente" value={formatMoney(totalSaldoGlobal)} color="#ef4444" />
-            </div>
+            {Object.keys(totalsByCurrency).length === 0 && (
+                <div style={{ display: "flex", gap: 20, marginBottom: 40, flexWrap: "wrap" }}>
+                    <KPIBox title="Total General" value={formatMoney(0, "ARS")} color="#3b82f6" />
+                    <KPIBox title="Total Cobrado" value={formatMoney(0, "ARS")} color="#10b981" />
+                    <KPIBox title="Saldo Pendiente" value={formatMoney(0, "ARS")} color="#ef4444" />
+                </div>
+            )}
+            {Object.entries(totalsByCurrency).map(([moneda, totals]) => (
+                <div key={moneda} style={{ marginBottom: 40 }}>
+                    <h3 style={{ marginTop: 0, marginBottom: 15, color: "#475569" }}>Totales en {moneda}</h3>
+                    <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+                        <KPIBox title="Total General" value={formatMoney(totals.venta, moneda)} color="#3b82f6" />
+                        <KPIBox title="Total Cobrado" value={formatMoney(totals.pagado, moneda)} color="#10b981" />
+                        <KPIBox title="Saldo Pendiente" value={formatMoney(totals.venta - totals.pagado, moneda)} color="#ef4444" />
+                    </div>
+                </div>
+            ))}
 
             <div style={{ background: "white", borderRadius: 12, boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)", overflow: "hidden" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
@@ -80,8 +96,8 @@ export default function FinanzasDashboard() {
                                     onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                                 >
                                     <td style={{ padding: "16px 20px", fontWeight: 700, color: "#1e293b" }}>{emp.nombre}</td>
-                                    <td style={{ padding: "16px 20px", color: "#334155" }}>{formatMoney(emp.total_venta)}</td>
-                                    <td style={{ padding: "16px 20px", color: "#059669", fontWeight: 600 }}>{formatMoney(emp.total_pagado)}</td>
+                                    <td style={{ padding: "16px 20px", color: "#334155" }}>{formatMoney(emp.total_venta, emp.moneda)}</td>
+                                    <td style={{ padding: "16px 20px", color: "#059669", fontWeight: 600 }}>{formatMoney(emp.total_pagado, emp.moneda)}</td>
                                     <td style={{ padding: "16px 20px", width: "250px" }}>
                                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                                             <div style={{ flex: 1, height: 8, background: "#e2e8f0", borderRadius: 4, overflow: "hidden" }}>
