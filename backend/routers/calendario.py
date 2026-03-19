@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 import models
 from datetime import timedelta, date
+import math
 from pydantic import BaseModel
 from typing import Optional, Any, cast
 
@@ -105,9 +106,20 @@ def calendario(db: Session = Depends(get_db)):
             # Text Color: Black if fondo claro
             text_color = "black" if color in ("yellow", "#e2e8f0", "#e0f2fe") else "white"
         
-        # Calcular ocupación (Sumar PAX de los grupos asignados)
-        ocupacion = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo)
         capacidad = f.evento.capacidad_maxima
+        ocupacion = 0
+        turnos = 0
+
+        if f.evento.tipo == "HIELO":
+            turnos = len(f.asignaciones)
+            for a in f.asignaciones:
+                if a.pax_asignados is not None:
+                    ocupacion += a.pax_asignados
+                elif a.grupo:
+                    ocupacion += a.grupo.cantidad_pax
+        else:
+            # Calcular ocupación (Sumar PAX de los grupos asignados)
+            ocupacion = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo)
 
         # Desglose Comida
         con_comida = 0
@@ -121,7 +133,11 @@ def calendario(db: Session = Depends(get_db)):
             sin_comida = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo and not a.grupo.pool_con_comida)
 
         # Título con temática si existe
-        titulo = f"{f.evento.nombre} ({ocupacion}/{capacidad})"
+        if f.evento.tipo == "HIELO":
+            capacidad_turno = capacidad or 90
+            titulo = f"{f.evento.nombre} (Turnos: {turnos} x {capacidad_turno})"
+        else:
+            titulo = f"{f.evento.nombre} ({ocupacion}/{capacidad})"
         if f.tematica:
             titulo += f"\n{f.tematica.nombre}"
         
@@ -146,6 +162,8 @@ def calendario(db: Session = Depends(get_db)):
                 "capacidad": capacidad,
                 "con_comida": con_comida,
                 "sin_comida": sin_comida,
+                "turnos": turnos,
+                "pax_total": ocupacion,
                 "tematica_id": f.tematica_id,
                 "tematica_nombre": f.tematica.nombre if f.tematica else None,
                 "es_privado": f.es_privado,
@@ -490,8 +508,41 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
         raise HTTPException(400, "El grupo no tiene acceso a POOL")
 
     # Validacion BAR DE HIELO
-    if tipo_nuevo == "HIELO" and not grupo.bar_hielo:
-        raise HTTPException(400, "El grupo no tiene Bar de Hielo")
+    if tipo_nuevo == "HIELO":
+        if not grupo.bar_hielo:
+            raise HTTPException(400, "El grupo no tiene Bar de Hielo")
+
+        existentes_hielo = db.query(models.Asignacion) \
+            .join(models.FechaEvento) \
+            .join(models.Evento) \
+            .filter(models.Asignacion.grupo_id == grupo_id) \
+            .filter(models.FechaEvento.fecha == fecha) \
+            .filter(models.Evento.tipo == "HIELO") \
+            .count()
+
+        if existentes_hielo > 0:
+            raise HTTPException(400, "El grupo ya tiene Bar de Hielo asignado ese día")
+
+        capacidad_turno = nuevo_evento_fecha.evento.capacidad_maxima or 90
+        pax_total = grupo.cantidad_pax or 0
+        if pax_total <= 0:
+            raise HTTPException(400, "El grupo no tiene PAX cargados")
+
+        turnos = math.ceil(pax_total / capacidad_turno)
+        restante = pax_total
+        asignaciones = []
+        for _ in range(turnos):
+            pax_turno = min(capacidad_turno, restante)
+            restante -= pax_turno
+            asignaciones.append(models.Asignacion(
+                grupo_id=grupo_id,
+                fecha_evento_id=nuevo_evento_fecha.id,
+                pax_asignados=pax_turno
+            ))
+
+        db.add_all(asignaciones)
+        db.commit()
+        return {"ok": True, "turnos": turnos}
 
 
     # Buscar asignaciones existente en el mismo día

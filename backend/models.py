@@ -144,6 +144,7 @@ class Asignacion(Base):
 
     grupo_id = Column(Integer, ForeignKey("grupos.id", ondelete="CASCADE"))
     fecha_evento_id = Column(Integer, ForeignKey("fechas_evento.id", ondelete="CASCADE"))
+    pax_asignados = Column(Integer, nullable=True)
 
     grupo = relationship("Grupo", back_populates="asignaciones")
     fecha_evento = relationship("FechaEvento", back_populates="asignaciones")
