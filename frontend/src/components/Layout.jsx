@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
+import api from "../api";
 
 const MESES = [
     "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -10,6 +11,8 @@ export default function Layout() {
     const [menuOpen, setMenuOpen] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
+    const [migrating, setMigrating] = useState(false);
+    const [migrationMessage, setMigrationMessage] = useState("");
 
     const now = new Date();
     const [mesSeleccionado, setMesSeleccionado] = useState(now.getMonth());
@@ -51,6 +54,21 @@ export default function Layout() {
             detail: { mes: mesSeleccionado, anio: anioSeleccionado }
         });
         window.dispatchEvent(event);
+    };
+
+    const handleMigrar = async () => {
+        setMigrating(true);
+        setMigrationMessage("");
+        try {
+            const response = await api.post("/maintenance/migrate");
+            const detail = response?.data?.detail || "Migración completada";
+            setMigrationMessage(detail);
+        } catch (error) {
+            const detail = error?.response?.data?.detail || "No se pudo ejecutar la migración";
+            setMigrationMessage(detail);
+        } finally {
+            setMigrating(false);
+        }
     };
 
     return (
@@ -213,6 +231,35 @@ export default function Layout() {
                             🖨️ Descargar PDF
                         </button>
                     </>
+                )}
+
+                <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", margin: "12px 0" }} />
+
+                <p style={{ color: "#64748b", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", margin: "0 0 6px 4px" }}>
+                    Mantenimiento
+                </p>
+                <button
+                    onClick={handleMigrar}
+                    disabled={migrating}
+                    style={{
+                        background: migrating ? "rgba(148,163,184,0.2)" : "rgba(59,130,246,0.18)",
+                        color: migrating ? "#94a3b8" : "#bfdbfe",
+                        border: "1px solid rgba(148,163,184,0.25)",
+                        borderRadius: 8,
+                        padding: "10px 14px",
+                        fontWeight: 700,
+                        cursor: migrating ? "not-allowed" : "pointer",
+                        fontSize: "0.95rem",
+                        width: "100%",
+                        textAlign: "left",
+                    }}
+                >
+                    {migrating ? "⏳ Migrando base" : "🛠️ Migrar base"}
+                </button>
+                {migrationMessage && (
+                    <p style={{ color: "#e2e8f0", fontSize: "0.85rem", margin: "8px 4px 0" }}>
+                        {migrationMessage}
+                    </p>
                 )}
             </div>
 

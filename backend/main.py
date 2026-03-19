@@ -15,6 +15,7 @@ from routers import (
     proveedores,
     backup,
     hoteleria,
+    maintenance,
 )
 import models
 from database import engine
@@ -102,3 +103,4 @@ app.include_router(vouchers.router)
 app.include_router(proveedores.router)
 app.include_router(backup.router)
 app.include_router(hoteleria.router)
+app.include_router(maintenance.router)
