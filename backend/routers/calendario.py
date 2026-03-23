@@ -9,6 +9,7 @@ from datetime import timedelta, date
 import math
 from pydantic import BaseModel
 from typing import Optional, Any, cast
+from collections import defaultdict
 
 router = APIRouter(prefix="/calendario", tags=["Calendario"])
 
@@ -174,6 +175,59 @@ def calendario(db: Session = Depends(get_db)):
         })
 
     # =====================================================
+    # RESUMEN GRUPOS POR DIA (CON / SIN ALCOHOL)
+    # =====================================================
+    resumen_discos = defaultdict(lambda: {
+        "con": {"pax": 0, "padres": 0, "guias": 0},
+        "sin": {"pax": 0, "padres": 0, "guias": 0}
+    })
+
+    for empresa in empresas:
+        for grupo in empresa.grupos:
+            bucket = "con" if grupo.permite_alcohol else "sin"
+            pax = grupo.cantidad_pax
+            padres = grupo.cantidad_padres or 0
+            guias = grupo.cantidad_guias or 0
+
+            current_date = grupo.fecha_entrada
+            while current_date < grupo.fecha_salida:
+                resumen_discos[current_date][bucket]["pax"] += pax
+                resumen_discos[current_date][bucket]["padres"] += padres
+                resumen_discos[current_date][bucket]["guias"] += guias
+                current_date = current_date + timedelta(days=1)
+
+    for fecha, totales in resumen_discos.items():
+        if not (
+            totales["con"]["pax"] or totales["con"]["padres"] or totales["con"]["guias"] or
+            totales["sin"]["pax"] or totales["sin"]["padres"] or totales["sin"]["guias"]
+        ):
+            continue
+
+        con = totales["con"]
+        sin = totales["sin"]
+
+        titulo = (
+            "Resumen grupos\n"
+            f"Con alcohol: PAX {con['pax']} | Padres {con['padres']} | Guias {con['guias']}\n"
+            f"Sin alcohol: PAX {sin['pax']} | Padres {sin['padres']} | Guias {sin['guias']}"
+        )
+
+        events.append({
+            "id": f"resumen-disco-{fecha}",
+            "resourceId": "eventos",
+            "start": fecha,
+            "end": fecha + timedelta(days=1),
+            "title": titulo,
+            "backgroundColor": "#f8fafc",
+            "textColor": "#0f172a",
+            "borderColor": "#e2e8f0",
+            "extendedProps": {
+                "tipo": "resumen_servicios",
+                "resumen_tipo": "grupos"
+            }
+        })
+
+    # =====================================================
     # GRUPOS (LOGICA SPLIT)
     # =====================================================
     for e in empresas:
@@ -213,7 +267,6 @@ def calendario(db: Session = Depends(get_db)):
             text_color_grupo = "black" if not g.permite_alcohol else "white"
 
             # Mapa de asignaciones por fecha (lista para soportar multiples)
-            from collections import defaultdict
             mapa_asignaciones = defaultdict(list)
             for a in g.asignaciones:
                 mapa_asignaciones[a.fecha_evento.fecha].append(a)

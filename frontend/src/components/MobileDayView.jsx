@@ -44,6 +44,7 @@ export default function MobileDayView({ resources, events, loading }) {
   const globalEvents = useMemo(() => {
     return events
       .filter((evt) => String(evt.resourceId) === "eventos" && matchesCurrentDate(evt.start))
+      .filter((evt) => evt.extendedProps?.tipo !== "resumen_servicios")
       .map((evt) => {
         const props = evt.extendedProps || {};
         return {

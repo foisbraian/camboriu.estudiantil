@@ -235,6 +235,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
     if (readOnly) return;
 
     const props = info.event.extendedProps || {};
+    if (props.tipo === "resumen_servicios") return;
     const fechaISO = info.event.startStr.slice(0, 10);
 
     // ---------------------------------------------------------
@@ -549,6 +550,17 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           }}
           eventContent={(arg) => {
             const title = arg.event.title;
+            const props = arg.event.extendedProps || {};
+            if (props.tipo === "resumen_servicios") {
+              const lines = title.split("\n");
+              return {
+                html: `<div style="padding: 2px 4px; font-size: 0.75em; line-height: 1.2; color: #0f172a;">
+                  <div style="font-weight: 700;">${lines[0] || ""}</div>
+                  ${lines[1] ? `<div>${lines[1]}</div>` : ""}
+                  ${lines[2] ? `<div>${lines[2]}</div>` : ""}
+                </div>`
+              };
+            }
 
             // Si el título contiene salto de línea, renderizar con HTML
             if (title.includes('\n')) {
@@ -568,6 +580,14 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
             const props = info.event.extendedProps || {};
             const tip = props.tooltip;
             if (tip) info.el.title = tip;
+
+            if (props.tipo === "resumen_servicios") {
+              info.el.style.pointerEvents = "none";
+              info.el.style.boxShadow = "none";
+              info.el.style.borderWidth = "1px";
+              info.el.style.borderStyle = "dashed";
+              info.el.style.borderColor = "#cbd5f5";
+            }
 
             // CRITICAL: Al ser 'background', el evento no bloquea clicks. 
             // PERO queremos tooltip. FullCalendar a veces no muestra tooltip en background.
