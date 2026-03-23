@@ -178,29 +178,25 @@ def calendario(db: Session = Depends(get_db)):
     # RESUMEN GRUPOS POR DIA (CON / SIN ALCOHOL)
     # =====================================================
     resumen_discos = defaultdict(lambda: {
-        "con": {"pax": 0, "padres": 0, "guias": 0},
-        "sin": {"pax": 0, "padres": 0, "guias": 0}
+        "con": {"total": 0},
+        "sin": {"total": 0}
     })
 
     for empresa in empresas:
         for grupo in empresa.grupos:
             bucket = "con" if grupo.permite_alcohol else "sin"
-            pax = grupo.cantidad_pax
+            estudiantes = grupo.cantidad_estudiantes or 0
             padres = grupo.cantidad_padres or 0
             guias = grupo.cantidad_guias or 0
+            total = estudiantes + padres + guias
 
             current_date = grupo.fecha_entrada
             while current_date < grupo.fecha_salida:
-                resumen_discos[current_date][bucket]["pax"] += pax
-                resumen_discos[current_date][bucket]["padres"] += padres
-                resumen_discos[current_date][bucket]["guias"] += guias
+                resumen_discos[current_date][bucket]["total"] += total
                 current_date = current_date + timedelta(days=1)
 
     for fecha, totales in resumen_discos.items():
-        if not (
-            totales["con"]["pax"] or totales["con"]["padres"] or totales["con"]["guias"] or
-            totales["sin"]["pax"] or totales["sin"]["padres"] or totales["sin"]["guias"]
-        ):
+        if not (totales["con"]["total"] or totales["sin"]["total"]):
             continue
 
         con = totales["con"]
@@ -208,8 +204,8 @@ def calendario(db: Session = Depends(get_db)):
 
         titulo = (
             "Resumen grupos\n"
-            f"Con alcohol: PAX {con['pax']} | Padres {con['padres']} | Guias {con['guias']}\n"
-            f"Sin alcohol: PAX {sin['pax']} | Padres {sin['padres']} | Guias {sin['guias']}"
+            f"TOTAL C/A: {con['total']}\n"
+            f"TOTAL S/A: {sin['total']}"
         )
 
         events.append({
