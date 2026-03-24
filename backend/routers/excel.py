@@ -38,7 +38,7 @@ def exportar_excel(background_tasks: BackgroundTasks, db: Session = Depends(get_
     ws.title = "Asignaciones por Servicio"
 
     ws.append([
-        "Fecha", "Servicio", "Temática", "Empresa", "Grupo", 
+        "Fecha", "Servicio", "Complejo", "Temática", "Empresa", "Grupo", 
         "Check-in", "Check-out", 
         "Estudiantes", "Padres", "Guias", "Total Pax",
         "Alcohol Grupo", "Con Comida"
@@ -77,6 +77,7 @@ def exportar_excel(background_tasks: BackgroundTasks, db: Session = Depends(get_
         ws.append([
             fecha_evento.fecha,
             evento.nombre,
+            evento.complejo or "",
             tematica,
             grupo.empresa.nombre,
             grupo.nombre,
@@ -96,7 +97,7 @@ def exportar_excel(background_tasks: BackgroundTasks, db: Session = Depends(get_
 
     ws2 = wb.create_sheet("Discos")
 
-    ws2.append(["Fecha", "Disco", "Temática", "Alcohol", "Pax total"])
+    ws2.append(["Fecha", "Disco", "Complejo", "Temática", "Alcohol", "Pax total"])
 
     fechas = db.query(models.FechaEvento).all()
 
@@ -110,6 +111,7 @@ def exportar_excel(background_tasks: BackgroundTasks, db: Session = Depends(get_
         ws2.append([
             f.fecha,
             f.evento.nombre,
+            f.evento.complejo or "",
             tematica,
             "CON" if f.con_alcohol else "SIN",
             total

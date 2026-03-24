@@ -75,9 +75,11 @@ class EventoCreate(BaseModel):
     nombre: str
     tipo: str
     capacidad_maxima: int
+    complejo: Union[str, None] = None
 
 class EventoUpdate(BaseModel):
     capacidad_maxima: int
+    complejo: Union[str, None] = None
 
 
 # ⭐ FIX 422 DEFINITIVO

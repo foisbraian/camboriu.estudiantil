@@ -5,9 +5,11 @@ export default function Eventos() {
   const [nombre, setNombre] = useState("");
   const [tipo, setTipo] = useState("DISCO");
   const [capacidad, setCapacidad] = useState(0);
+  const [complejo, setComplejo] = useState("");
   const [lista, setLista] = useState([]);
   const [editId, setEditId] = useState(null);
   const [editCapacidad, setEditCapacidad] = useState(0);
+  const [editComplejo, setEditComplejo] = useState("");
 
   useEffect(() => {
     cargar();
@@ -23,6 +25,7 @@ export default function Eventos() {
       nombre,
       tipo,
       capacidad_maxima: Number(capacidad),
+      complejo: tipo === "DISCO" ? complejo.trim() || null : null,
     });
     alert("Evento creado");
     cargar();
@@ -40,10 +43,12 @@ export default function Eventos() {
 
   async function guardarCapacidad(id) {
     await api.put(`/eventos/${id}`, {
-      capacidad_maxima: Number(editCapacidad)
+      capacidad_maxima: Number(editCapacidad),
+      complejo: editComplejo.trim() || null,
     });
     setEditId(null);
     setEditCapacidad(0);
+    setEditComplejo("");
     cargar();
   }
 
@@ -61,6 +66,14 @@ export default function Eventos() {
         <option value="HIELO">Bar de hielo</option>
       </select>
 
+      {tipo === "DISCO" && (
+        <input
+          placeholder="Complejo (ej: Greenvalley)"
+          value={complejo}
+          onChange={(e) => setComplejo(e.target.value)}
+        />
+      )}
+
       <input
         type="number"
         placeholder="Capacidad"
@@ -77,6 +90,7 @@ export default function Eventos() {
               <th>ID</th>
               <th>Nombre</th>
               <th>Tipo</th>
+              <th>Complejo</th>
               <th>Capacidad</th>
               <th>Acciones</th>
             </tr>
@@ -87,14 +101,25 @@ export default function Eventos() {
                 <td>{ev.id}</td>
                 <td>{ev.nombre}</td>
                 <td>{ev.tipo}</td>
+                <td>{ev.complejo || ""}</td>
                 <td>
                   {editId === ev.id ? (
-                    <input
-                      type="number"
-                      value={editCapacidad}
-                      onChange={(e) => setEditCapacidad(e.target.value)}
-                      style={{ width: 90 }}
-                    />
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <input
+                        type="number"
+                        value={editCapacidad}
+                        onChange={(e) => setEditCapacidad(e.target.value)}
+                        style={{ width: 90 }}
+                      />
+                      {ev.tipo === "DISCO" && (
+                        <input
+                          placeholder="Complejo"
+                          value={editComplejo}
+                          onChange={(e) => setEditComplejo(e.target.value)}
+                          style={{ width: 180 }}
+                        />
+                      )}
+                    </div>
                   ) : (
                     ev.capacidad_maxima
                   )}
@@ -103,10 +128,25 @@ export default function Eventos() {
                   {editId === ev.id ? (
                     <>
                       <button onClick={() => guardarCapacidad(ev.id)}>Guardar</button>
-                      <button onClick={() => setEditId(null)} style={{ marginLeft: 6 }}>Cancelar</button>
+                      <button
+                        onClick={() => {
+                          setEditId(null);
+                          setEditCapacidad(0);
+                          setEditComplejo("");
+                        }}
+                        style={{ marginLeft: 6 }}
+                      >
+                        Cancelar
+                      </button>
                     </>
                   ) : (
-                    <button onClick={() => { setEditId(ev.id); setEditCapacidad(ev.capacidad_maxima); }}>
+                    <button
+                      onClick={() => {
+                        setEditId(ev.id);
+                        setEditCapacidad(ev.capacidad_maxima);
+                        setEditComplejo(ev.complejo || "");
+                      }}
+                    >
                       Editar capacidad
                     </button>
                   )}

@@ -72,6 +72,7 @@ def editar_evento(evento_id: int, data: schemas.EventoUpdate, db: Session = Depe
         raise HTTPException(404, "Evento no encontrado")
 
     e.capacidad_maxima = data.capacidad_maxima
+    e.complejo = data.complejo
     db.commit()
     db.refresh(e)
     return e

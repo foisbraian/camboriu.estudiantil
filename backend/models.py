@@ -83,6 +83,7 @@ class Evento(Base):
 
     nombre = Column(String)  # Eclipse / Parque Norte / Pool Sunset
     tipo = Column(String)    # DISCO | PARQUE | POOL
+    complejo = Column(String, nullable=True)  # Solo discos (ej: Greenvalley)
 
     capacidad_maxima = Column(Integer)
 
