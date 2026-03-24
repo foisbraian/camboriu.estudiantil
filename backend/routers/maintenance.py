@@ -20,6 +20,11 @@ MIGRATIONS = [
         "sqlite": "ALTER TABLE finanzas_empresa ADD COLUMN moneda VARCHAR DEFAULT 'ARS'",
         "postgres": "ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS moneda VARCHAR DEFAULT 'ARS'",
     },
+    {
+        "name": "eventos.complejo",
+        "sqlite": "ALTER TABLE eventos ADD COLUMN complejo VARCHAR",
+        "postgres": "ALTER TABLE eventos ADD COLUMN IF NOT EXISTS complejo VARCHAR",
+    },
 ]
 
 
