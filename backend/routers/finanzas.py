@@ -71,13 +71,6 @@ def calcular_pax_cobrar(grupo, ratio: int, padres_gratis: bool, guias_gratis: bo
     - Ratio (X:1) libera 1 adulto por cada X estudiantes.
     - padres_gratis/guias_gratis libera a todo ese grupo.
     """
-    if getattr(grupo, "pagantes_finales", None) is not None:
-        total = grupo.cantidad_pax or 0
-        override = int(grupo.pagantes_finales or 0)
-        if total > 0:
-            return max(0, min(override, total))
-        return max(0, override)
-
     estudiantes = (grupo.cantidad_estudiantes or 0)
     padres = (grupo.cantidad_padres or 0)
     guias = (grupo.cantidad_guias or 0)

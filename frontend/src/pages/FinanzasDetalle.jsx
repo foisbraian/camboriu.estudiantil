@@ -421,36 +421,12 @@ export default function FinanzasDetalle() {
                                                     (Total: {g.pax} PAX)
                                                 </span>
                                             </div>
-                                            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                                                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.75rem", color: "#475569" }}>
-                                                    Pagantes finales:
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        value={pagantesFinalesForm[g.id] ?? ""}
-                                                        onChange={(e) => {
-                                                            const nextValue = e.target.value;
-                                                            setPagantesFinalesForm((prev) => ({
-                                                                ...prev,
-                                                                [g.id]: nextValue
-                                                            }));
-                                                        }}
-                                                        style={{ width: 80, padding: "3px 6px", borderRadius: 6, border: "1px solid #cbd5e1" }}
-                                                    />
-                                                </label>
-                                                <button
-                                                    onClick={() => guardarPagantesFinales(g.id)}
-                                                    style={{ padding: "4px 10px", background: "#0f172a", color: "white", border: "none", borderRadius: 4, fontSize: "0.75rem", cursor: "pointer" }}
-                                                >
-                                                    Guardar
-                                                </button>
-                                                <button
-                                                    onClick={() => verDetalleGrupo(g)}
-                                                    style={{ padding: "4px 10px", background: "#3b82f6", color: "white", border: "none", borderRadius: 4, fontSize: "0.75rem", cursor: "pointer" }}
-                                                >
-                                                    🔍 Ver Detalle / Vouchers
-                                                </button>
-                                            </div>
+                                            <button
+                                                onClick={() => verDetalleGrupo(g)}
+                                                style={{ padding: "4px 10px", background: "#3b82f6", color: "white", border: "none", borderRadius: 4, fontSize: "0.75rem", cursor: "pointer" }}
+                                            >
+                                                🔍 Ver Detalle / Vouchers
+                                            </button>
                                         </div>
                                     </td>
                                     <td style={{ padding: 12, textAlign: "right" }}>{formatMoney(g.subtotal)}</td>
@@ -463,6 +439,33 @@ export default function FinanzasDetalle() {
                                             {formatMoney(s.precio_u)} x {s.cantidad} (Cant) x
                                             <b style={{ color: "#2563eb", marginLeft: 4 }}>{s.pax} Pagantes</b>
                                             <span style={{ fontSize: "0.75rem", marginLeft: 4 }}>/ Total: {s.pax_original}</span>
+
+                                            {(s.servicio === "Cena de velas" || s.servicio === "Bar de hielo") && (
+                                                <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                                                    <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.75rem", color: "#475569" }}>
+                                                        Pagantes finales:
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            value={pagantesFinalesForm[g.id] ?? ""}
+                                                            onChange={(e) => {
+                                                                const nextValue = e.target.value;
+                                                                setPagantesFinalesForm((prev) => ({
+                                                                    ...prev,
+                                                                    [g.id]: nextValue
+                                                                }));
+                                                            }}
+                                                            style={{ width: 80, padding: "3px 6px", borderRadius: 6, border: "1px solid #cbd5e1" }}
+                                                        />
+                                                    </label>
+                                                    <button
+                                                        onClick={() => guardarPagantesFinales(g.id)}
+                                                        style={{ padding: "4px 10px", background: "#0f172a", color: "white", border: "none", borderRadius: 4, fontSize: "0.75rem", cursor: "pointer" }}
+                                                    >
+                                                        Guardar
+                                                    </button>
+                                                </div>
+                                            )}
                                         </td>
                                         <td style={{ padding: "8px 12px", textAlign: "right", color: "#64748b" }}>{formatMoney(s.subtotal)}</td>
                                     </tr>

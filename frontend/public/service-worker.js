@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 
 // This service worker is required for PWA installability
-const CACHE_NAME = 'camboriu-cache-v1';
+const CACHE_NAME = 'camboriu-cache-v2';
 const urlsToCache = [
     '/',
     '/index.html',
@@ -37,9 +37,39 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+    const { request } = event;
+    if (request.method !== 'GET') {
+        event.respondWith(fetch(request));
+        return;
+    }
+
+    const url = new URL(request.url);
+    if (url.origin !== self.location.origin) {
+        event.respondWith(fetch(request));
+        return;
+    }
+
+    if (request.mode === 'navigate') {
+        event.respondWith(
+            fetch(request)
+                .then((response) => {
+                    const clone = response.clone();
+                    caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+                    return response;
+                })
+                .catch(() => caches.match(request))
+        );
+        return;
+    }
+
     event.respondWith(
-        caches.match(event.request).then((response) => {
-            return response || fetch(event.request);
+        caches.match(request).then((cached) => {
+            if (cached) return cached;
+            return fetch(request).then((response) => {
+                const clone = response.clone();
+                caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+                return response;
+            });
         })
     );
 });
