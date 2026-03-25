@@ -356,11 +356,23 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
     resources = []
     events = []
 
+    # Fila superior para servicios/eventos globales
+    resources.append({
+        "id": "eventos",
+        "title": "Servicios",
+        "order": 0,
+    })
+
     # Empresa
     resources.append({
         "id": f"empresa-{empresa.id}",
         "title": empresa.nombre,
         "order": 1,
+        "extendedProps": {
+            "empresaNombre": empresa.nombre,
+            "empresaId": empresa.id,
+            "esEmpresa": True
+        }
     })
 
     # Grupos
@@ -369,6 +381,14 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
             "id": g.id,
             "parentId": f"empresa-{empresa.id}",
             "title": g.nombre,
+            "extendedProps": {
+                "empresaNombre": empresa.nombre,
+                "empresaId": empresa.id,
+                "grupoNombre": g.nombre,
+                "pax": g.cantidad_pax,
+                "fechaEntrada": g.fecha_entrada,
+                "fechaSalida": g.fecha_salida,
+            }
         })
 
     # 2. EVENTS

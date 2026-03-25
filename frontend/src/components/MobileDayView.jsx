@@ -67,7 +67,12 @@ export default function MobileDayView({ resources, events, loading }) {
       .filter((evt) => matchesCurrentDate(evt.start))
       .filter((evt) => {
         const tipo = evt.extendedProps?.tipo;
-        return tipo === "asignacion" || tipo === "grupo";
+        return (
+          tipo === "asignacion"
+          || tipo === "grupo"
+          || tipo === "asignacion_readonly"
+          || tipo === "grupo_readonly"
+        );
       })
       .map((evt) => {
         const info = resourceInfo.get(evt.resourceId) || {};
