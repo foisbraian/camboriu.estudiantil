@@ -67,6 +67,7 @@ class Grupo(Base):
     pool_con_comida = Column(Boolean, default=False)
     cena_velas = Column(Boolean, default=False)
     bar_hielo = Column(Boolean, default=False)
+    pagantes_finales = Column(Integer, nullable=True)
 
     empresa = relationship("Empresa", back_populates="grupos")
     asignaciones = relationship("Asignacion", back_populates="grupo")

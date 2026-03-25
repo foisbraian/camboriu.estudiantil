@@ -376,11 +376,13 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
     })
 
     # Grupos
+    order_counter = 2
     for g in empresa.grupos:
         resources.append({
             "id": g.id,
             "parentId": f"empresa-{empresa.id}",
             "title": g.nombre,
+            "order": order_counter,
             "extendedProps": {
                 "empresaNombre": empresa.nombre,
                 "empresaId": empresa.id,
@@ -390,6 +392,7 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                 "fechaSalida": g.fecha_salida,
             }
         })
+        order_counter += 1
 
     # 2. EVENTS
     
@@ -460,7 +463,7 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                         "textColor": text_color_asig,
                         # Sin extendedProps complejas porque es read-only, pero dejamos tipo
                         "extendedProps": {
-                            "tipo": "asignacion_readonly",
+                            "tipo": "asignacion",
                             "tooltip": f"Asignado: {asignacion.fecha_evento.evento.nombre}" # Tooltip en asignacion tambien
                         } 
                     })
@@ -473,7 +476,7 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                     "backgroundColor": bg_color_grupo,
                     "borderColor": bg_color_grupo,
                     "textColor": text_color_grupo,
-                    "extendedProps": {"tipo": "grupo_readonly", "tooltip": tooltip}
+                    "extendedProps": {"tipo": "grupo", "tooltip": tooltip}
                 })
 
             current_date = next_date

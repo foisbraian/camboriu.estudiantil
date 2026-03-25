@@ -40,6 +40,7 @@ class GrupoCreate(BaseModel):
     pool_con_comida: bool
     cena_velas: bool = False
     bar_hielo: bool = False
+    pagantes_finales: int | None = None
 
     @model_validator(mode="after")
     def fecha_salida_posterior(self):
@@ -51,6 +52,10 @@ class GrupoCreate(BaseModel):
 
 class GrupoUpdate(GrupoCreate):
     pass
+
+
+class GrupoPagantesUpdate(BaseModel):
+    pagantes_finales: int | None = None
 
 
 # ========= TEMATICA =========

@@ -71,6 +71,13 @@ def calcular_pax_cobrar(grupo, ratio: int, padres_gratis: bool, guias_gratis: bo
     - Ratio (X:1) libera 1 adulto por cada X estudiantes.
     - padres_gratis/guias_gratis libera a todo ese grupo.
     """
+    if getattr(grupo, "pagantes_finales", None) is not None:
+        total = grupo.cantidad_pax or 0
+        override = int(grupo.pagantes_finales or 0)
+        if total > 0:
+            return max(0, min(override, total))
+        return max(0, override)
+
     estudiantes = (grupo.cantidad_estudiantes or 0)
     padres = (grupo.cantidad_padres or 0)
     guias = (grupo.cantidad_guias or 0)
@@ -203,15 +210,16 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
 
         tiene_cena = g.cena_velas or db.query(models.FechaEvento).join(models.Asignacion).filter(models.Asignacion.grupo_id == g.id).join(models.Evento).filter(models.Evento.tipo == "CENA").first()
         if tiene_cena:
+            pax_cena = g.pagantes_finales if g.pagantes_finales is not None else total_pax_grupo
             p_cena = (config.precio_cena_velas or 0)
-            costo_cena = total_pax_grupo * p_cena
+            costo_cena = pax_cena * p_cena
             costo_grupo += costo_cena
             servicios_detalle.append({
                 "servicio": "Cena de velas",
                 "descripcion": "Servicio adicional",
                 "precio_u": p_cena,
                 "cantidad": 1,
-                "pax": total_pax_grupo,
+                "pax": pax_cena,
                 "subtotal": costo_cena,
                 "pax_original": total_pax_grupo,
                 "estudiantes": g.cantidad_estudiantes or 0,
@@ -221,15 +229,16 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
 
         tiene_hielo = g.bar_hielo or db.query(models.FechaEvento).join(models.Asignacion).filter(models.Asignacion.grupo_id == g.id).join(models.Evento).filter(models.Evento.tipo == "HIELO").first()
         if tiene_hielo:
+            pax_hielo = g.pagantes_finales if g.pagantes_finales is not None else total_pax_grupo
             p_hielo = (config.precio_bar_hielo or 0)
-            costo_hielo = total_pax_grupo * p_hielo
+            costo_hielo = pax_hielo * p_hielo
             costo_grupo += costo_hielo
             servicios_detalle.append({
                 "servicio": "Bar de hielo",
                 "descripcion": "Servicio adicional",
                 "precio_u": p_hielo,
                 "cantidad": 1,
-                "pax": total_pax_grupo,
+                "pax": pax_hielo,
                 "subtotal": costo_hielo,
                 "pax_original": total_pax_grupo,
                 "estudiantes": g.cantidad_estudiantes or 0,
@@ -242,6 +251,7 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
             "id": g.id,
             "nombre": g.nombre,
             "pax": total_pax_grupo,
+            "pagantes_finales": g.pagantes_finales,
             "estudiantes": g.cantidad_estudiantes or 0,
             "padres": g.cantidad_padres or 0,
             "guias": g.cantidad_guias or 0,
@@ -397,3 +407,27 @@ def migracion_parque_precios(db: Session = Depends(get_db)):
     db.execute(text("UPDATE finanzas_empresa SET moneda = 'ARS' WHERE moneda IS NULL"))
     db.commit()
     return {"ok": True}
+
+
+# =============================
+# PAGANTES FINALES POR GRUPO
+# =============================
+
+@router.put("/grupo/{grupo_id}/pagantes")
+def actualizar_pagantes_finales(grupo_id: int, body: schemas.GrupoPagantesUpdate, db: Session = Depends(get_db)):
+    grupo = db.get(models.Grupo, grupo_id)
+    if not grupo:
+        raise HTTPException(404, "Grupo no encontrado")
+
+    pagantes = body.pagantes_finales
+    if pagantes is not None:
+        if pagantes < 0:
+            raise HTTPException(400, "Pagantes finales no puede ser negativo")
+        total = grupo.cantidad_pax or 0
+        if total > 0 and pagantes > total:
+            raise HTTPException(400, "Pagantes finales no puede superar el total de PAX")
+
+    grupo.pagantes_finales = pagantes
+    db.commit()
+    db.refresh(grupo)
+    return {"ok": True, "pagantes_finales": grupo.pagantes_finales}

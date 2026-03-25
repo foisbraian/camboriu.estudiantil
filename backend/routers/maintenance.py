@@ -25,6 +25,11 @@ MIGRATIONS = [
         "sqlite": "ALTER TABLE eventos ADD COLUMN complejo VARCHAR",
         "postgres": "ALTER TABLE eventos ADD COLUMN IF NOT EXISTS complejo VARCHAR",
     },
+    {
+        "name": "grupos.pagantes_finales",
+        "sqlite": "ALTER TABLE grupos ADD COLUMN pagantes_finales INTEGER",
+        "postgres": "ALTER TABLE grupos ADD COLUMN IF NOT EXISTS pagantes_finales INTEGER",
+    },
 ]
 
 

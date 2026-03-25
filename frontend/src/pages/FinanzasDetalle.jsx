@@ -10,6 +10,7 @@ export default function FinanzasDetalle() {
     const [descuento, setDescuento] = useState(0); // Porcentaje de descuento
     const [grupoDetalle, setGrupoDetalle] = useState(null); // Para el modal de detalle del grupo
     const [loadingDetalle, setLoadingDetalle] = useState(false);
+    const [pagantesFinalesForm, setPagantesFinalesForm] = useState({});
 
     // Form para configuración
     const [configForm, setConfigForm] = useState({
@@ -105,6 +106,15 @@ export default function FinanzasDetalle() {
         cargarTodo();
     }, [cargarTodo]);
 
+    useEffect(() => {
+        if (!resumen || !resumen.grupos) return;
+        const next = {};
+        resumen.grupos.forEach((g) => {
+            next[g.id] = g.pagantes_finales ?? "";
+        });
+        setPagantesFinalesForm(next);
+    }, [resumen]);
+
     async function guardarConfig() {
         await api.post("/finanzas/config", { ...configForm, empresa_id: Number(id) });
         alert("Configuración guardada");
@@ -138,6 +148,20 @@ export default function FinanzasDetalle() {
     async function eliminarPago(pagoId) {
         if (!window.confirm("¿Eliminar este pago?")) return;
         await api.delete(`/finanzas/pagos/${pagoId}`);
+        cargarTodo();
+    }
+
+    async function guardarPagantesFinales(grupoId) {
+        const rawValue = pagantesFinalesForm[grupoId];
+        const value = rawValue === "" || rawValue === null || typeof rawValue === "undefined" ? null : Number(rawValue);
+
+        if (value !== null && Number.isNaN(value)) {
+            alert("Ingresá un número válido para los pagantes finales");
+            return;
+        }
+
+        await api.put(`/finanzas/grupo/${grupoId}/pagantes`, { pagantes_finales: value });
+        alert("Pagantes finales actualizados");
         cargarTodo();
     }
 
@@ -397,12 +421,36 @@ export default function FinanzasDetalle() {
                                                     (Total: {g.pax} PAX)
                                                 </span>
                                             </div>
-                                            <button
-                                                onClick={() => verDetalleGrupo(g)}
-                                                style={{ padding: "4px 10px", background: "#3b82f6", color: "white", border: "none", borderRadius: 4, fontSize: "0.75rem", cursor: "pointer" }}
-                                            >
-                                                🔍 Ver Detalle / Vouchers
-                                            </button>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                                                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.75rem", color: "#475569" }}>
+                                                    Pagantes finales:
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        value={pagantesFinalesForm[g.id] ?? ""}
+                                                        onChange={(e) => {
+                                                            const nextValue = e.target.value;
+                                                            setPagantesFinalesForm((prev) => ({
+                                                                ...prev,
+                                                                [g.id]: nextValue
+                                                            }));
+                                                        }}
+                                                        style={{ width: 80, padding: "3px 6px", borderRadius: 6, border: "1px solid #cbd5e1" }}
+                                                    />
+                                                </label>
+                                                <button
+                                                    onClick={() => guardarPagantesFinales(g.id)}
+                                                    style={{ padding: "4px 10px", background: "#0f172a", color: "white", border: "none", borderRadius: 4, fontSize: "0.75rem", cursor: "pointer" }}
+                                                >
+                                                    Guardar
+                                                </button>
+                                                <button
+                                                    onClick={() => verDetalleGrupo(g)}
+                                                    style={{ padding: "4px 10px", background: "#3b82f6", color: "white", border: "none", borderRadius: 4, fontSize: "0.75rem", cursor: "pointer" }}
+                                                >
+                                                    🔍 Ver Detalle / Vouchers
+                                                </button>
+                                            </div>
                                         </div>
                                     </td>
                                     <td style={{ padding: 12, textAlign: "right" }}>{formatMoney(g.subtotal)}</td>
