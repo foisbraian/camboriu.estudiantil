@@ -68,6 +68,12 @@ class Grupo(Base):
     cena_velas = Column(Boolean, default=False)
     bar_hielo = Column(Boolean, default=False)
     pagantes_finales = Column(Integer, nullable=True)
+    pagantes_finales_disco = Column(Integer, nullable=True)
+    pagantes_finales_parque = Column(Integer, nullable=True)
+    pagantes_finales_pool = Column(Integer, nullable=True)
+    pagantes_finales_cena = Column(Integer, nullable=True)
+    pagantes_finales_hielo = Column(Integer, nullable=True)
+    pagantes_finales_combo = Column(Integer, nullable=True)
 
     empresa = relationship("Empresa", back_populates="grupos")
     asignaciones = relationship("Asignacion", back_populates="grupo")

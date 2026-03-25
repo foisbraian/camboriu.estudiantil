@@ -30,6 +30,36 @@ MIGRATIONS = [
         "sqlite": "ALTER TABLE grupos ADD COLUMN pagantes_finales INTEGER",
         "postgres": "ALTER TABLE grupos ADD COLUMN IF NOT EXISTS pagantes_finales INTEGER",
     },
+    {
+        "name": "grupos.pagantes_finales_disco",
+        "sqlite": "ALTER TABLE grupos ADD COLUMN pagantes_finales_disco INTEGER",
+        "postgres": "ALTER TABLE grupos ADD COLUMN IF NOT EXISTS pagantes_finales_disco INTEGER",
+    },
+    {
+        "name": "grupos.pagantes_finales_parque",
+        "sqlite": "ALTER TABLE grupos ADD COLUMN pagantes_finales_parque INTEGER",
+        "postgres": "ALTER TABLE grupos ADD COLUMN IF NOT EXISTS pagantes_finales_parque INTEGER",
+    },
+    {
+        "name": "grupos.pagantes_finales_pool",
+        "sqlite": "ALTER TABLE grupos ADD COLUMN pagantes_finales_pool INTEGER",
+        "postgres": "ALTER TABLE grupos ADD COLUMN IF NOT EXISTS pagantes_finales_pool INTEGER",
+    },
+    {
+        "name": "grupos.pagantes_finales_cena",
+        "sqlite": "ALTER TABLE grupos ADD COLUMN pagantes_finales_cena INTEGER",
+        "postgres": "ALTER TABLE grupos ADD COLUMN IF NOT EXISTS pagantes_finales_cena INTEGER",
+    },
+    {
+        "name": "grupos.pagantes_finales_hielo",
+        "sqlite": "ALTER TABLE grupos ADD COLUMN pagantes_finales_hielo INTEGER",
+        "postgres": "ALTER TABLE grupos ADD COLUMN IF NOT EXISTS pagantes_finales_hielo INTEGER",
+    },
+    {
+        "name": "grupos.pagantes_finales_combo",
+        "sqlite": "ALTER TABLE grupos ADD COLUMN pagantes_finales_combo INTEGER",
+        "postgres": "ALTER TABLE grupos ADD COLUMN IF NOT EXISTS pagantes_finales_combo INTEGER",
+    },
 ]
 
 

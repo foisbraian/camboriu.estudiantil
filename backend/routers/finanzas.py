@@ -93,6 +93,26 @@ def calcular_pax_cobrar(grupo, ratio: int, padres_gratis: bool, guias_gratis: bo
         
     return estudiantes + adultos_pagantes
 
+def _get_pagantes_finales_por_servicio(grupo, servicio_key: str):
+    legacy = grupo.pagantes_finales
+    if servicio_key == "disco":
+        return grupo.pagantes_finales_disco
+    if servicio_key == "parque":
+        return grupo.pagantes_finales_parque
+    if servicio_key == "pool":
+        return grupo.pagantes_finales_pool
+    if servicio_key == "cena":
+        return grupo.pagantes_finales_cena if grupo.pagantes_finales_cena is not None else legacy
+    if servicio_key == "hielo":
+        return grupo.pagantes_finales_hielo if grupo.pagantes_finales_hielo is not None else legacy
+    if servicio_key == "combo":
+        return grupo.pagantes_finales_combo
+    return None
+
+def _aplicar_pagantes_override(pax_base: int, grupo, servicio_key: str):
+    override = _get_pagantes_finales_por_servicio(grupo, servicio_key)
+    return override if override is not None else pax_base
+
 @router.get("/resumen/{empresa_id}")
 def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
     empresa = db.query(models.Empresa).filter(models.Empresa.id == empresa_id).first()
@@ -118,10 +138,12 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
             # Combo usa la lógica de "disco" para liberados por defecto o una mixta?
             # El usuario no especificó combo liberados, pero asumamos disco_ratio si es combo.
             pax_cobrar = calcular_pax_cobrar(g, config.disco_liberados_ratio, config.disco_padres_gratis, config.disco_guias_gratis)
+            pax_cobrar = _aplicar_pagantes_override(pax_cobrar, g, "combo")
             c_combo = (config.precio_combo or 0)
             costo_grupo = pax_cobrar * c_combo
             servicios_detalle.append({
                 "servicio": "Combo",
+                "servicio_key": "combo",
                 "descripcion": f"({config.combo_discos} D + {'P' if config.combo_parque else ''} + {'W' if config.combo_pool else ''})",
                 "precio_u": c_combo,
                 "cantidad": 1,
@@ -137,11 +159,13 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
             # Discos
             if g.discos_compradas > 0:
                 pax_cobrar = calcular_pax_cobrar(g, config.disco_liberados_ratio, config.disco_padres_gratis, config.disco_guias_gratis)
+                pax_cobrar = _aplicar_pagantes_override(pax_cobrar, g, "disco")
                 p_disco = (config.precio_disco_individual or 0)
                 costo_discos = pax_cobrar * p_disco * g.discos_compradas
                 costo_grupo += costo_discos
                 servicios_detalle.append({
                     "servicio": "Discotecas",
+                    "servicio_key": "disco",
                     "descripcion": f"{g.discos_compradas} unidades",
                     "precio_u": p_disco,
                     "cantidad": g.discos_compradas,
@@ -156,6 +180,7 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
             # Parque
             if g.parque_con_comida or db.query(models.FechaEvento).join(models.Asignacion).filter(models.Asignacion.grupo_id == g.id).join(models.Evento).filter(models.Evento.tipo == "PARQUE").first():
                 pax_cobrar = calcular_pax_cobrar(g, config.parque_liberados_ratio, config.parque_padres_gratis, config.parque_guias_gratis)
+                pax_cobrar = _aplicar_pagantes_override(pax_cobrar, g, "parque")
                 if g.parque_con_comida:
                     p_parque = (config.precio_parque_con_comida or 0) or (config.precio_parque_individual or 0)
                     descripcion_parque = "Acceso con comida"
@@ -166,6 +191,7 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
                 costo_grupo += costo_parque
                 servicios_detalle.append({
                     "servicio": "Parque",
+                    "servicio_key": "parque",
                     "descripcion": descripcion_parque,
                     "precio_u": p_parque,
                     "cantidad": 1,
@@ -180,6 +206,7 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
             # Pool
             if g.pool_con_comida or db.query(models.FechaEvento).join(models.Asignacion).filter(models.Asignacion.grupo_id == g.id).join(models.Evento).filter(models.Evento.tipo == "POOL").first():
                 pax_cobrar = calcular_pax_cobrar(g, config.pool_liberados_ratio, config.pool_padres_gratis, config.pool_guias_gratis)
+                pax_cobrar = _aplicar_pagantes_override(pax_cobrar, g, "pool")
                 if g.pool_con_comida:
                     p_pool = (config.precio_pool_con_comida or 0) or (config.precio_pool_individual or 0)
                     descripcion_pool = "Acceso con comida"
@@ -190,6 +217,7 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
                 costo_grupo += costo_pool
                 servicios_detalle.append({
                     "servicio": "Pool / Water",
+                    "servicio_key": "pool",
                     "descripcion": descripcion_pool,
                     "precio_u": p_pool,
                     "cantidad": 1,
@@ -203,12 +231,13 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
 
         tiene_cena = g.cena_velas or db.query(models.FechaEvento).join(models.Asignacion).filter(models.Asignacion.grupo_id == g.id).join(models.Evento).filter(models.Evento.tipo == "CENA").first()
         if tiene_cena:
-            pax_cena = g.pagantes_finales if g.pagantes_finales is not None else total_pax_grupo
+            pax_cena = _aplicar_pagantes_override(total_pax_grupo, g, "cena")
             p_cena = (config.precio_cena_velas or 0)
             costo_cena = pax_cena * p_cena
             costo_grupo += costo_cena
             servicios_detalle.append({
                 "servicio": "Cena de velas",
+                "servicio_key": "cena",
                 "descripcion": "Servicio adicional",
                 "precio_u": p_cena,
                 "cantidad": 1,
@@ -222,12 +251,13 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
 
         tiene_hielo = g.bar_hielo or db.query(models.FechaEvento).join(models.Asignacion).filter(models.Asignacion.grupo_id == g.id).join(models.Evento).filter(models.Evento.tipo == "HIELO").first()
         if tiene_hielo:
-            pax_hielo = g.pagantes_finales if g.pagantes_finales is not None else total_pax_grupo
+            pax_hielo = _aplicar_pagantes_override(total_pax_grupo, g, "hielo")
             p_hielo = (config.precio_bar_hielo or 0)
             costo_hielo = pax_hielo * p_hielo
             costo_grupo += costo_hielo
             servicios_detalle.append({
                 "servicio": "Bar de hielo",
+                "servicio_key": "hielo",
                 "descripcion": "Servicio adicional",
                 "precio_u": p_hielo,
                 "cantidad": 1,
@@ -245,6 +275,14 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
             "nombre": g.nombre,
             "pax": total_pax_grupo,
             "pagantes_finales": g.pagantes_finales,
+            "pagantes_finales_servicios": {
+                "disco": _get_pagantes_finales_por_servicio(g, "disco"),
+                "parque": _get_pagantes_finales_por_servicio(g, "parque"),
+                "pool": _get_pagantes_finales_por_servicio(g, "pool"),
+                "cena": _get_pagantes_finales_por_servicio(g, "cena"),
+                "hielo": _get_pagantes_finales_por_servicio(g, "hielo"),
+                "combo": _get_pagantes_finales_por_servicio(g, "combo"),
+            },
             "estudiantes": g.cantidad_estudiantes or 0,
             "padres": g.cantidad_padres or 0,
             "guias": g.cantidad_guias or 0,
@@ -283,11 +321,13 @@ def get_asignaciones_pagadas(empresa_id: int, db: Session):
                 tipo = a.fecha_evento.evento.tipo
                 costo = 0
                 if tipo == "HIELO":
-                    costo = (g.cantidad_pax or 0) * (config.precio_bar_hielo or 0)
+                    pax = _aplicar_pagantes_override((g.cantidad_pax or 0), g, "hielo")
+                    costo = pax * (config.precio_bar_hielo or 0)
                 elif config.es_combo:
                     asigs_g_sorted = sorted(asigs_grupo, key=lambda x: x.fecha_evento.fecha if x.fecha_evento else date.max)
                     if asigs_g_sorted and a.id == asigs_g_sorted[0].id:
                         pax = calcular_pax_cobrar(g, config.disco_liberados_ratio, config.disco_padres_gratis, config.disco_guias_gratis)
+                        pax = _aplicar_pagantes_override(pax, g, "combo")
                         costo = pax * (config.precio_combo or 0)
                 else:
                     ratio, p_gratis, g_gratis = 0, False, False
@@ -315,6 +355,16 @@ def get_asignaciones_pagadas(empresa_id: int, db: Session):
                         precio_u = config.precio_bar_hielo or 0
                     
                     pax = calcular_pax_cobrar(g, ratio, p_gratis, g_gratis)
+                    if tipo == "DISCO":
+                        pax = _aplicar_pagantes_override(pax, g, "disco")
+                    elif tipo == "PARQUE":
+                        pax = _aplicar_pagantes_override(pax, g, "parque")
+                    elif tipo == "POOL":
+                        pax = _aplicar_pagantes_override(pax, g, "pool")
+                    elif tipo == "CENA":
+                        pax = _aplicar_pagantes_override((g.cantidad_pax or 0), g, "cena")
+                    elif tipo == "HIELO":
+                        pax = _aplicar_pagantes_override((g.cantidad_pax or 0), g, "hielo")
                     costo = pax * precio_u
                 
                 items.append({
@@ -413,6 +463,12 @@ def actualizar_pagantes_finales(grupo_id: int, body: schemas.GrupoPagantesUpdate
         raise HTTPException(404, "Grupo no encontrado")
 
     pagantes = body.pagantes_finales
+    servicio = body.servicio
+    if servicio is not None:
+        servicio = servicio.lower()
+    valid_servicios = {"disco", "parque", "pool", "cena", "hielo", "combo"}
+    if servicio and servicio not in valid_servicios:
+        raise HTTPException(400, "Servicio inválido")
     if pagantes is not None:
         if pagantes < 0:
             raise HTTPException(400, "Pagantes finales no puede ser negativo")
@@ -420,7 +476,21 @@ def actualizar_pagantes_finales(grupo_id: int, body: schemas.GrupoPagantesUpdate
         if total > 0 and pagantes > total:
             raise HTTPException(400, "Pagantes finales no puede superar el total de PAX")
 
-    grupo.pagantes_finales = pagantes
+    if servicio is None:
+        grupo.pagantes_finales = pagantes
+    else:
+        if servicio == "disco":
+            grupo.pagantes_finales_disco = pagantes
+        elif servicio == "parque":
+            grupo.pagantes_finales_parque = pagantes
+        elif servicio == "pool":
+            grupo.pagantes_finales_pool = pagantes
+        elif servicio == "cena":
+            grupo.pagantes_finales_cena = pagantes
+        elif servicio == "hielo":
+            grupo.pagantes_finales_hielo = pagantes
+        elif servicio == "combo":
+            grupo.pagantes_finales_combo = pagantes
     db.commit()
     db.refresh(grupo)
-    return {"ok": True, "pagantes_finales": grupo.pagantes_finales}
+    return {"ok": True, "pagantes_finales": pagantes, "servicio": servicio}

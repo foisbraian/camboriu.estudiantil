@@ -51,6 +51,12 @@ def editar_grupo(grupo_id: int, data: schemas.GrupoUpdate, db: Session = Depends
     grupo.cena_velas = data.cena_velas
     grupo.bar_hielo = data.bar_hielo
     grupo.pagantes_finales = data.pagantes_finales
+    grupo.pagantes_finales_disco = data.pagantes_finales_disco
+    grupo.pagantes_finales_parque = data.pagantes_finales_parque
+    grupo.pagantes_finales_pool = data.pagantes_finales_pool
+    grupo.pagantes_finales_cena = data.pagantes_finales_cena
+    grupo.pagantes_finales_hielo = data.pagantes_finales_hielo
+    grupo.pagantes_finales_combo = data.pagantes_finales_combo
 
     db.commit()
     db.refresh(grupo)

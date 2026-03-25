@@ -110,7 +110,7 @@ export default function FinanzasDetalle() {
         if (!resumen || !resumen.grupos) return;
         const next = {};
         resumen.grupos.forEach((g) => {
-            next[g.id] = g.pagantes_finales ?? "";
+            next[g.id] = g.pagantes_finales_servicios || {};
         });
         setPagantesFinalesForm(next);
     }, [resumen]);
@@ -151,8 +151,8 @@ export default function FinanzasDetalle() {
         cargarTodo();
     }
 
-    async function guardarPagantesFinales(grupoId) {
-        const rawValue = pagantesFinalesForm[grupoId];
+    async function guardarPagantesFinales(grupoId, servicioKey) {
+        const rawValue = pagantesFinalesForm[grupoId]?.[servicioKey];
         const value = rawValue === "" || rawValue === null || typeof rawValue === "undefined" ? null : Number(rawValue);
 
         if (value !== null && Number.isNaN(value)) {
@@ -160,7 +160,7 @@ export default function FinanzasDetalle() {
             return;
         }
 
-        await api.put(`/finanzas/grupo/${grupoId}/pagantes`, { pagantes_finales: value });
+        await api.put(`/finanzas/grupo/${grupoId}/pagantes`, { pagantes_finales: value, servicio: servicioKey });
         alert("Pagantes finales actualizados");
         cargarTodo();
     }
@@ -440,26 +440,29 @@ export default function FinanzasDetalle() {
                                             <b style={{ color: "#2563eb", marginLeft: 4 }}>{s.pax} Pagantes</b>
                                             <span style={{ fontSize: "0.75rem", marginLeft: 4 }}>/ Total: {s.pax_original}</span>
 
-                                            {(s.servicio === "Cena de velas" || s.servicio === "Bar de hielo") && (
+                                            {s.servicio_key && (
                                                 <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                                                     <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.75rem", color: "#475569" }}>
                                                         Pagantes finales:
                                                         <input
                                                             type="number"
                                                             min="0"
-                                                            value={pagantesFinalesForm[g.id] ?? ""}
+                                                            value={pagantesFinalesForm[g.id]?.[s.servicio_key] ?? ""}
                                                             onChange={(e) => {
                                                                 const nextValue = e.target.value;
                                                                 setPagantesFinalesForm((prev) => ({
                                                                     ...prev,
-                                                                    [g.id]: nextValue
+                                                                    [g.id]: {
+                                                                        ...(prev[g.id] || {}),
+                                                                        [s.servicio_key]: nextValue
+                                                                    }
                                                                 }));
                                                             }}
                                                             style={{ width: 80, padding: "3px 6px", borderRadius: 6, border: "1px solid #cbd5e1" }}
                                                         />
                                                     </label>
                                                     <button
-                                                        onClick={() => guardarPagantesFinales(g.id)}
+                                                        onClick={() => guardarPagantesFinales(g.id, s.servicio_key)}
                                                         style={{ padding: "4px 10px", background: "#0f172a", color: "white", border: "none", borderRadius: 4, fontSize: "0.75rem", cursor: "pointer" }}
                                                     >
                                                         Guardar
