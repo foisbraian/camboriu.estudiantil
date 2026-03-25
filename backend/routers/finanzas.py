@@ -201,7 +201,8 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
                     "guias": g.cantidad_guias or 0
                 })
 
-        if g.cena_velas:
+        tiene_cena = g.cena_velas or db.query(models.FechaEvento).join(models.Asignacion).filter(models.Asignacion.grupo_id == g.id).join(models.Evento).filter(models.Evento.tipo == "CENA").first()
+        if tiene_cena:
             p_cena = (config.precio_cena_velas or 0)
             costo_cena = total_pax_grupo * p_cena
             costo_grupo += costo_cena
@@ -218,7 +219,8 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
                 "guias": g.cantidad_guias or 0
             })
 
-        if g.bar_hielo:
+        tiene_hielo = g.bar_hielo or db.query(models.FechaEvento).join(models.Asignacion).filter(models.Asignacion.grupo_id == g.id).join(models.Evento).filter(models.Evento.tipo == "HIELO").first()
+        if tiene_hielo:
             p_hielo = (config.precio_bar_hielo or 0)
             costo_hielo = total_pax_grupo * p_hielo
             costo_grupo += costo_hielo
@@ -302,6 +304,9 @@ def get_asignaciones_pagadas(empresa_id: int, db: Session):
                             precio_u = (config.precio_pool_con_comida or 0) or (config.precio_pool_individual or 0)
                         else:
                             precio_u = (config.precio_pool_sin_comida or 0) or (config.precio_pool_individual or 0)
+                    elif tipo == "CENA":
+                        ratio, p_gratis, g_gratis = 0, False, False
+                        precio_u = config.precio_cena_velas or 0
                     elif tipo == "HIELO":
                         ratio, p_gratis, g_gratis = 0, False, False
                         precio_u = config.precio_bar_hielo or 0

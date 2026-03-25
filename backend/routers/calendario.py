@@ -3,6 +3,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from database import get_db
 import models
 from datetime import timedelta, date
@@ -344,8 +345,11 @@ def calendario(db: Session = Depends(get_db)):
 # =========================================================
 @router.get("/portal/{codigo_acceso}")
 def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
-    
-    empresa = db.query(models.Empresa).filter(models.Empresa.codigo_acceso == codigo_acceso).first()
+
+    codigo_normalizado = codigo_acceso.strip().lower()
+    empresa = db.query(models.Empresa).filter(
+        func.lower(models.Empresa.codigo_acceso) == codigo_normalizado
+    ).first()
     if not empresa:
         raise HTTPException(404, "Código de acceso inválido")
 

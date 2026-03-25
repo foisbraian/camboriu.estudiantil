@@ -57,7 +57,15 @@ def listar_empresas(
             func.lower(models.Empresa.nombre).contains(search.lower())
         )
 
-    return query.order_by(models.Empresa.nombre.asc()).all()
+    empresas = query.order_by(models.Empresa.nombre.asc()).all()
+
+    faltantes = [e for e in empresas if not e.codigo_acceso]
+    if faltantes:
+        for e in faltantes:
+            e.codigo_acceso = models.generar_codigo()
+        db.commit()
+
+    return empresas
 
 
 # =====================================================
@@ -71,6 +79,11 @@ def obtener_empresa(empresa_id: int, db: Session = Depends(get_db)):
 
     if not empresa:
         raise HTTPException(404, "Empresa no encontrada")
+
+    if not empresa.codigo_acceso:
+        empresa.codigo_acceso = models.generar_codigo()
+        db.commit()
+        db.refresh(empresa)
 
     return empresa
 

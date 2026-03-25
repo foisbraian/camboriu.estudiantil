@@ -46,6 +46,7 @@ def exportar_excel(background_tasks: BackgroundTasks, db: Session = Depends(get_
 
     # Obtener todas las asignaciones y ordenarlas por fecha
     asignaciones = db.query(models.Asignacion).all()
+    asignaciones_por_tipo = {"CENA": set(), "HIELO": set()}
     asignaciones_sorted = sorted(
         asignaciones,
         key=lambda x: (
@@ -53,6 +54,13 @@ def exportar_excel(background_tasks: BackgroundTasks, db: Session = Depends(get_
             x.fecha_evento.evento.nombre if x.fecha_evento and x.fecha_evento.evento else ""
         )
     )
+
+    for a in asignaciones:
+        if not a.fecha_evento or not a.fecha_evento.evento:
+            continue
+        tipo = a.fecha_evento.evento.tipo
+        if tipo in asignaciones_por_tipo and a.grupo_id:
+            asignaciones_por_tipo[tipo].add(a.grupo_id)
 
     for a in asignaciones_sorted:
         grupo = a.grupo
@@ -176,6 +184,55 @@ def exportar_excel(background_tasks: BackgroundTasks, db: Session = Depends(get_
 
         for emp, datos in empresas.items():
             ws4.append([f.fecha, emp, datos["con"], datos["sin"]])
+
+    # =================================================
+    # HOJA 5 → CENAS DE VELAS (POR GRUPO)
+    # =================================================
+
+    ws5 = wb.create_sheet("Cenas de Velas")
+    ws5.append([
+        "Empresa", "Grupo", "Check-in", "Check-out",
+        "Estudiantes", "Padres", "Guias", "Total Pax"
+    ])
+
+    grupos = db.query(models.Grupo).all()
+    for g in grupos:
+        if not (g.cena_velas or g.id in asignaciones_por_tipo["CENA"]):
+            continue
+        ws5.append([
+            g.empresa.nombre if g.empresa else "",
+            g.nombre,
+            g.fecha_entrada,
+            g.fecha_salida,
+            g.cantidad_estudiantes,
+            g.cantidad_padres,
+            g.cantidad_guias,
+            g.cantidad_pax
+        ])
+
+    # =================================================
+    # HOJA 6 → BAR DE HIELO (POR GRUPO)
+    # =================================================
+
+    ws6 = wb.create_sheet("Bar de Hielo")
+    ws6.append([
+        "Empresa", "Grupo", "Check-in", "Check-out",
+        "Estudiantes", "Padres", "Guias", "Total Pax"
+    ])
+
+    for g in grupos:
+        if not (g.bar_hielo or g.id in asignaciones_por_tipo["HIELO"]):
+            continue
+        ws6.append([
+            g.empresa.nombre if g.empresa else "",
+            g.nombre,
+            g.fecha_entrada,
+            g.fecha_salida,
+            g.cantidad_estudiantes,
+            g.cantidad_padres,
+            g.cantidad_guias,
+            g.cantidad_pax
+        ])
 
     # =================================================
     # GUARDAR
