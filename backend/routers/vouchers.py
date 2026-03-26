@@ -171,9 +171,25 @@ def generate_voucher(asignacion_id: int, db: Session = Depends(get_db)):
     
     draw.text((40, 160), "SERVICIO:", fill=color_label, font=font_label)
     draw.text((40, 180), f"{evento.nombre}", fill=color_text, font=font_sub)
-    
-    draw.text((40, 220), "FECHA / PAX:", fill=color_label, font=font_label)
-    draw.text((40, 240), f"{fecha} - {grupo.cantidad_pax} PAX", fill=color_text, font=font_sub)
+
+    tipo_upper = (evento.tipo or "").upper()
+    nombre_lower = (evento.nombre or "").lower()
+    comida_label = None
+    if tipo_upper == "PARQUE":
+        comida_label = "CON COMIDA" if grupo.parque_con_comida else "SIN COMIDA"
+    elif tipo_upper in {"POOL", "CASCATA"} or "cascata" in nombre_lower:
+        comida_label = "CON COMIDA" if grupo.pool_con_comida else "SIN COMIDA"
+
+    fecha_y_label = 220
+    fecha_y_value = 240
+    if comida_label:
+        draw.text((40, 200), "ACCESO:", fill=color_label, font=font_label)
+        draw.text((40, 220), comida_label, fill=color_text, font=font_sub)
+        fecha_y_label = 250
+        fecha_y_value = 270
+
+    draw.text((40, fecha_y_label), "FECHA / PAX:", fill=color_label, font=font_label)
+    draw.text((40, fecha_y_value), f"{fecha} - {grupo.cantidad_pax} PAX", fill=color_text, font=font_sub)
     
     # Estética (ID en gris suave)
     draw.text((550, 20), f"ID: {voucher.token[:8].upper()}", fill=color_label, font=font_label)
