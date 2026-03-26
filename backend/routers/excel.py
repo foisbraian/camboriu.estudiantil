@@ -271,21 +271,35 @@ def exportar_finanzas_todas(background_tasks: BackgroundTasks, db: Session = Dep
     ws.append([
         "Empresa",
         "Total PAX",
-        "Total Cobrado",
-        "Saldo",
-        "Total a Pagar"
+        "Total Cobrado USD",
+        "Saldo USD",
+        "Total a Pagar USD",
+        "Total Cobrado BRL",
+        "Saldo BRL",
+        "Total a Pagar BRL"
     ])
 
     empresas = db.query(models.Empresa).all()
     for e in empresas:
         res = get_resumen_empresa(e.id, db)
         total_pax = sum(g.get("pax", 0) for g in res.get("grupos", []))
+        moneda = res.get("config", {}).get("moneda") or "USD"
+        moneda = "USD" if moneda == "ARS" else moneda
+        total_pagado = res["total_pagado"]
+        saldo = res["saldo"]
+        total_venta = res["total_venta"]
+        usd_vals = (total_pagado, saldo, total_venta) if moneda == "USD" else (0, 0, 0)
+        brl_vals = (total_pagado, saldo, total_venta) if moneda == "BRL" else (0, 0, 0)
+
         ws.append([
             e.nombre,
             total_pax,
-            res["total_pagado"],
-            res["saldo"],
-            res["total_venta"]
+            usd_vals[0],
+            usd_vals[1],
+            usd_vals[2],
+            brl_vals[0],
+            brl_vals[1],
+            brl_vals[2]
         ])
 
     filename = f"reporte_financiero_todas_{datetime.now().strftime('%Y%m%d')}.xlsx"

@@ -22,10 +22,11 @@ export default function FinanzasDashboard() {
         }
     }
 
-    const formatMoney = (val, currencyCode = "ARS") => new Intl.NumberFormat("es-AR", { style: "currency", currency: currencyCode, maximumFractionDigits: 0 }).format(val);
+    const normalizeCurrency = (currencyCode) => (currencyCode === "ARS" || !currencyCode ? "USD" : currencyCode);
+    const formatMoney = (val, currencyCode = "USD") => new Intl.NumberFormat("es-AR", { style: "currency", currency: normalizeCurrency(currencyCode), maximumFractionDigits: 0 }).format(val);
 
     const totalsByCurrency = data.reduce((acc, curr) => {
-        const c = curr.moneda || "ARS";
+        const c = normalizeCurrency(curr.moneda);
         if (!acc[c]) acc[c] = { venta: 0, pagado: 0 };
         acc[c].venta += curr.total_venta;
         acc[c].pagado += curr.total_pagado;
@@ -64,11 +65,16 @@ export default function FinanzasDashboard() {
 
             {/* KPIs */}
             {Object.keys(totalsByCurrency).length === 0 && (
-                <div style={{ display: "flex", gap: 20, marginBottom: 40, flexWrap: "wrap" }}>
-                    <KPIBox title="Total General" value={formatMoney(0, "ARS")} color="#3b82f6" />
-                    <KPIBox title="Total Cobrado" value={formatMoney(0, "ARS")} color="#10b981" />
-                    <KPIBox title="Saldo Pendiente" value={formatMoney(0, "ARS")} color="#ef4444" />
-                </div>
+                ["USD", "BRL"].map((moneda) => (
+                    <div key={moneda} style={{ marginBottom: 40 }}>
+                        <h3 style={{ marginTop: 0, marginBottom: 15, color: "#475569" }}>Totales en {moneda}</h3>
+                        <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+                            <KPIBox title="Total General" value={formatMoney(0, moneda)} color="#3b82f6" />
+                            <KPIBox title="Total Cobrado" value={formatMoney(0, moneda)} color="#10b981" />
+                            <KPIBox title="Saldo Pendiente" value={formatMoney(0, moneda)} color="#ef4444" />
+                        </div>
+                    </div>
+                ))
             )}
             {Object.entries(totalsByCurrency).map(([moneda, totals]) => (
                 <div key={moneda} style={{ marginBottom: 40 }}>

@@ -14,7 +14,7 @@ export default function FinanzasDetalle() {
 
     // Form para configuración
     const [configForm, setConfigForm] = useState({
-        moneda: "ARS",
+        moneda: "USD",
         precio_disco_individual: 0,
         precio_parque_individual: 0,
         precio_parque_con_comida: 0,
@@ -89,7 +89,8 @@ export default function FinanzasDetalle() {
             const resR = await api.get(`/finanzas/resumen/${id}`);
             setResumen(resR.data);
             const cfg = resR.data.config || {};
-            setConfigForm({ ...cfg, moneda: cfg.moneda || "ARS" });
+            const normalizedMoneda = cfg.moneda === "ARS" ? "USD" : (cfg.moneda || "USD");
+            setConfigForm({ ...cfg, moneda: normalizedMoneda });
 
             const resP = await api.get(`/finanzas/pagos/${id}`);
             setPagos(resP.data);
@@ -168,7 +169,8 @@ export default function FinanzasDetalle() {
     }
 
     const formatMoney = (val) => {
-        const moneda = (configForm && configForm.moneda) ? configForm.moneda : "ARS";
+        const monedaRaw = (configForm && configForm.moneda) ? configForm.moneda : "USD";
+        const moneda = monedaRaw === "ARS" ? "USD" : monedaRaw;
         return new Intl.NumberFormat("es-AR", { 
             style: "currency", 
             currency: moneda, 
@@ -214,7 +216,6 @@ export default function FinanzasDetalle() {
                                     onChange={e => setConfigForm({ ...configForm, moneda: e.target.value })}
                                     style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #cbd5e1" }}
                                 >
-                                    <option value="ARS">ARS ($)</option>
                                     <option value="USD">USD (US$)</option>
                                     <option value="BRL">BRL (R$)</option>
                                 </select>
