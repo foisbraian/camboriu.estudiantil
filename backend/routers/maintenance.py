@@ -60,6 +60,16 @@ MIGRATIONS = [
         "sqlite": "ALTER TABLE grupos ADD COLUMN pagantes_finales_combo INTEGER",
         "postgres": "ALTER TABLE grupos ADD COLUMN IF NOT EXISTS pagantes_finales_combo INTEGER",
     },
+    {
+        "name": "finanzas_empresa.combo_cena_velas",
+        "sqlite": "ALTER TABLE finanzas_empresa ADD COLUMN combo_cena_velas BOOLEAN DEFAULT FALSE",
+        "postgres": "ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS combo_cena_velas BOOLEAN DEFAULT FALSE",
+    },
+    {
+        "name": "finanzas_empresa.combo_bar_hielo",
+        "sqlite": "ALTER TABLE finanzas_empresa ADD COLUMN combo_bar_hielo BOOLEAN DEFAULT FALSE",
+        "postgres": "ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS combo_bar_hielo BOOLEAN DEFAULT FALSE",
+    },
 ]
 
 

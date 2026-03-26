@@ -29,6 +29,8 @@ export default function FinanzasDetalle() {
         combo_discos: 0,
         combo_parque: false,
         combo_pool: false,
+        combo_cena_velas: false,
+        combo_bar_hielo: false,
 
         disco_liberados_ratio: 0,
         disco_padres_gratis: false,
@@ -323,7 +325,7 @@ export default function FinanzasDetalle() {
                                         style={{ width: "100%", padding: 10, borderRadius: 6, border: "1px solid #bbf7d0" }}
                                     />
                                 </div>
-                                <div style={{ display: "flex", gap: 15, fontSize: "0.85rem" }}>
+                                <div style={{ display: "flex", gap: 15, fontSize: "0.85rem", flexWrap: "wrap" }}>
                                     <input
                                         type="number"
                                         placeholder="Cant. Discos"
@@ -333,6 +335,8 @@ export default function FinanzasDetalle() {
                                     />
                                     <label><input type="checkbox" checked={configForm.combo_parque} onChange={e => setConfigForm({ ...configForm, combo_parque: e.target.checked })} /> Parque</label>
                                     <label><input type="checkbox" checked={configForm.combo_pool} onChange={e => setConfigForm({ ...configForm, combo_pool: e.target.checked })} /> Pool</label>
+                                    <label><input type="checkbox" checked={configForm.combo_cena_velas} onChange={e => setConfigForm({ ...configForm, combo_cena_velas: e.target.checked })} /> Cena</label>
+                                    <label><input type="checkbox" checked={configForm.combo_bar_hielo} onChange={e => setConfigForm({ ...configForm, combo_bar_hielo: e.target.checked })} /> Bar de hielo</label>
                                 </div>
                                 <LiberadosInputs prefix="disco" label="Combo (Basado en Disco)" />
                             </div>

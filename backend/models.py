@@ -185,6 +185,8 @@ class FinanzasEmpresa(Base):
     combo_discos = Column(Integer, default=0)
     combo_parque = Column(Boolean, default=False)
     combo_pool = Column(Boolean, default=False)
+    combo_cena_velas = Column(Boolean, default=False)
+    combo_bar_hielo = Column(Boolean, default=False)
 
     # Liberados (Free entries)
     disco_liberados_ratio = Column(Integer, default=0)  # 20:1

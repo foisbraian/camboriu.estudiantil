@@ -130,6 +130,8 @@ class FinanzasEmpresaCreate(BaseModel):
     combo_discos: int = 0
     combo_parque: bool = False
     combo_pool: bool = False
+    combo_cena_velas: bool = False
+    combo_bar_hielo: bool = False
     
     disco_liberados_ratio: int = 0
     disco_padres_gratis: bool = False

@@ -144,7 +144,7 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
             servicios_detalle.append({
                 "servicio": "Combo",
                 "servicio_key": "combo",
-                "descripcion": f"({config.combo_discos} D + {'P' if config.combo_parque else ''} + {'W' if config.combo_pool else ''})",
+                "descripcion": f"({config.combo_discos} D + {'P' if config.combo_parque else ''} + {'W' if config.combo_pool else ''} + {'C' if config.combo_cena_velas else ''} + {'H' if config.combo_bar_hielo else ''})",
                 "precio_u": c_combo,
                 "cantidad": 1,
                 "pax": pax_cobrar,
@@ -230,7 +230,7 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
                 })
 
         tiene_cena = g.cena_velas or db.query(models.FechaEvento).join(models.Asignacion).filter(models.Asignacion.grupo_id == g.id).join(models.Evento).filter(models.Evento.tipo == "CENA").first()
-        if tiene_cena:
+        if tiene_cena and not (config.es_combo and config.combo_cena_velas):
             pax_cena = _aplicar_pagantes_override(total_pax_grupo, g, "cena")
             p_cena = (config.precio_cena_velas or 0)
             costo_cena = pax_cena * p_cena
@@ -250,7 +250,7 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
             })
 
         tiene_hielo = g.bar_hielo or db.query(models.FechaEvento).join(models.Asignacion).filter(models.Asignacion.grupo_id == g.id).join(models.Evento).filter(models.Evento.tipo == "HIELO").first()
-        if tiene_hielo:
+        if tiene_hielo and not (config.es_combo and config.combo_bar_hielo):
             pax_hielo = _aplicar_pagantes_override(total_pax_grupo, g, "hielo")
             p_hielo = (config.precio_bar_hielo or 0)
             costo_hielo = pax_hielo * p_hielo
@@ -321,8 +321,11 @@ def get_asignaciones_pagadas(empresa_id: int, db: Session):
                 tipo = a.fecha_evento.evento.tipo
                 costo = 0
                 if tipo == "HIELO":
-                    pax = _aplicar_pagantes_override((g.cantidad_pax or 0), g, "hielo")
-                    costo = pax * (config.precio_bar_hielo or 0)
+                    if config.es_combo and config.combo_bar_hielo:
+                        costo = 0
+                    else:
+                        pax = _aplicar_pagantes_override((g.cantidad_pax or 0), g, "hielo")
+                        costo = pax * (config.precio_bar_hielo or 0)
                 elif config.es_combo:
                     asigs_g_sorted = sorted(asigs_grupo, key=lambda x: x.fecha_evento.fecha if x.fecha_evento else date.max)
                     if asigs_g_sorted and a.id == asigs_g_sorted[0].id:
@@ -362,9 +365,17 @@ def get_asignaciones_pagadas(empresa_id: int, db: Session):
                     elif tipo == "POOL":
                         pax = _aplicar_pagantes_override(pax, g, "pool")
                     elif tipo == "CENA":
-                        pax = _aplicar_pagantes_override((g.cantidad_pax or 0), g, "cena")
+                        if config.es_combo and config.combo_cena_velas:
+                            costo = 0
+                            pax = 0
+                        else:
+                            pax = _aplicar_pagantes_override((g.cantidad_pax or 0), g, "cena")
                     elif tipo == "HIELO":
-                        pax = _aplicar_pagantes_override((g.cantidad_pax or 0), g, "hielo")
+                        if config.es_combo and config.combo_bar_hielo:
+                            costo = 0
+                            pax = 0
+                        else:
+                            pax = _aplicar_pagantes_override((g.cantidad_pax or 0), g, "hielo")
                     costo = pax * precio_u
                 
                 items.append({
