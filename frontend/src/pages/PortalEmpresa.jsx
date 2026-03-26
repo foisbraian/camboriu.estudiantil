@@ -10,6 +10,7 @@ export default function PortalEmpresa() {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(true);
     const [isMobile, setIsMobile] = useState(false);
+    const [calendarApi, setCalendarApi] = useState(null);
 
     const cargar = useCallback(async () => {
         try {
@@ -25,6 +26,17 @@ export default function PortalEmpresa() {
     useEffect(() => {
         cargar();
     }, [cargar]);
+
+    useEffect(() => {
+        if (!calendarApi || !data.events?.length) return;
+        const sorted = [...data.events]
+            .filter((ev) => ev?.start)
+            .sort((a, b) => String(a.start).localeCompare(String(b.start)));
+        if (!sorted.length) return;
+        const firstDate = new Date(sorted[0].start);
+        if (Number.isNaN(firstDate.getTime())) return;
+        calendarApi.navegarAMes(firstDate);
+    }, [calendarApi, data.events]);
 
     useEffect(() => {
         const detect = () => {
@@ -70,6 +82,7 @@ export default function PortalEmpresa() {
                         resources={data.resources}
                         events={data.events}
                         readOnly={true}
+                        onRegisterRef={setCalendarApi}
                     />
                 </div>
             )}
