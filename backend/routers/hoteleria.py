@@ -68,6 +68,20 @@ def delete_reserva(reserva_id: int, db: Session = Depends(get_db)):
     db.delete(db_reserva)
     db.commit()
 
+
+@router.put("/reservas/{reserva_id}", response_model=schemas.ReservaHotelOut)
+def update_reserva(reserva_id: int, reserva: schemas.ReservaHotelCreate, db: Session = Depends(get_db)):
+    db_reserva = db.query(models.ReservaHotel).filter(models.ReservaHotel.id == reserva_id).first()
+    if not db_reserva:
+        raise HTTPException(status_code=404, detail="Reserva no encontrada")
+
+    for key, value in reserva.model_dump().items():
+        setattr(db_reserva, key, value)
+
+    db.commit()
+    db.refresh(db_reserva)
+    return db_reserva
+
 # =======================
 # PAGOS (SEÑAS)
 # =======================

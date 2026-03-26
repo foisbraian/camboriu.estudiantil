@@ -18,6 +18,7 @@ export default function Hoteleria() {
     const [newHotelName, setNewHotelName] = useState("");
 
     const [showReservaModal, setShowReservaModal] = useState(false);
+    const [editingReservaId, setEditingReservaId] = useState(null);
     const [reservaForm, setReservaForm] = useState({
         empresa_id: "", fecha_ingreso: "", fecha_salida: "",
         total_habitaciones: 0,
@@ -86,9 +87,45 @@ export default function Hoteleria() {
             // Re-fetch everything to get relations or update locally
             fetchData();
             setShowReservaModal(false);
+            setEditingReservaId(null);
         } catch (err) {
             alert(err.response?.data?.detail || "Error al crear reserva. Revisa las fechas.");
         }
+    };
+
+    const handleUpdateReserva = async (e) => {
+        e.preventDefault();
+        if (!editingReservaId) return;
+        try {
+            const payload = { ...reservaForm, hotel_id: selectedHotelId };
+            await api.put(`/hoteleria/reservas/${editingReservaId}`, payload);
+            fetchData();
+            setShowReservaModal(false);
+            setEditingReservaId(null);
+        } catch (err) {
+            alert(err.response?.data?.detail || "Error al editar reserva. Revisa las fechas.");
+        }
+    };
+
+    const handleEditReserva = (reserva) => {
+        setReservaForm({
+            empresa_id: reserva.empresa_id || "",
+            fecha_ingreso: reserva.fecha_ingreso || "",
+            fecha_salida: reserva.fecha_salida || "",
+            total_habitaciones: reserva.total_habitaciones || 0,
+            cant_single: reserva.cant_single || 0,
+            tarifa_single: reserva.tarifa_single || 0,
+            cant_doble: reserva.cant_doble || 0,
+            tarifa_doble: reserva.tarifa_doble || 0,
+            cant_triple: reserva.cant_triple || 0,
+            tarifa_triple: reserva.tarifa_triple || 0,
+            cant_cuadruple: reserva.cant_cuadruple || 0,
+            tarifa_cuadruple: reserva.tarifa_cuadruple || 0,
+            cant_quintuple: reserva.cant_quintuple || 0,
+            tarifa_quintuple: reserva.tarifa_quintuple || 0
+        });
+        setEditingReservaId(reserva.id);
+        setShowReservaModal(true);
     };
 
     const handleDeleteReserva = async (id) => {
@@ -203,6 +240,7 @@ export default function Hoteleria() {
                                             <h2 style={{ margin: 0 }}>Reservas en {selectedHotel.nombre}</h2>
                                             <button onClick={() => {
                                                 setReservaForm({ empresa_id: "", fecha_ingreso: "", fecha_salida: "", total_habitaciones: 0, cant_single: 0, tarifa_single: 0, cant_doble: 0, tarifa_doble: 0, cant_triple: 0, tarifa_triple: 0, cant_cuadruple: 0, tarifa_cuadruple: 0, cant_quintuple: 0, tarifa_quintuple: 0 });
+                                                setEditingReservaId(null);
                                                 setShowReservaModal(true);
                                             }} style={{ background: "#10b981", color: "#fff", border: "none", padding: "8px 16px", borderRadius: 6, cursor: "pointer", fontWeight: "bold" }}>+ Agregar Reserva</button>
                                         </div>
@@ -252,7 +290,8 @@ export default function Hoteleria() {
                                                                 <td style={{ padding: 12, fontSize: "0.85rem", color: "#475569" }}>{habs.length ? habs.join(", ") : "—"}</td>
                                                                 <td style={{ padding: 12 }}>${tarNoche.toLocaleString()}</td>
                                                                 <td style={{ padding: 12, fontWeight: "bold", color: "#0ea5e9" }}>${subtotal.toLocaleString()}</td>
-                                                                <td style={{ padding: 12 }}>
+                                                                <td style={{ padding: 12, display: "flex", gap: 8 }}>
+                                                                    <button onClick={() => handleEditReserva(r)} style={{ background: "#0ea5e9", color: "white", padding: "4px 8px", borderRadius: 4, border: "none", cursor: "pointer", fontSize: "0.8rem" }}>Editar</button>
                                                                     <button onClick={() => handleDeleteReserva(r.id)} style={{ background: "#ef4444", color: "white", padding: "4px 8px", borderRadius: 4, border: "none", cursor: "pointer", fontSize: "0.8rem" }}>Eliminar</button>
                                                                 </td>
                                                             </tr>
@@ -360,8 +399,8 @@ export default function Hoteleria() {
             {showReservaModal && (
                 <div style={modalOverlayStyle}>
                     <div style={{ ...modalContentStyle, width: 600 }}>
-                        <h3>Nueva Reserva</h3>
-                        <form onSubmit={handleCreateReserva} style={{ display: "flex", flexDirection: "column", gap: 15 }}>
+                        <h3>{editingReservaId ? "Editar Reserva" : "Nueva Reserva"}</h3>
+                        <form onSubmit={editingReservaId ? handleUpdateReserva : handleCreateReserva} style={{ display: "flex", flexDirection: "column", gap: 15 }}>
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 15 }}>
                                 <div>
                                     <label style={labelStyle}>Empresa</label>
@@ -414,7 +453,7 @@ export default function Hoteleria() {
 
                             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 10 }}>
                                 <button type="button" onClick={() => setShowReservaModal(false)} style={btnCancel}>Cancelar</button>
-                                <button type="submit" style={btnSubmit}>Guardar Reserva</button>
+                                <button type="submit" style={btnSubmit}>{editingReservaId ? "Guardar Cambios" : "Guardar Reserva"}</button>
                             </div>
                         </form>
                     </div>
