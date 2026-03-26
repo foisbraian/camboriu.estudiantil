@@ -278,7 +278,10 @@ def calendario(db: Session = Depends(get_db)):
 
                 if asignaciones_dia:
                     # RENDERIZAR ASIGNACIONES (Iterar sobre la lista)
-                    for asignacion in asignaciones_dia:
+                    asignaciones_hielo = [a for a in asignaciones_dia if a.fecha_evento.evento.tipo == "HIELO"]
+                    otras_asignaciones = [a for a in asignaciones_dia if a.fecha_evento.evento.tipo != "HIELO"]
+
+                    for asignacion in otras_asignaciones:
                         color_map = {
                             "DISCO": "#000000",    # Negro
                             "PARQUE": "#16a34a",   # Verde
@@ -306,6 +309,33 @@ def calendario(db: Session = Depends(get_db)):
                                 "evento_id_num": asignacion.fecha_evento.evento.id,
                                 "empresa_nombre": e.nombre,
                                 "tooltip": f"Asignado: {asignacion.fecha_evento.evento.nombre}"
+                            }
+                        })
+
+                    if asignaciones_hielo:
+                        color_map = {
+                            "HIELO": "#e0f2fe"
+                        }
+                        bg_color_asig = color_map.get("HIELO", "gray")
+                        text_color_asig = "black"
+                        turnos = len(asignaciones_hielo)
+                        nombre_base = asignaciones_hielo[0].fecha_evento.evento.nombre
+                        titulo = f"{nombre_base} {turnos} TURNOS" if turnos > 1 else nombre_base
+                        events.append({
+                            "resourceId": g.id,
+                            "start": current_date,
+                            "end": next_date,
+                            "title": titulo,
+                            "backgroundColor": bg_color_asig,
+                            "borderColor": "transparent",
+                            "textColor": text_color_asig,
+                            "extendedProps": {
+                                "tipo": "asignacion_hielo_resumen",
+                                "grupo_id": g.id,
+                                "fecha": current_date,
+                                "turnos": turnos,
+                                "empresa_nombre": e.nombre,
+                                "tooltip": f"{nombre_base}: {turnos} TURNOS"
                             }
                         })
 
@@ -448,7 +478,10 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
             asignaciones_dia = mapa_asignaciones.get(current_date, [])
 
             if asignaciones_dia:
-                for asignacion in asignaciones_dia:
+                asignaciones_hielo = [a for a in asignaciones_dia if a.fecha_evento.evento.tipo == "HIELO"]
+                otras_asignaciones = [a for a in asignaciones_dia if a.fecha_evento.evento.tipo != "HIELO"]
+
+                for asignacion in otras_asignaciones:
                     color_map = {"DISCO": "#000000", "PARQUE": "#16a34a", "POOL": "#0ea5e9", "CENA": "#94a3b8", "HIELO": "#e0f2fe"}
                     bg_color_asig = color_map.get(asignacion.fecha_evento.evento.tipo, "gray")
                     text_color_asig = "black" if bg_color_asig == "#e0f2fe" else "white"
@@ -466,6 +499,27 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                             "tipo": "asignacion",
                             "tooltip": f"Asignado: {asignacion.fecha_evento.evento.nombre}" # Tooltip en asignacion tambien
                         } 
+                    })
+                if asignaciones_hielo:
+                    color_map = {"HIELO": "#e0f2fe"}
+                    bg_color_asig = color_map.get("HIELO", "gray")
+                    text_color_asig = "black"
+                    turnos = len(asignaciones_hielo)
+                    nombre_base = asignaciones_hielo[0].fecha_evento.evento.nombre
+                    titulo = f"{nombre_base} {turnos} TURNOS" if turnos > 1 else nombre_base
+
+                    events.append({
+                        "resourceId": g.id,
+                        "start": current_date,
+                        "end": next_date,
+                        "title": titulo,
+                        "backgroundColor": bg_color_asig,
+                        "borderColor": "transparent",
+                        "textColor": text_color_asig,
+                        "extendedProps": {
+                            "tipo": "asignacion",
+                            "tooltip": f"{nombre_base}: {turnos} TURNOS"
+                        }
                     })
             else:
                 events.append({

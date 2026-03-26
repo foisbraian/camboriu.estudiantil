@@ -236,6 +236,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
 
     const props = info.event.extendedProps || {};
     if (props.tipo === "resumen_servicios") return;
+    if (props.tipo === "asignacion_hielo_resumen") return;
     const fechaISO = info.event.startStr.slice(0, 10);
 
     // ---------------------------------------------------------
