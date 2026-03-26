@@ -20,6 +20,7 @@ function iso(date) {
 export default function MobileDayView({ resources, events, loading }) {
   const [currentDate, setCurrentDate] = useState(() => today());
   const currentISO = iso(currentDate);
+  const currentMonthKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
 
   const resourceInfo = useMemo(() => {
     const map = new Map();
@@ -101,6 +102,63 @@ export default function MobileDayView({ resources, events, loading }) {
     });
   }, [events, matchesCurrentDate, resourceInfo]);
 
+  const monthOptions = useMemo(() => {
+    const validDates = events
+      .map((evt) => (evt?.start instanceof Date ? evt.start : new Date(evt?.start)))
+      .filter((d) => d instanceof Date && !Number.isNaN(d.getTime()));
+
+    if (validDates.length === 0) {
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      return [{
+        key: `${year}-${month}`,
+        year,
+        month,
+        label: `${SHORT_MONTHS[month]} ${year}`,
+      }];
+    }
+
+    let min = new Date(validDates[0].getFullYear(), validDates[0].getMonth(), 1);
+    let max = new Date(validDates[0].getFullYear(), validDates[0].getMonth(), 1);
+
+    validDates.forEach((d) => {
+      const normalized = new Date(d.getFullYear(), d.getMonth(), 1);
+      if (normalized < min) min = normalized;
+      if (normalized > max) max = normalized;
+    });
+
+    const options = [];
+    const cursor = new Date(min.getFullYear(), min.getMonth(), 1);
+    const end = new Date(max.getFullYear(), max.getMonth(), 1);
+
+    while (cursor <= end) {
+      const year = cursor.getFullYear();
+      const month = cursor.getMonth();
+      options.push({
+        key: `${year}-${month}`,
+        year,
+        month,
+        label: `${SHORT_MONTHS[month]} ${year}`,
+      });
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
+
+    const hasCurrent = options.some((opt) => opt.key === currentMonthKey);
+    if (!hasCurrent) {
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      options.push({
+        key: `${year}-${month}`,
+        year,
+        month,
+        label: `${SHORT_MONTHS[month]} ${year}`,
+      });
+      options.sort((a, b) => (a.year - b.year) || (a.month - b.month));
+    }
+
+    return options;
+  }, [events, currentDate, currentMonthKey]);
+
   const changeDay = (delta) => {
     setCurrentDate((prev) => {
       const next = new Date(prev);
@@ -111,11 +169,40 @@ export default function MobileDayView({ resources, events, loading }) {
 
   const goToday = () => setCurrentDate(today());
 
+  const handleMonthChange = (e) => {
+    const [yearStr, monthStr] = e.target.value.split("-");
+    const year = Number(yearStr);
+    const month = Number(monthStr);
+    if (Number.isNaN(year) || Number.isNaN(month)) return;
+    const day = currentDate.getDate();
+    const maxDay = new Date(year, month + 1, 0).getDate();
+    const nextDay = Math.min(day, maxDay);
+    setCurrentDate(new Date(year, month, nextDay));
+  };
+
   return (
     <div style={{ padding: "16px 16px 32px", minHeight: "100%", display: "flex", flexDirection: "column", gap: 16 }}>
       <header style={heroCardStyle}>
         <div style={{ opacity: 0.85, fontSize: "0.95rem" }}>Calendario Diario</div>
         <h2 style={{ margin: "4px 0 0 0", fontSize: "1.6rem" }}>{formatHuman(currentDate)}</h2>
+        <div style={{ marginTop: 12 }}>
+          <select
+            value={currentMonthKey}
+            onChange={handleMonthChange}
+            style={{
+              width: "100%",
+              padding: "10px 12px",
+              borderRadius: 12,
+              border: "none",
+              fontWeight: 600,
+              color: "#0f172a",
+            }}
+          >
+            {monthOptions.map((opt) => (
+              <option key={opt.key} value={opt.key}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
         <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
           <button style={heroBtnStyle} onClick={() => changeDay(-1)}>← Día anterior</button>
           <button style={{ ...heroBtnStyle, background: "rgba(255,255,255,0.15)" }} onClick={goToday}>Hoy</button>
