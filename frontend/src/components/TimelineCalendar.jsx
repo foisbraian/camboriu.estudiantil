@@ -540,12 +540,9 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           dateClick={handleDateClick}
           slotLabelContent={(arg) => {
             const d = arg.date;
-            if (readOnly && (arg.level === 0 || arg.level === 1)) {
-              const weekday = d.toLocaleDateString("es-ES", { weekday: "long" }).toUpperCase();
-              return `${weekday} ${d.getDate()}`;
-            }
             if (arg.level !== 1) return arg.text;
-            return `${d.getDate()} ${d.toLocaleDateString("es-ES", { weekday: "long" }).toUpperCase()}`;
+            const weekday = d.toLocaleDateString("es-ES", { weekday: "long" }).toUpperCase();
+            return `${d.getDate()} ${weekday}`;
           }}
           slotLabelDidMount={(arg) => {
             if (readOnly) return;
