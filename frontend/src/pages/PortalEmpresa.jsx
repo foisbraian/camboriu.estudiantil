@@ -35,7 +35,7 @@ export default function PortalEmpresa() {
         if (!sorted.length) return;
         const firstDate = new Date(sorted[0].start);
         if (Number.isNaN(firstDate.getTime())) return;
-        calendarApi.navegarAMes(firstDate);
+        calendarApi.irAFecha(firstDate);
     }, [calendarApi, data.events]);
 
     useEffect(() => {

@@ -17,6 +17,11 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           if (!api) return;
           api.changeView("resourceTimelineMonth", fecha);
         },
+        irAFecha(fecha) {
+          const api = calendarRef.current?.getApi();
+          if (!api) return;
+          api.gotoDate(fecha);
+        }
       });
     }
   }, [onRegisterRef]);
