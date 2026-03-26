@@ -502,6 +502,14 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           plugins={[resourceTimelinePlugin, interactionPlugin]}
           initialView="resourceTimelineYear"
           initialDate={new Date()}
+          views={{
+            resourceTimelineMonth: {
+              slotLabelFormat: [
+                { month: "long", year: "numeric" },
+                { weekday: "long", day: "numeric" }
+              ]
+            }
+          }}
           headerToolbar={false}
           resources={resources}
           events={localEvents}
@@ -543,9 +551,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
             const viewType = arg.view?.type;
 
             if (viewType === "resourceTimelineMonth") {
-              if (arg.level === 0) {
-                return d.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
-              }
+              if (arg.level === 0) return arg.text;
               const weekday = d.toLocaleDateString("es-ES", { weekday: "long" }).toUpperCase();
               return `${weekday} ${d.getDate()}`;
             }
