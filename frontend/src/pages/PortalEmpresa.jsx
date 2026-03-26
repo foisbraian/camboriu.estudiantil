@@ -46,6 +46,7 @@ export default function PortalEmpresa() {
     return (
         <div style={{
             minHeight: "100vh",
+            height: "100vh",
             display: "flex",
             flexDirection: "column",
             background: "#f8fafc"
@@ -60,11 +61,11 @@ export default function PortalEmpresa() {
                 Portal de Empresa
             </h2>
             {isMobile ? (
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, minHeight: 0 }}>
                     <MobileDayView resources={data.resources} events={data.events} loading={loading} />
                 </div>
             ) : (
-                <div style={{ flex: 1, position: "relative" }}>
+                <div style={{ flex: 1, position: "relative", minHeight: 0 }}>
                     <TimelineCalendar
                         resources={data.resources}
                         events={data.events}
