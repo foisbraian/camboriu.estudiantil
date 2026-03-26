@@ -32,15 +32,23 @@ models.Base.metadata.create_all(bind=engine)
 
 # Configuración de CORS dinámica
 frontend_url = os.getenv("FRONTEND_URL", "").strip().rstrip("/")
+frontend_urls_env = os.getenv("FRONTEND_URLS", "").strip()
 origins = ["http://localhost:3000"]
 
 if frontend_url:
     origins.append(frontend_url)
-    # También permitimos la versión con y sin barra al final por si acaso
     origins.append(frontend_url + "/")
 
-# Si no hay FRONTEND_URL, permitimos todo (pero sin credenciales por seguridad y compatibilidad)
-if not frontend_url:
+if frontend_urls_env:
+    extra_urls = [u.strip().rstrip("/") for u in frontend_urls_env.split(",") if u.strip()]
+    for url in extra_urls:
+        origins.append(url)
+        origins.append(url + "/")
+
+origins = list(dict.fromkeys(origins))
+
+# Si no hay URLs externas definidas, permitimos todo (pero sin credenciales por seguridad y compatibilidad)
+if not frontend_url and not frontend_urls_env:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
