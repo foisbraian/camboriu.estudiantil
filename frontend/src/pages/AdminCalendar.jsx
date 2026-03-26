@@ -62,6 +62,11 @@ export default function AdminCalendar() {
     return () => window.removeEventListener("descargarPDF", handleDescargar);
   }, [calendarApi]);
 
+  useEffect(() => {
+    if (!calendarApi) return;
+    calendarApi.navegarAMes(new Date());
+  }, [calendarApi]);
+
   async function cargar() {
     try {
       setLoading(true);
