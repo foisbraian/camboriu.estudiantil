@@ -543,6 +543,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
             const viewType = arg.view?.type;
 
             if (viewType === "resourceTimelineMonth") {
+              if (arg.level === 0) return arg.text;
               const weekday = d.toLocaleDateString("es-ES", { weekday: "long" }).toUpperCase();
               return `${weekday} ${d.getDate()}`;
             }
