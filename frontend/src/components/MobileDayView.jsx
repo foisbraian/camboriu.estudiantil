@@ -48,6 +48,10 @@ export default function MobileDayView({ resources, events, loading }) {
       .filter((evt) => evt.extendedProps?.tipo !== "resumen_servicios")
       .map((evt) => {
         const props = evt.extendedProps || {};
+        const esPrivadoFlag = props.es_privado ?? evt.es_privado ?? evt?.extendedProps?.es_privado;
+        const esPrivadoExtra = props.empresa_privada_id || props.empresa_privada_nombre || props.empresa_privada;
+        const esPrivado = Boolean(esPrivadoFlag || esPrivadoExtra);
+        const textColor = evt.textColor || props.textColor;
         return {
           id: evt.id || evt.start,
           title: props.evento_nombre || evt.title || "Servicio",
@@ -56,8 +60,9 @@ export default function MobileDayView({ resources, events, loading }) {
           capacidad: props.capacidad,
           tipo: props.evento_tipo,
           color: evt.backgroundColor || "#0f172a",
+          textColor,
           conAlcohol: props.con_alcohol,
-          esPrivado: Boolean(props.es_privado),
+          esPrivado,
         };
       });
   }, [events, matchesCurrentDate]);
@@ -238,7 +243,7 @@ export default function MobileDayView({ resources, events, loading }) {
                     style={{
                       borderRadius: 14,
                       padding: "12px 14px",
-                      color: evt.esPrivado ? "#0f172a" : (evt.color === "yellow" ? "#0f172a" : "white"),
+                      color: evt.esPrivado ? "#0f172a" : (evt.textColor || (evt.color === "yellow" ? "#0f172a" : "white")),
                       background: evt.color || "#0f172a",
                       boxShadow: "0 8px 20px rgba(15,23,42,0.18)",
                     }}
