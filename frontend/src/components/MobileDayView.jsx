@@ -181,7 +181,18 @@ export default function MobileDayView({ resources, events, loading }) {
   };
 
   return (
-    <div style={{ padding: "16px 16px 32px", minHeight: "100%", display: "flex", flexDirection: "column", gap: 16 }}>
+    <div
+      style={{
+        padding: "16px 16px 32px",
+        minHeight: 0,
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        gap: 16,
+        overflowY: "auto",
+        WebkitOverflowScrolling: "touch",
+      }}
+    >
       <header style={heroCardStyle}>
         <div style={{ opacity: 0.85, fontSize: "0.95rem" }}>Calendario Diario</div>
         <h2 style={{ margin: "4px 0 0 0", fontSize: "1.6rem" }}>{formatHuman(currentDate)}</h2>
