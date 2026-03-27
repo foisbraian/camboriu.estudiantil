@@ -57,6 +57,7 @@ export default function MobileDayView({ resources, events, loading }) {
           tipo: props.evento_tipo,
           color: evt.backgroundColor || "#0f172a",
           conAlcohol: props.con_alcohol,
+          esPrivado: Boolean(props.es_privado),
         };
       });
   }, [events, matchesCurrentDate]);
@@ -237,7 +238,7 @@ export default function MobileDayView({ resources, events, loading }) {
                     style={{
                       borderRadius: 14,
                       padding: "12px 14px",
-                      color: evt.color === "yellow" ? "#0f172a" : "white",
+                      color: evt.esPrivado ? "#0f172a" : (evt.color === "yellow" ? "#0f172a" : "white"),
                       background: evt.color || "#0f172a",
                       boxShadow: "0 8px 20px rgba(15,23,42,0.18)",
                     }}
