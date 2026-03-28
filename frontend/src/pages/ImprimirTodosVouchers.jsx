@@ -98,6 +98,16 @@ export default function ImprimirTodosVouchers() {
             <style>{`
                 @media print {
                     @page { margin: 10mm; }
+                    html, body, #root {
+                        height: auto !important;
+                        overflow: visible !important;
+                    }
+                    #root > div,
+                    #root > div > div {
+                        height: auto !important;
+                        overflow: visible !important;
+                        position: static !important;
+                    }
                     .no-print { display: none !important; }
                     body { margin: 0; padding: 0; background: white; }
                     .main-container { padding: 0 !important; }
