@@ -98,6 +98,8 @@ export default function ImprimirTodosVouchers() {
             <style>{`
                 @media print {
                     @page { margin: 10mm; }
+                    body * { visibility: hidden !important; }
+                    .main-container, .main-container * { visibility: visible !important; }
                     html, body, #root {
                         height: auto !important;
                         overflow: visible !important;
@@ -110,7 +112,7 @@ export default function ImprimirTodosVouchers() {
                     }
                     .no-print { display: none !important; }
                     body { margin: 0; padding: 0; background: white; }
-                    .main-container { padding: 0 !important; }
+                    .main-container { padding: 0 !important; position: static !important; }
                     img { max-width: 100%; height: auto; display: block; }
                     div { break-inside: avoid; }
                     .voucher-container { margin-bottom: 5mm; page-break-inside: avoid; }
