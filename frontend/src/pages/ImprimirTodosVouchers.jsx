@@ -6,6 +6,8 @@ export default function ImprimirTodosVouchers() {
     const { grupoId } = useParams();
     const [asignaciones, setAsignaciones] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loadedCount, setLoadedCount] = useState(0);
+    const [hasPrinted, setHasPrinted] = useState(false);
 
     const [error, setError] = useState(null);
 
@@ -26,14 +28,34 @@ export default function ImprimirTodosVouchers() {
         load();
     }, [grupoId]);
 
+    const habilitadas = asignaciones.filter(a => a.habilitado);
+    const habilitadasCount = habilitadas.length;
+
     useEffect(() => {
-        if (!loading && asignaciones.length > 0) {
+        if (!loading) {
+            setLoadedCount(0);
+            setHasPrinted(false);
+        }
+    }, [loading, grupoId]);
+
+    useEffect(() => {
+        if (!loading && habilitadasCount > 0 && loadedCount >= habilitadasCount && !hasPrinted) {
+            setHasPrinted(true);
+            window.print();
+        }
+    }, [loading, habilitadasCount, loadedCount, hasPrinted]);
+
+    useEffect(() => {
+        if (!loading && habilitadasCount > 0 && !hasPrinted) {
             const timer = setTimeout(() => {
-                window.print();
-            }, 2000); // 2 segundos para dar tiempo a que carguen todas las imágenes
+                if (!hasPrinted) {
+                    setHasPrinted(true);
+                    window.print();
+                }
+            }, 8000);
             return () => clearTimeout(timer);
         }
-    }, [loading, asignaciones]);
+    }, [loading, habilitadasCount, hasPrinted]);
 
     if (loading) return <div style={{ padding: 20 }}>Cargando vouchers...</div>;
     if (error) return <div style={{ padding: 20, color: "red" }}>Error: {error}</div>;
@@ -48,7 +70,7 @@ export default function ImprimirTodosVouchers() {
                 >
                     Cerrar / Volver
                 </button>
-                <p style={{ marginTop: 10, color: "#64748b" }}>Se están cargando {asignaciones.length} vouchers...</p>
+                <p style={{ marginTop: 10, color: "#64748b" }}>Se están cargando {habilitadasCount} vouchers...</p>
             </div>
 
             <div style={{
@@ -57,12 +79,14 @@ export default function ImprimirTodosVouchers() {
                 gap: "20px",
                 justifyItems: "center"
             }}>
-                {asignaciones.filter(a => a.habilitado).map(a => (
+                {habilitadas.map(a => (
                     <div key={a.id} className="voucher-container" style={{ breakInside: "avoid", marginBottom: 10 }}>
                         <img
                             src={`${BASE_URL}/vouchers/generate/${a.id}`}
                             alt="Voucher"
                             style={{ width: "100%", maxWidth: "800px", height: "auto", display: "block", border: "1px solid #eee" }}
+                            onLoad={() => setLoadedCount(count => count + 1)}
+                            onError={() => setLoadedCount(count => count + 1)}
                         />
                     </div>
                 ))}
