@@ -299,6 +299,7 @@ export default function ValidarQR() {
                                     <div style={{ fontSize: "3rem", marginBottom: 16 }}>✅</div>
                                     <h3 style={{ color: "#4ade80", margin: "0 0 12px 0" }}>{mensaje}</h3>
                                     <div style={RESULT_CARD}>
+                                        <DetailRow label="Empresa" value={resultado.empresa} />
                                         <DetailRow label="Grupo" value={resultado.grupo} />
                                         <DetailRow label="Servicio" value={resultado.servicio} />
                                         <DetailRow label="Fecha" value={resultado.fecha} />

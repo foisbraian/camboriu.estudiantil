@@ -1,5 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Response
-from fastapi.responses import JSONResponse
+import os
+import tempfile
+
+from fastapi import APIRouter, Depends, HTTPException, Response, BackgroundTasks
+from fastapi.responses import JSONResponse, FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from database import get_db
@@ -11,6 +14,7 @@ from datetime import datetime, date, time, timedelta
 from zoneinfo import ZoneInfo
 from typing import Optional
 from PIL import Image, ImageDraw, ImageFont
+from openpyxl import Workbook
 
 router = APIRouter(prefix="/vouchers", tags=["Vouchers"])
 BALNEARIO_TZ = ZoneInfo("America/Sao_Paulo")
@@ -21,6 +25,13 @@ WINDOW_CONFIG = {
     "POOL": {"start": time(10, 0), "end": time(18, 0), "offset_days": 0},
     "CENA": {"start": time(20, 0), "end": time(23, 30), "offset_days": 0},
 }
+
+
+def _cleanup_file(path: str):
+    try:
+        os.remove(path)
+    except OSError:
+        pass
 
 
 def build_event_window(fecha_evento: models.FechaEvento):
@@ -266,6 +277,7 @@ def validate_voucher(token_data: dict, db: Session = Depends(get_db)):
         "status": "success",
         "message": "Voucher validado con éxito",
         "detalle": {
+            "empresa": asig.grupo.empresa.nombre if asig.grupo and asig.grupo.empresa else None,
             "grupo": asig.grupo.nombre,
             "servicio": asig.fecha_evento.evento.nombre,
             "fecha": str(asig.fecha_evento.fecha),
@@ -356,3 +368,95 @@ def reporte_vouchers(
         })
 
     return resultados
+
+
+@router.get("/reporte/excel")
+def exportar_reporte_vouchers_excel(
+    background_tasks: BackgroundTasks,
+    desde: date | None = None,
+    hasta: date | None = None,
+    evento_id: int | None = None,
+    empresa_id: int | None = None,
+    db: Session = Depends(get_db)
+):
+    base_query = (
+        db.query(models.Voucher)
+        .join(models.Asignacion)
+        .join(models.FechaEvento)
+        .join(models.Evento)
+        .join(models.Grupo)
+        .join(models.Empresa)
+        .filter(models.Voucher.usado == True)
+        .filter(models.Voucher.fecha_uso.isnot(None))
+    )
+
+    if evento_id:
+        base_query = base_query.filter(models.FechaEvento.evento_id == evento_id)
+
+    if empresa_id:
+        base_query = base_query.filter(models.Grupo.empresa_id == empresa_id)
+
+    if desde:
+        base_query = base_query.filter(func.substr(models.Voucher.fecha_uso, 1, 10) >= desde.isoformat())
+    if hasta:
+        base_query = base_query.filter(func.substr(models.Voucher.fecha_uso, 1, 10) <= hasta.isoformat())
+
+    base_query = base_query.order_by(models.Voucher.fecha_uso.desc())
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Vouchers Escaneados"
+    ws.append([
+        "Fecha escaneo",
+        "Hora",
+        "Fecha evento",
+        "Evento",
+        "Tipo",
+        "Empresa",
+        "Grupo",
+        "Estudiantes",
+        "Padres",
+        "Guias",
+        "Total Pax"
+    ])
+
+    for voucher in base_query.all():
+        asignacion = voucher.asignacion
+        if not asignacion or not asignacion.grupo or not asignacion.fecha_evento:
+            continue
+
+        grupo = asignacion.grupo
+        empresa = grupo.empresa
+        fecha_evento = asignacion.fecha_evento
+        evento = fecha_evento.evento
+
+        scan_dt = parse_fecha_uso(voucher.fecha_uso)
+        scan_fecha = scan_dt.date().isoformat() if scan_dt else None
+        scan_hora = scan_dt.strftime("%H:%M:%S") if scan_dt else None
+
+        ws.append([
+            scan_fecha or "",
+            scan_hora or "",
+            str(fecha_evento.fecha),
+            evento.nombre if evento else "",
+            evento.tipo if evento else "",
+            empresa.nombre if empresa else "",
+            grupo.nombre,
+            grupo.cantidad_estudiantes or 0,
+            grupo.cantidad_padres or 0,
+            grupo.cantidad_guias or 0,
+            getattr(grupo, "cantidad_pax", 0) or 0
+        ])
+
+    filename = f"planilla_vouchers_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
+        filepath = tmp.name
+
+    wb.save(filepath)
+    background_tasks.add_task(_cleanup_file, filepath)
+
+    return FileResponse(
+        filepath,
+        filename=filename,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )

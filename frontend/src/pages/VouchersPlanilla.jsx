@@ -90,53 +90,39 @@ export default function VouchersPlanilla() {
         setAppliedFilters(reset);
     };
 
-    const exportToCSV = () => {
+    const exportToExcel = async () => {
         if (!rows.length) {
             alert("No hay registros para exportar");
             return;
         }
-        const headers = [
-            "Fecha escaneo",
-            "Hora",
-            "Fecha evento",
-            "Evento",
-            "Empresa",
-            "Grupo",
-            "Estudiantes",
-            "Padres",
-            "Guías",
-            "Total Pax"
-        ];
-        const formatValue = (value) => {
-            const str = (value ?? "").toString();
-            if (/[",\n]/.test(str)) {
-                return `"${str.replace(/"/g, '""')}"`;
-            }
-            return str;
-        };
-        const dataRows = rows.map((row) => [
-            row.scan_fecha || "",
-            row.scan_hora || "",
-            row.fecha_evento || "",
-            row.evento || "",
-            row.empresa || "",
-            row.grupo || "",
-            row.estudiantes ?? 0,
-            row.padres ?? 0,
-            row.guias ?? 0,
-            row.pax ?? 0
-        ].map(formatValue).join(","));
-        const csv = [headers.join(","), ...dataRows].join("\n");
-        const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        const nombre = `planilla-vouchers-${appliedFilters.desde || "inicio"}-${appliedFilters.hasta || "fin"}.csv`;
-        link.href = url;
-        link.download = nombre;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        try {
+            const params = {};
+            if (appliedFilters.desde) params.desde = appliedFilters.desde;
+            if (appliedFilters.hasta) params.hasta = appliedFilters.hasta;
+            if (appliedFilters.eventoId) params.evento_id = appliedFilters.eventoId;
+            if (appliedFilters.empresaId) params.empresa_id = appliedFilters.empresaId;
+
+            const res = await api.get("/vouchers/reporte/excel", {
+                params,
+                responseType: "blob"
+            });
+
+            const contentDisposition = res.headers?.["content-disposition"] || "";
+            const match = contentDisposition.match(/filename="?([^";]+)"?/i);
+            const nombre = match?.[1] || `planilla-vouchers-${appliedFilters.desde || "inicio"}-${appliedFilters.hasta || "fin"}.xlsx`;
+
+            const url = URL.createObjectURL(res.data);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = nombre;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        } catch (planillaErr) {
+            console.error("No se pudo exportar la planilla", planillaErr);
+            alert("No se pudo exportar la planilla en Excel");
+        }
     };
 
     const filtrosActivos = [
@@ -189,7 +175,7 @@ export default function VouchersPlanilla() {
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                     <button onClick={applyFilters} style={primaryBtn}>Generar planilla</button>
                     <button onClick={resetFilters} style={ghostBtn}>Limpiar filtros</button>
-                    <button onClick={exportToCSV} style={ghostBtn}>⬇️ Exportar Excel</button>
+                    <button onClick={exportToExcel} style={ghostBtn}>⬇️ Exportar Excel</button>
                     <button onClick={() => window.print()} style={ghostBtn}>🖨️ Imprimir</button>
                 </div>
             </div>
