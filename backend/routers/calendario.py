@@ -80,6 +80,7 @@ def calendario(db: Session = Depends(get_db)):
                     "pax": g.cantidad_pax,
                     "fechaEntrada": g.fecha_entrada,
                     "fechaSalida": g.fecha_salida,
+                    "permite_alcohol": g.permite_alcohol,
                 }
             })
             order_counter += 1
@@ -420,6 +421,7 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                 "pax": g.cantidad_pax,
                 "fechaEntrada": g.fecha_entrada,
                 "fechaSalida": g.fecha_salida,
+                "permite_alcohol": g.permite_alcohol,
             }
         })
         order_counter += 1
