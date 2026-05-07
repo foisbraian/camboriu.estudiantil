@@ -260,22 +260,6 @@ button {
   padding: 8px 0;
 }
 
-/* =========================================================================
-   STICKY SERVICIOS ROW
-   ========================================================================= */
-.fc-scroller .fc-datagrid-body tr[data-resource-id="eventos"] > td,
-.fc-scroller .fc-datagrid-body tr[data-resource-id="eventos"] > th,
-.fc-scroller .fc-timeline-body tr[data-resource-id="eventos"] > td {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 10 !important;
-  background: #ffffff !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.fc-scroller .fc-datagrid-body tr[data-resource-id="eventos"] > td {
-  background: #f8fafc !important;
-}
 
 /* =========================================================================
    PRINT / PDF STYLES

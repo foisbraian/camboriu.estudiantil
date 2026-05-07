@@ -148,6 +148,45 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
   }, []);
 
   // =========================================================
+  // STICKY SERVICIOS ROW (JS-based, bypasses dual-scroller limitation)
+  // =========================================================
+  const applyStickyEventosRow = useCallback(() => {
+    const rootEl = calendarRef.current?.el;
+    if (!rootEl) return;
+
+    // Both sides: datagrid (left labels) and timeline (right events)
+    const selectors = [
+      '.fc-datagrid-body tr[data-resource-id="eventos"]',
+      '.fc-timeline-body tr[data-resource-id="eventos"]',
+    ];
+
+    selectors.forEach((sel) => {
+      const row = rootEl.querySelector(sel);
+      if (!row) return;
+      Array.from(row.cells || row.querySelectorAll('td, th')).forEach((cell) => {
+        cell.style.position = 'sticky';
+        cell.style.top = '0';
+        cell.style.zIndex = '5';
+        cell.style.boxShadow = '0 2px 6px rgba(0,0,0,0.12)';
+        // Keep background so content below doesn't bleed through
+        if (!cell.style.backgroundColor || cell.style.backgroundColor === '') {
+          cell.style.backgroundColor = '#ffffff';
+        }
+      });
+    });
+  }, []);
+
+  // Run after initial render + whenever events/resources change
+  useEffect(() => {
+    // FullCalendar renders asynchronously; try a few times
+    const attempts = [100, 300, 700, 1500];
+    const timers = attempts.map((delay) =>
+      setTimeout(applyStickyEventosRow, delay)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [events, resources, applyStickyEventosRow]);
+
+  // =========================================================
   // REFRESH
   // =========================================================
   const refresh = async () => {
