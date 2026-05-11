@@ -283,7 +283,8 @@ def exportar_finanzas_todas(background_tasks: BackgroundTasks, db: Session = Dep
     for e in empresas:
         res = get_resumen_empresa(e.id, db)
         total_pax = sum(g.get("pax", 0) for g in res.get("grupos", []))
-        moneda = res.get("config", {}).get("moneda") or "USD"
+        config = res.get("config")
+        moneda = getattr(config, "moneda", None) or "USD"
         moneda = "USD" if moneda == "ARS" else moneda
         total_pagado = res["total_pagado"]
         saldo = res["saldo"]
