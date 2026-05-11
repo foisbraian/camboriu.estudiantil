@@ -64,6 +64,12 @@ export default function Eventos() {
         <option value="POOL">Pool</option>
         <option value="CENA">Cena de velas</option>
         <option value="HIELO">Bar de hielo</option>
+        <option value="SURF">Surf</option>
+        <option value="UNIPRAIAS">Parque Unipraias</option>
+        <option value="BETO">Beto Carrero</option>
+        <option value="BARCO">Barco Pirata 🏴‍☠️</option>
+        <option value="SUNSET">Sunset</option>
+        <option value="CRISTO">Cristo Luz</option>
       </select>
 
       {tipo === "DISCO" && (

@@ -58,6 +58,20 @@ def editar_grupo(grupo_id: int, data: schemas.GrupoUpdate, db: Session = Depends
     grupo.pagantes_finales_hielo = data.pagantes_finales_hielo
     grupo.pagantes_finales_combo = data.pagantes_finales_combo
 
+    grupo.surf_acceso = data.surf_acceso
+    grupo.unipraias_acceso = data.unipraias_acceso
+    grupo.beto_acceso = data.beto_acceso
+    grupo.barco_acceso = data.barco_acceso
+    grupo.cristo_acceso = data.cristo_acceso
+    grupo.sunset_acceso = data.sunset_acceso
+
+    grupo.pagantes_finales_surf = data.pagantes_finales_surf
+    grupo.pagantes_finales_unipraias = data.pagantes_finales_unipraias
+    grupo.pagantes_finales_beto = data.pagantes_finales_beto
+    grupo.pagantes_finales_barco = data.pagantes_finales_barco
+    grupo.pagantes_finales_cristo = data.pagantes_finales_cristo
+    grupo.pagantes_finales_sunset = data.pagantes_finales_sunset
+
     db.commit()
     db.refresh(grupo)
     return grupo
@@ -70,5 +84,42 @@ def eliminar_grupo(grupo_id: int, db: Session = Depends(get_db)):
         raise HTTPException(404, "Grupo no encontrado")
     
     db.delete(grupo)
+    db.commit()
+    return {"ok": True}
+
+@router.post("/migracion-nuevos-eventos")
+def migracion_nuevos_eventos(db: Session = Depends(get_db)):
+    from sqlalchemy import text
+    comandos = [
+        "ALTER TABLE grupos ADD COLUMN surf_acceso BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE grupos ADD COLUMN unipraias_acceso BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE grupos ADD COLUMN beto_acceso BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE grupos ADD COLUMN barco_acceso BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE grupos ADD COLUMN cristo_acceso BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE grupos ADD COLUMN sunset_acceso BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE grupos ADD COLUMN pagantes_finales_surf INTEGER",
+        "ALTER TABLE grupos ADD COLUMN pagantes_finales_unipraias INTEGER",
+        "ALTER TABLE grupos ADD COLUMN pagantes_finales_beto INTEGER",
+        "ALTER TABLE grupos ADD COLUMN pagantes_finales_barco INTEGER",
+        "ALTER TABLE grupos ADD COLUMN pagantes_finales_cristo INTEGER",
+        "ALTER TABLE grupos ADD COLUMN pagantes_finales_sunset INTEGER",
+        "ALTER TABLE finanzas_empresa ADD COLUMN precio_surf INTEGER DEFAULT 0",
+        "ALTER TABLE finanzas_empresa ADD COLUMN precio_unipraias INTEGER DEFAULT 0",
+        "ALTER TABLE finanzas_empresa ADD COLUMN precio_beto INTEGER DEFAULT 0",
+        "ALTER TABLE finanzas_empresa ADD COLUMN precio_barco INTEGER DEFAULT 0",
+        "ALTER TABLE finanzas_empresa ADD COLUMN precio_cristo INTEGER DEFAULT 0",
+        "ALTER TABLE finanzas_empresa ADD COLUMN precio_sunset INTEGER DEFAULT 0",
+        "ALTER TABLE finanzas_empresa ADD COLUMN combo_surf BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE finanzas_empresa ADD COLUMN combo_unipraias BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE finanzas_empresa ADD COLUMN combo_beto BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE finanzas_empresa ADD COLUMN combo_barco BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE finanzas_empresa ADD COLUMN combo_cristo BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE finanzas_empresa ADD COLUMN combo_sunset BOOLEAN DEFAULT FALSE",
+    ]
+    for c in comandos:
+        try:
+            db.execute(text(c))
+        except Exception as e:
+            print(f"Skipping {c}: {e}")
     db.commit()
     return {"ok": True}

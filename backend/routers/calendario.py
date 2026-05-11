@@ -97,7 +97,13 @@ def calendario(db: Session = Depends(get_db)):
             "PARQUE": "green",
             "POOL": "skyblue",
             "CENA": "#e2e8f0",
-            "HIELO": "#e0f2fe"
+            "HIELO": "#e0f2fe",
+            "SURF": "#3b82f6",
+            "UNIPRAIAS": "#10b981",
+            "BETO": "#ec4899",
+            "BARCO": "#8b5cf6",
+            "SUNSET": "#f59e0b",
+            "CRISTO": "#fcd34d"
         }
 
         color = "red" if f.con_alcohol else color_map.get(f.evento.tipo, "gray")
@@ -107,7 +113,7 @@ def calendario(db: Session = Depends(get_db)):
             text_color = "#4c1d95"
         else:
             # Text Color: Black if fondo claro
-            text_color = "black" if color in ("yellow", "#e2e8f0", "#e0f2fe") else "white"
+            text_color = "black" if color in ("yellow", "#e2e8f0", "#e0f2fe", "#f59e0b", "#fcd34d") else "white"
         
         capacidad = f.evento.capacidad_maxima
         ocupacion = 0
@@ -288,10 +294,16 @@ def calendario(db: Session = Depends(get_db)):
                             "PARQUE": "#16a34a",   # Verde
                             "POOL": "#0ea5e9",     # Azul claro
                             "CENA": "#94a3b8",     # Gris
-                            "HIELO": "#e0f2fe"     # Celeste claro
+                            "HIELO": "#e0f2fe",    # Celeste claro
+                            "SURF": "#3b82f6",     # Azul
+                            "UNIPRAIAS": "#10b981",# Verde esmeralda
+                            "BETO": "#ec4899",     # Rosa
+                            "BARCO": "#8b5cf6",    # Morado
+                            "SUNSET": "#f59e0b",   # Naranja dorado
+                            "CRISTO": "#fcd34d"    # Amarillo/Dorado claro
                         }
                         bg_color_asig = color_map.get(asignacion.fecha_evento.evento.tipo, "gray")
-                        text_color_asig = "black" if bg_color_asig == "#e0f2fe" else "white"
+                        text_color_asig = "black" if bg_color_asig in ["#e0f2fe", "#f59e0b", "#fcd34d"] else "white"
 
                         events.append({
                             "resourceId": g.id, # ID del Grupo ahora es la fila
@@ -479,14 +491,15 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
             
             asignaciones_dia = mapa_asignaciones.get(current_date, [])
 
+
             if asignaciones_dia:
                 asignaciones_hielo = [a for a in asignaciones_dia if a.fecha_evento.evento.tipo == "HIELO"]
                 otras_asignaciones = [a for a in asignaciones_dia if a.fecha_evento.evento.tipo != "HIELO"]
 
                 for asignacion in otras_asignaciones:
-                    color_map = {"DISCO": "#000000", "PARQUE": "#16a34a", "POOL": "#0ea5e9", "CENA": "#94a3b8", "HIELO": "#e0f2fe"}
+                    color_map = {"DISCO": "#000000", "PARQUE": "#16a34a", "POOL": "#0ea5e9", "CENA": "#94a3b8", "HIELO": "#e0f2fe", "SURF": "#3b82f6", "UNIPRAIAS": "#10b981", "BETO": "#ec4899", "BARCO": "#8b5cf6", "SUNSET": "#f59e0b", "CRISTO": "#fcd34d"}
                     bg_color_asig = color_map.get(asignacion.fecha_evento.evento.tipo, "gray")
-                    text_color_asig = "black" if bg_color_asig == "#e0f2fe" else "white"
+                    text_color_asig = "black" if bg_color_asig in ["#e0f2fe", "#f59e0b", "#fcd34d"] else "white"
 
                     events.append({
                         "resourceId": g.id, 
@@ -543,9 +556,9 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
         fechas_globales = db.query(models.FechaEvento).filter(models.FechaEvento.id.in_(fecha_eventos_asignados_ids)).all()
         
         for f in fechas_globales:
-            color_map = {"DISCO": "yellow", "PARQUE": "green", "POOL": "skyblue", "CENA": "#e2e8f0", "HIELO": "#e0f2fe"}
+            color_map = {"DISCO": "yellow", "PARQUE": "green", "POOL": "skyblue", "CENA": "#e2e8f0", "HIELO": "#e0f2fe", "SURF": "#3b82f6", "UNIPRAIAS": "#10b981", "BETO": "#ec4899", "BARCO": "#8b5cf6", "SUNSET": "#f59e0b", "CRISTO": "#fcd34d"}
             color = "red" if f.con_alcohol else color_map.get(f.evento.tipo, "gray")
-            text_color = "black" if color in ("yellow", "#e2e8f0", "#e0f2fe") else "white"
+            text_color = "black" if color in ("yellow", "#e2e8f0", "#e0f2fe", "#f59e0b", "#fcd34d") else "white"
             if f.es_privado:
                 color = "#ede9fe"
                 text_color = "#4c1d95"
@@ -626,6 +639,7 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
             .filter(models.Asignacion.grupo_id == grupo_id)\
             .filter(models.Evento.tipo == "DISCO")\
             .count()
+
             
         if discos_asignadas_count >= grupo.discos_compradas:
              raise HTTPException(400, f"El grupo ya agotó sus {grupo.discos_compradas} discos compradas")
@@ -638,6 +652,20 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
     # Validacion POOL
     if tipo_nuevo == "POOL" and not grupo.pool_acceso:
         raise HTTPException(400, "El grupo no tiene acceso a POOL")
+
+    # Validacion Nuevos Eventos
+    if tipo_nuevo == "SURF" and not getattr(grupo, "surf_acceso", False):
+        raise HTTPException(400, "El grupo no tiene acceso a SURF")
+    if tipo_nuevo == "UNIPRAIAS" and not getattr(grupo, "unipraias_acceso", False):
+        raise HTTPException(400, "El grupo no tiene acceso a PARQUE UNIPRAIAS")
+    if tipo_nuevo == "BETO" and not getattr(grupo, "beto_acceso", False):
+        raise HTTPException(400, "El grupo no tiene acceso a BETO CARRERO")
+    if tipo_nuevo == "BARCO" and not getattr(grupo, "barco_acceso", False):
+        raise HTTPException(400, "El grupo no tiene acceso a BARCO PIRATA")
+    if tipo_nuevo == "CRISTO" and not getattr(grupo, "cristo_acceso", False):
+        raise HTTPException(400, "El grupo no tiene acceso a CRISTO LUZ")
+    if tipo_nuevo == "SUNSET" and not getattr(grupo, "sunset_acceso", False):
+        raise HTTPException(400, "El grupo no tiene acceso a SUNSET")
 
     # Validacion BAR DE HIELO
     if tipo_nuevo == "HIELO":

@@ -48,6 +48,20 @@ class GrupoCreate(BaseModel):
     pagantes_finales_hielo: int | None = None
     pagantes_finales_combo: int | None = None
 
+    surf_acceso: bool = False
+    unipraias_acceso: bool = False
+    beto_acceso: bool = False
+    barco_acceso: bool = False
+    cristo_acceso: bool = False
+    sunset_acceso: bool = False
+
+    pagantes_finales_surf: int | None = None
+    pagantes_finales_unipraias: int | None = None
+    pagantes_finales_beto: int | None = None
+    pagantes_finales_barco: int | None = None
+    pagantes_finales_cristo: int | None = None
+    pagantes_finales_sunset: int | None = None
+
     @model_validator(mode="after")
     def fecha_salida_posterior(self):
         if self.fecha_entrada and self.fecha_salida:
@@ -132,6 +146,20 @@ class FinanzasEmpresaCreate(BaseModel):
     combo_pool: bool = False
     combo_cena_velas: bool = False
     combo_bar_hielo: bool = False
+    
+    precio_surf: int = 0
+    precio_unipraias: int = 0
+    precio_beto: int = 0
+    precio_barco: int = 0
+    precio_cristo: int = 0
+    precio_sunset: int = 0
+
+    combo_surf: bool = False
+    combo_unipraias: bool = False
+    combo_beto: bool = False
+    combo_barco: bool = False
+    combo_cristo: bool = False
+    combo_sunset: bool = False
     
     disco_liberados_ratio: int = 0
     disco_padres_gratis: bool = False

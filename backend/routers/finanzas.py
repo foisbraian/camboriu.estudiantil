@@ -107,6 +107,18 @@ def _get_pagantes_finales_por_servicio(grupo, servicio_key: str):
         return grupo.pagantes_finales_hielo if grupo.pagantes_finales_hielo is not None else legacy
     if servicio_key == "combo":
         return grupo.pagantes_finales_combo
+    if servicio_key == "surf":
+        return grupo.pagantes_finales_surf if getattr(grupo, "pagantes_finales_surf", None) is not None else legacy
+    if servicio_key == "unipraias":
+        return grupo.pagantes_finales_unipraias if getattr(grupo, "pagantes_finales_unipraias", None) is not None else legacy
+    if servicio_key == "beto":
+        return grupo.pagantes_finales_beto if getattr(grupo, "pagantes_finales_beto", None) is not None else legacy
+    if servicio_key == "barco":
+        return grupo.pagantes_finales_barco if getattr(grupo, "pagantes_finales_barco", None) is not None else legacy
+    if servicio_key == "cristo":
+        return grupo.pagantes_finales_cristo if getattr(grupo, "pagantes_finales_cristo", None) is not None else legacy
+    if servicio_key == "sunset":
+        return grupo.pagantes_finales_sunset if getattr(grupo, "pagantes_finales_sunset", None) is not None else legacy
     return None
 
 def _aplicar_pagantes_override(pax_base: int, grupo, servicio_key: str):
@@ -144,7 +156,7 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
             servicios_detalle.append({
                 "servicio": "Combo",
                 "servicio_key": "combo",
-                "descripcion": f"({config.combo_discos} D + {'P' if config.combo_parque else ''} + {'W' if config.combo_pool else ''} + {'C' if config.combo_cena_velas else ''} + {'H' if config.combo_bar_hielo else ''})",
+                "descripcion": f"({config.combo_discos} D + {'P' if config.combo_parque else ''} + {'W' if config.combo_pool else ''} + {'C' if config.combo_cena_velas else ''} + {'H' if config.combo_bar_hielo else ''} + {'Su' if getattr(config, 'combo_surf', False) else ''} + {'U' if getattr(config, 'combo_unipraias', False) else ''} + {'Be' if getattr(config, 'combo_beto', False) else ''} + {'Ba' if getattr(config, 'combo_barco', False) else ''} + {'Cr' if getattr(config, 'combo_cristo', False) else ''} + {'St' if getattr(config, 'combo_sunset', False) else ''})",
                 "precio_u": c_combo,
                 "cantidad": 1,
                 "pax": pax_cobrar,
@@ -269,6 +281,38 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
                 "guias": g.cantidad_guias or 0
             })
             
+        # NUEVOS EVENTOS
+        nuevos_eventos = [
+            ("surf_acceso", "SURF", "surf", "precio_surf", "combo_surf", "Surf"),
+            ("unipraias_acceso", "UNIPRAIAS", "unipraias", "precio_unipraias", "combo_unipraias", "Parque Unipraias"),
+            ("beto_acceso", "BETO", "beto", "precio_beto", "combo_beto", "Beto Carrero"),
+            ("barco_acceso", "BARCO", "barco", "precio_barco", "combo_barco", "Barco Pirata"),
+            ("cristo_acceso", "CRISTO", "cristo", "precio_cristo", "combo_cristo", "Cristo Luz"),
+            ("sunset_acceso", "SUNSET", "sunset", "precio_sunset", "combo_sunset", "Sunset")
+        ]
+        
+        for (g_attr, tipo_db, s_key, precio_attr, combo_attr, s_name) in nuevos_eventos:
+            tiene_acceso = getattr(g, g_attr, False)
+            tiene_evento = db.query(models.FechaEvento).join(models.Asignacion).filter(models.Asignacion.grupo_id == g.id).join(models.Evento).filter(models.Evento.tipo == tipo_db).first()
+            if (tiene_acceso or tiene_evento) and not (config.es_combo and getattr(config, combo_attr, False)):
+                pax_ev = _aplicar_pagantes_override(total_pax_grupo, g, s_key)
+                p_ev = (getattr(config, precio_attr, 0) or 0)
+                costo_ev = pax_ev * p_ev
+                costo_grupo += costo_ev
+                servicios_detalle.append({
+                    "servicio": s_name,
+                    "servicio_key": s_key,
+                    "descripcion": "Servicio",
+                    "precio_u": p_ev,
+                    "cantidad": 1,
+                    "pax": pax_ev,
+                    "subtotal": costo_ev,
+                    "pax_original": total_pax_grupo,
+                    "estudiantes": g.cantidad_estudiantes or 0,
+                    "padres": g.cantidad_padres or 0,
+                    "guias": g.cantidad_guias or 0
+                })
+
         total_venta += costo_grupo
         detalle_grupos.append({
             "id": g.id,
@@ -282,6 +326,12 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
                 "cena": _get_pagantes_finales_por_servicio(g, "cena"),
                 "hielo": _get_pagantes_finales_por_servicio(g, "hielo"),
                 "combo": _get_pagantes_finales_por_servicio(g, "combo"),
+                "surf": _get_pagantes_finales_por_servicio(g, "surf"),
+                "unipraias": _get_pagantes_finales_por_servicio(g, "unipraias"),
+                "beto": _get_pagantes_finales_por_servicio(g, "beto"),
+                "barco": _get_pagantes_finales_por_servicio(g, "barco"),
+                "cristo": _get_pagantes_finales_por_servicio(g, "cristo"),
+                "sunset": _get_pagantes_finales_por_servicio(g, "sunset"),
             },
             "estudiantes": g.cantidad_estudiantes or 0,
             "padres": g.cantidad_padres or 0,

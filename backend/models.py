@@ -75,6 +75,20 @@ class Grupo(Base):
     pagantes_finales_hielo = Column(Integer, nullable=True)
     pagantes_finales_combo = Column(Integer, nullable=True)
 
+    surf_acceso = Column(Boolean, default=False)
+    unipraias_acceso = Column(Boolean, default=False)
+    beto_acceso = Column(Boolean, default=False)
+    barco_acceso = Column(Boolean, default=False)
+    cristo_acceso = Column(Boolean, default=False)
+    sunset_acceso = Column(Boolean, default=False)
+
+    pagantes_finales_surf = Column(Integer, nullable=True)
+    pagantes_finales_unipraias = Column(Integer, nullable=True)
+    pagantes_finales_beto = Column(Integer, nullable=True)
+    pagantes_finales_barco = Column(Integer, nullable=True)
+    pagantes_finales_cristo = Column(Integer, nullable=True)
+    pagantes_finales_sunset = Column(Integer, nullable=True)
+
     empresa = relationship("Empresa", back_populates="grupos")
     asignaciones = relationship("Asignacion", back_populates="grupo")
 
@@ -180,6 +194,13 @@ class FinanzasEmpresa(Base):
     precio_cena_velas = Column(Integer, default=0)
     precio_bar_hielo = Column(Integer, default=0)
 
+    precio_surf = Column(Integer, default=0)
+    precio_unipraias = Column(Integer, default=0)
+    precio_beto = Column(Integer, default=0)
+    precio_barco = Column(Integer, default=0)
+    precio_cristo = Column(Integer, default=0)
+    precio_sunset = Column(Integer, default=0)
+
     es_combo = Column(Boolean, default=False)
     precio_combo = Column(Integer, default=0)
     combo_discos = Column(Integer, default=0)
@@ -187,6 +208,13 @@ class FinanzasEmpresa(Base):
     combo_pool = Column(Boolean, default=False)
     combo_cena_velas = Column(Boolean, default=False)
     combo_bar_hielo = Column(Boolean, default=False)
+
+    combo_surf = Column(Boolean, default=False)
+    combo_unipraias = Column(Boolean, default=False)
+    combo_beto = Column(Boolean, default=False)
+    combo_barco = Column(Boolean, default=False)
+    combo_cristo = Column(Boolean, default=False)
+    combo_sunset = Column(Boolean, default=False)
 
     # Liberados (Free entries)
     disco_liberados_ratio = Column(Integer, default=0)  # 20:1
