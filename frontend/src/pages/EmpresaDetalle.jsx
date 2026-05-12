@@ -299,6 +299,7 @@ export default function EmpresaDetalle() {
   const [empresa, setEmpresa] = useState(null);
   const [grupos, setGrupos] = useState([]);
   const [empresaNombre, setEmpresaNombre] = useState("");
+  const [empresaNumeroContacto, setEmpresaNumeroContacto] = useState("");
   const [editandoEmpresa, setEditandoEmpresa] = useState(false);
   const [empresaError, setEmpresaError] = useState("");
 
@@ -356,6 +357,7 @@ export default function EmpresaDetalle() {
     const e = await api.get(`/empresas/${id}`);
     setEmpresa(e.data);
     setEmpresaNombre(e.data.nombre || "");
+    setEmpresaNumeroContacto(e.data.numero_contacto || "");
     const g = await api.get(`/grupos/empresa/${id}`);
     setGrupos(g.data);
   }, [id]);
@@ -481,7 +483,7 @@ export default function EmpresaDetalle() {
     }
 
     try {
-      const res = await api.put(`/empresas/${id}`, { nombre: empresaNombre });
+      const res = await api.put(`/empresas/${id}`, { nombre: empresaNombre, numero_contacto: empresaNumeroContacto });
       setEmpresa(res.data);
       setEditandoEmpresa(false);
       alert("Empresa actualizada");
@@ -492,6 +494,7 @@ export default function EmpresaDetalle() {
 
   function cancelarEdicionEmpresa() {
     setEmpresaNombre(empresa?.nombre || "");
+    setEmpresaNumeroContacto(empresa?.numero_contacto || "");
     setEditandoEmpresa(false);
     setEmpresaError("");
   }
@@ -515,14 +518,23 @@ export default function EmpresaDetalle() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <div style={{ flex: 1, minWidth: 220 }}>
           {!editandoEmpresa ? (
-            <h2 style={{ margin: 0 }}>{empresa.nombre}</h2>
+            <div>
+              <h2 style={{ margin: 0 }}>{empresa.nombre}</h2>
+              {empresa.numero_contacto && <p style={{ margin: "4px 0 0 0", color: "#666" }}>📞 {empresa.numero_contacto}</p>}
+            </div>
           ) : (
-            <form onSubmit={guardarEmpresa} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <form onSubmit={guardarEmpresa} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <input
                 value={empresaNombre}
                 onChange={(e) => setEmpresaNombre(e.target.value)}
-                style={{ width: "100%", maxWidth: 340 }}
+                style={{ width: "100%", maxWidth: 300 }}
                 placeholder="Nombre de empresa"
+              />
+              <input
+                value={empresaNumeroContacto}
+                onChange={(e) => setEmpresaNumeroContacto(e.target.value)}
+                style={{ width: "100%", maxWidth: 200 }}
+                placeholder="Teléfono (opcional)"
               />
               <button>Guardar</button>
               <button type="button" onClick={cancelarEdicionEmpresa} style={{ background: "#e2e8f0" }}>

@@ -30,7 +30,10 @@ def crear_empresa(data: schemas.EmpresaCreate, db: Session = Depends(get_db)):
             detail="Ya existe una empresa con ese nombre"
         )
 
-    empresa = models.Empresa(nombre=nombre_normalizado)
+    empresa = models.Empresa(
+        nombre=nombre_normalizado,
+        numero_contacto=data.numero_contacto
+    )
 
     db.add(empresa)
     db.commit()
@@ -119,6 +122,7 @@ def editar_empresa(
         raise HTTPException(400, "Ya existe otra empresa con ese nombre")
 
     empresa.nombre = nuevo_nombre
+    empresa.numero_contacto = data.numero_contacto
 
     db.commit()
     db.refresh(empresa)

@@ -11,6 +11,11 @@ IS_SQLITE = DATABASE_URL.startswith("sqlite")
 
 MIGRATIONS = [
     {
+        "name": "empresas.numero_contacto",
+        "sqlite": "ALTER TABLE empresas ADD COLUMN numero_contacto VARCHAR",
+        "postgres": "ALTER TABLE empresas ADD COLUMN IF NOT EXISTS numero_contacto VARCHAR",
+    },
+    {
         "name": "asignaciones.pax_asignados",
         "sqlite": "ALTER TABLE asignaciones ADD COLUMN pax_asignados INTEGER",
         "postgres": "ALTER TABLE asignaciones ADD COLUMN IF NOT EXISTS pax_asignados INTEGER",

@@ -1,5 +1,4 @@
 from pydantic import BaseModel, model_validator
-from pydantic import BaseModel, model_validator
 from datetime import date, datetime
 from typing import Union
 

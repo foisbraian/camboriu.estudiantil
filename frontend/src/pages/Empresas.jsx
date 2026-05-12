@@ -5,6 +5,7 @@ import api, { BASE_URL } from "../api";
 export default function Empresas() {
   const [empresas, setEmpresas] = useState([]);
   const [nombre, setNombre] = useState("");
+  const [numeroContacto, setNumeroContacto] = useState("");
   const [busqueda, setBusqueda] = useState("");
   const [error, setError] = useState("");
 
@@ -29,8 +30,9 @@ export default function Empresas() {
     if (!nombre.trim()) return;
 
     try {
-      await api.post("/empresas", { nombre });
+      await api.post("/empresas", { nombre, numero_contacto: numeroContacto });
       setNombre("");
+      setNumeroContacto("");
       cargar();
     } catch (err) {
       setError(err.response?.data?.detail || "Error al crear empresa");
@@ -54,12 +56,18 @@ export default function Empresas() {
       </div>
 
       {/* ================= FORM CREAR ================= */}
-      <form onSubmit={crear} style={{ marginBottom: 20 }}>
+      <form onSubmit={crear} style={{ marginBottom: 20, display: "flex", gap: 10 }}>
         <input
           placeholder="Nombre empresa"
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
-          style={{ marginRight: 10 }}
+          style={{ flex: 1 }}
+        />
+        <input
+          placeholder="Número de contacto (opcional)"
+          value={numeroContacto}
+          onChange={(e) => setNumeroContacto(e.target.value)}
+          style={{ flex: 1 }}
         />
         <button>Crear</button>
       </form>
@@ -99,6 +107,7 @@ export default function Empresas() {
               style={{ cursor: "pointer", flex: 1 }}
             >
               <b>{e.nombre}</b>
+              {e.numero_contacto && <span style={{ marginLeft: 10, color: "#666", fontSize: "0.9rem" }}>📞 {e.numero_contacto}</span>}
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
