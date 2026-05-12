@@ -512,6 +512,39 @@ def migracion_parque_precios(db: Session = Depends(get_db)):
     db.commit()
     return {"ok": True}
 
+@router.post("/migracion-nuevos-eventos")
+def migracion_nuevos_eventos(db: Session = Depends(get_db)):
+    # finanzas_empresa
+    db.execute(text("ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS precio_surf INTEGER DEFAULT 0"))
+    db.execute(text("ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS precio_unipraias INTEGER DEFAULT 0"))
+    db.execute(text("ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS precio_beto INTEGER DEFAULT 0"))
+    db.execute(text("ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS precio_barco INTEGER DEFAULT 0"))
+    db.execute(text("ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS precio_cristo INTEGER DEFAULT 0"))
+    db.execute(text("ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS precio_sunset INTEGER DEFAULT 0"))
+    db.execute(text("ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS combo_surf BOOLEAN DEFAULT FALSE"))
+    db.execute(text("ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS combo_unipraias BOOLEAN DEFAULT FALSE"))
+    db.execute(text("ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS combo_beto BOOLEAN DEFAULT FALSE"))
+    db.execute(text("ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS combo_barco BOOLEAN DEFAULT FALSE"))
+    db.execute(text("ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS combo_cristo BOOLEAN DEFAULT FALSE"))
+    db.execute(text("ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS combo_sunset BOOLEAN DEFAULT FALSE"))
+    
+    # grupos
+    db.execute(text("ALTER TABLE grupos ADD COLUMN IF NOT EXISTS surf_acceso BOOLEAN DEFAULT FALSE"))
+    db.execute(text("ALTER TABLE grupos ADD COLUMN IF NOT EXISTS unipraias_acceso BOOLEAN DEFAULT FALSE"))
+    db.execute(text("ALTER TABLE grupos ADD COLUMN IF NOT EXISTS beto_acceso BOOLEAN DEFAULT FALSE"))
+    db.execute(text("ALTER TABLE grupos ADD COLUMN IF NOT EXISTS barco_acceso BOOLEAN DEFAULT FALSE"))
+    db.execute(text("ALTER TABLE grupos ADD COLUMN IF NOT EXISTS cristo_acceso BOOLEAN DEFAULT FALSE"))
+    db.execute(text("ALTER TABLE grupos ADD COLUMN IF NOT EXISTS sunset_acceso BOOLEAN DEFAULT FALSE"))
+    db.execute(text("ALTER TABLE grupos ADD COLUMN IF NOT EXISTS pagantes_finales_surf INTEGER"))
+    db.execute(text("ALTER TABLE grupos ADD COLUMN IF NOT EXISTS pagantes_finales_unipraias INTEGER"))
+    db.execute(text("ALTER TABLE grupos ADD COLUMN IF NOT EXISTS pagantes_finales_beto INTEGER"))
+    db.execute(text("ALTER TABLE grupos ADD COLUMN IF NOT EXISTS pagantes_finales_barco INTEGER"))
+    db.execute(text("ALTER TABLE grupos ADD COLUMN IF NOT EXISTS pagantes_finales_cristo INTEGER"))
+    db.execute(text("ALTER TABLE grupos ADD COLUMN IF NOT EXISTS pagantes_finales_sunset INTEGER"))
+    
+    db.commit()
+    return {"ok": True}
+
 
 # =============================
 # PAGANTES FINALES POR GRUPO
