@@ -858,3 +858,60 @@ export default function EmpresaDetalle() {
     </div>
   );
 }
+              <DateRangeField
+                label="Fechas"
+                start={editForm.fecha_entrada}
+                end={editForm.fecha_salida}
+                onStartChange={(value) => setEdit("fecha_entrada", value)}
+                onEndChange={(value) => setEdit("fecha_salida", value)}
+                compact
+              />
+
+              <label><input type="checkbox" checked={editForm.permite_alcohol} onChange={e => setEdit("permite_alcohol", e.target.checked)} /> Alcohol</label>
+
+              <div style={{ border: "1px solid #eee", padding: 5 }}>
+                <b>Parque:</b>
+                <label><input type="checkbox" checked={editForm.parque_acceso} onChange={e => setEdit("parque_acceso", e.target.checked)} /> Acceso</label>
+                <label style={{ marginLeft: 10 }}><input type="checkbox" checked={editForm.parque_con_comida} onChange={e => setEdit("parque_con_comida", e.target.checked)} /> Comida</label>
+              </div>
+
+              <div style={{ border: "1px solid #eee", padding: 5 }}>
+                <b>Pool:</b>
+                <label><input type="checkbox" checked={editForm.pool_acceso} onChange={e => setEdit("pool_acceso", e.target.checked)} /> Acceso</label>
+                <label style={{ marginLeft: 10 }}><input type="checkbox" checked={editForm.pool_con_comida} onChange={e => setEdit("pool_con_comida", e.target.checked)} /> Comida</label>
+              </div>
+
+              <div style={{ border: "1px solid #eee", padding: 5 }}>
+                <b>Cena de velas:</b>
+                <label><input type="checkbox" checked={editForm.cena_velas} onChange={e => setEdit("cena_velas", e.target.checked)} /> Contratar cena</label>
+              </div>
+
+              <div style={{ border: "1px solid #eee", padding: 5 }}>
+                <b>Bar de hielo:</b>
+                <label><input type="checkbox" checked={editForm.bar_hielo} onChange={e => setEdit("bar_hielo", e.target.checked)} /> Contratar bar de hielo</label>
+              </div>
+
+              <div style={{ border: "1px solid #eee", padding: 5 }}>
+                <b>🏄 Actividades Adicionales:</b>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, marginTop: 4 }}>
+                  <label><input type="checkbox" checked={editForm.surf_acceso} onChange={e => setEdit("surf_acceso", e.target.checked)} /> Surf</label>
+                  <label><input type="checkbox" checked={editForm.unipraias_acceso} onChange={e => setEdit("unipraias_acceso", e.target.checked)} /> Parque Unipraias</label>
+                  <label><input type="checkbox" checked={editForm.beto_acceso} onChange={e => setEdit("beto_acceso", e.target.checked)} /> Beto Carrero</label>
+                  <label><input type="checkbox" checked={editForm.barco_acceso} onChange={e => setEdit("barco_acceso", e.target.checked)} /> Barco Pirata</label>
+                  <label><input type="checkbox" checked={editForm.cristo_acceso} onChange={e => setEdit("cristo_acceso", e.target.checked)} /> Cristo Luz</label>
+                  <label><input type="checkbox" checked={editForm.sunset_acceso} onChange={e => setEdit("sunset_acceso", e.target.checked)} /> Sunset</label>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 10 }}>
+                <button type="button" onClick={() => setEditingGroup(null)} style={{ background: "gray", color: "white" }}>Cancelar</button>
+                <button style={{ background: "blue", color: "white" }}>Guardar</button>
+              </div>
+            </form >
+          </div >
+        </div >
+      )}
+
+    </div >
+  );
+}

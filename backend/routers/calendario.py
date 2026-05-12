@@ -263,7 +263,13 @@ def calendario(db: Session = Depends(get_db)):
                 f"Alcohol: {alcohol_txt}\n"
                 f"Parque: {parque_txt}\n"
                 f"Pool: {pool_txt}\n"
-                f"Bar de hielo: {'SI' if g.bar_hielo else 'NO'}"
+                f"Bar de hielo: {'SI' if g.bar_hielo else 'NO'}\n"
+                f"Surf: {'SI' if getattr(g, 'surf_acceso', False) else 'NO'}\n"
+                f"Unipraias: {'SI' if getattr(g, 'unipraias_acceso', False) else 'NO'}\n"
+                f"Beto Carrero: {'SI' if getattr(g, 'beto_acceso', False) else 'NO'}\n"
+                f"Barco Pirata: {'SI' if getattr(g, 'barco_acceso', False) else 'NO'}\n"
+                f"Cristo Luz: {'SI' if getattr(g, 'cristo_acceso', False) else 'NO'}\n"
+                f"Sunset: {'SI' if getattr(g, 'sunset_acceso', False) else 'NO'}"
             )
 
             # Color Logic
@@ -474,7 +480,13 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
             f"Alcohol: {alcohol_txt}\n"
             f"Parque: {parque_txt}\n"
             f"Pool: {pool_txt}\n"
-            f"Bar de hielo: {'SI' if g.bar_hielo else 'NO'}"
+            f"Bar de hielo: {'SI' if g.bar_hielo else 'NO'}\n"
+            f"Surf: {'SI' if getattr(g, 'surf_acceso', False) else 'NO'}\n"
+            f"Unipraias: {'SI' if getattr(g, 'unipraias_acceso', False) else 'NO'}\n"
+            f"Beto Carrero: {'SI' if getattr(g, 'beto_acceso', False) else 'NO'}\n"
+            f"Barco Pirata: {'SI' if getattr(g, 'barco_acceso', False) else 'NO'}\n"
+            f"Cristo Luz: {'SI' if getattr(g, 'cristo_acceso', False) else 'NO'}\n"
+            f"Sunset: {'SI' if getattr(g, 'sunset_acceso', False) else 'NO'}"
         )
 
         bg_color_grupo = "#ef4444" if g.permite_alcohol else "#FFFF00"
