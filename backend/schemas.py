@@ -1,4 +1,5 @@
 from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, model_validator
 from datetime import date, datetime
 from typing import Union
 
@@ -7,12 +8,14 @@ from typing import Union
 
 class EmpresaCreate(BaseModel):
     nombre: str
+    numero_contacto: str | None = None
 
 
 class EmpresaOut(BaseModel):
     id: int
     nombre: str
     codigo_acceso: str
+    numero_contacto: str | None = None
 
     class Config:
         from_attributes = True

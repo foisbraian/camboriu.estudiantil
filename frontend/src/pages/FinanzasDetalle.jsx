@@ -24,6 +24,12 @@ export default function FinanzasDetalle() {
         precio_pool_sin_comida: 0,
         precio_cena_velas: 0,
         precio_bar_hielo: 0,
+        precio_surf: 0,
+        precio_unipraias: 0,
+        precio_beto: 0,
+        precio_barco: 0,
+        precio_cristo: 0,
+        precio_sunset: 0,
         es_combo: false,
         precio_combo: 0,
         combo_discos: 0,
@@ -31,6 +37,12 @@ export default function FinanzasDetalle() {
         combo_pool: false,
         combo_cena_velas: false,
         combo_bar_hielo: false,
+        combo_surf: false,
+        combo_unipraias: false,
+        combo_beto: false,
+        combo_barco: false,
+        combo_cristo: false,
+        combo_sunset: false,
 
         disco_liberados_ratio: 0,
         disco_padres_gratis: false,
@@ -314,6 +326,29 @@ export default function FinanzasDetalle() {
                                         style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #bfdbfe" }}
                                     />
                                 </div>
+                                <div style={{ padding: 15, background: "#f0fdf4", borderRadius: 8 }}>
+                                    <p style={{ margin: "0 0 8px 0", fontSize: "0.85rem", fontWeight: 700, color: "#166534" }}>🏄 Actividades Adicionales</p>
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                                        {[
+                                            { key: "precio_surf", label: "Surf" },
+                                            { key: "precio_unipraias", label: "Parque Unipraias" },
+                                            { key: "precio_beto", label: "Beto Carrero" },
+                                            { key: "precio_barco", label: "Barco Pirata" },
+                                            { key: "precio_cristo", label: "Cristo Luz" },
+                                            { key: "precio_sunset", label: "Sunset" },
+                                        ].map(({ key, label }) => (
+                                            <div key={key}>
+                                                <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>{label}</p>
+                                                <input
+                                                    type="number"
+                                                    value={configForm[key]}
+                                                    onChange={e => setConfigForm({ ...configForm, [key]: Number(e.target.value) })}
+                                                    style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #bbf7d0" }}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         ) : (
                             <div style={{ padding: 15, background: "#f0fdf4", borderRadius: 8, display: "flex", flexDirection: "column", gap: 10 }}>
@@ -338,6 +373,12 @@ export default function FinanzasDetalle() {
                                     <label><input type="checkbox" checked={configForm.combo_pool} onChange={e => setConfigForm({ ...configForm, combo_pool: e.target.checked })} /> Pool</label>
                                     <label><input type="checkbox" checked={configForm.combo_cena_velas} onChange={e => setConfigForm({ ...configForm, combo_cena_velas: e.target.checked })} /> Cena</label>
                                     <label><input type="checkbox" checked={configForm.combo_bar_hielo} onChange={e => setConfigForm({ ...configForm, combo_bar_hielo: e.target.checked })} /> Bar de hielo</label>
+                                    <label><input type="checkbox" checked={configForm.combo_surf} onChange={e => setConfigForm({ ...configForm, combo_surf: e.target.checked })} /> Surf</label>
+                                    <label><input type="checkbox" checked={configForm.combo_unipraias} onChange={e => setConfigForm({ ...configForm, combo_unipraias: e.target.checked })} /> Unipraias</label>
+                                    <label><input type="checkbox" checked={configForm.combo_beto} onChange={e => setConfigForm({ ...configForm, combo_beto: e.target.checked })} /> Beto Carrero</label>
+                                    <label><input type="checkbox" checked={configForm.combo_barco} onChange={e => setConfigForm({ ...configForm, combo_barco: e.target.checked })} /> Barco Pirata</label>
+                                    <label><input type="checkbox" checked={configForm.combo_cristo} onChange={e => setConfigForm({ ...configForm, combo_cristo: e.target.checked })} /> Cristo Luz</label>
+                                    <label><input type="checkbox" checked={configForm.combo_sunset} onChange={e => setConfigForm({ ...configForm, combo_sunset: e.target.checked })} /> Sunset</label>
                                 </div>
                                 <LiberadosInputs prefix="disco" label="Combo (Basado en Disco)" />
                             </div>

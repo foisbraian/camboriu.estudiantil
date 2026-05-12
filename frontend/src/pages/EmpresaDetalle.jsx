@@ -317,6 +317,12 @@ export default function EmpresaDetalle() {
     pool_con_comida: false,
     cena_velas: false,
     bar_hielo: false,
+    surf_acceso: false,
+    unipraias_acceso: false,
+    beto_acceso: false,
+    barco_acceso: false,
+    cristo_acceso: false,
+    sunset_acceso: false,
   });
 
   const [editingGroup, setEditingGroup] = useState(null);
@@ -337,6 +343,12 @@ export default function EmpresaDetalle() {
     pool_con_comida: false,
     cena_velas: false,
     bar_hielo: false,
+    surf_acceso: false,
+    unipraias_acceso: false,
+    beto_acceso: false,
+    barco_acceso: false,
+    cristo_acceso: false,
+    sunset_acceso: false,
   });
 
 
@@ -362,6 +374,7 @@ export default function EmpresaDetalle() {
 
   async function crearGrupo(e) {
     e.preventDefault();
+
 
     if (form.fecha_entrada && form.fecha_salida && form.fecha_salida <= form.fecha_entrada) {
       alert("❌ Error: La fecha de salida debe ser posterior a la fecha de entrada.");
@@ -389,6 +402,12 @@ export default function EmpresaDetalle() {
       pool_con_comida: false,
       cena_velas: false,
       bar_hielo: false,
+      surf_acceso: false,
+      unipraias_acceso: false,
+      beto_acceso: false,
+      barco_acceso: false,
+      cristo_acceso: false,
+      sunset_acceso: false,
     });
 
     cargar();
@@ -411,6 +430,12 @@ export default function EmpresaDetalle() {
       pool_con_comida: g.pool_con_comida,
       cena_velas: g.cena_velas,
       bar_hielo: g.bar_hielo,
+      surf_acceso: g.surf_acceso || false,
+      unipraias_acceso: g.unipraias_acceso || false,
+      beto_acceso: g.beto_acceso || false,
+      barco_acceso: g.barco_acceso || false,
+      cristo_acceso: g.cristo_acceso || false,
+      sunset_acceso: g.sunset_acceso || false,
     });
   }
 
@@ -425,7 +450,7 @@ export default function EmpresaDetalle() {
     try {
       await api.put(`/grupos/${editingGroup.id}`, {
         ...editForm,
-        empresa_id: id // Mantener empresa
+        empresa_id: id
       });
       alert("Grupo actualizado");
       setEditingGroup(null);
@@ -684,6 +709,19 @@ export default function EmpresaDetalle() {
           </label>
         </fieldset>
 
+        {/* ================= NUEVOS EVENTOS ================= */}
+        <fieldset style={{ padding: 10 }}>
+          <legend>🏄 Actividades Adicionales</legend>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+            <label><input type="checkbox" checked={form.surf_acceso} onChange={(e) => set("surf_acceso", e.target.checked)} /> Surf</label>
+            <label><input type="checkbox" checked={form.unipraias_acceso} onChange={(e) => set("unipraias_acceso", e.target.checked)} /> Parque Unipraias</label>
+            <label><input type="checkbox" checked={form.beto_acceso} onChange={(e) => set("beto_acceso", e.target.checked)} /> Beto Carrero</label>
+            <label><input type="checkbox" checked={form.barco_acceso} onChange={(e) => set("barco_acceso", e.target.checked)} /> Barco Pirata</label>
+            <label><input type="checkbox" checked={form.cristo_acceso} onChange={(e) => set("cristo_acceso", e.target.checked)} /> Cristo Luz</label>
+            <label><input type="checkbox" checked={form.sunset_acceso} onChange={(e) => set("sunset_acceso", e.target.checked)} /> Sunset</label>
+          </div>
+        </fieldset>
+
         <button>Crear grupo</button>
       </form>
 
@@ -782,6 +820,18 @@ export default function EmpresaDetalle() {
               <div style={{ border: "1px solid #eee", padding: 5 }}>
                 <b>Bar de hielo:</b>
                 <label><input type="checkbox" checked={editForm.bar_hielo} onChange={e => setEdit("bar_hielo", e.target.checked)} /> Contratar bar de hielo</label>
+              </div>
+
+              <div style={{ border: "1px solid #eee", padding: 5 }}>
+                <b>🏄 Actividades Adicionales:</b>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, marginTop: 4 }}>
+                  <label><input type="checkbox" checked={editForm.surf_acceso} onChange={e => setEdit("surf_acceso", e.target.checked)} /> Surf</label>
+                  <label><input type="checkbox" checked={editForm.unipraias_acceso} onChange={e => setEdit("unipraias_acceso", e.target.checked)} /> Parque Unipraias</label>
+                  <label><input type="checkbox" checked={editForm.beto_acceso} onChange={e => setEdit("beto_acceso", e.target.checked)} /> Beto Carrero</label>
+                  <label><input type="checkbox" checked={editForm.barco_acceso} onChange={e => setEdit("barco_acceso", e.target.checked)} /> Barco Pirata</label>
+                  <label><input type="checkbox" checked={editForm.cristo_acceso} onChange={e => setEdit("cristo_acceso", e.target.checked)} /> Cristo Luz</label>
+                  <label><input type="checkbox" checked={editForm.sunset_acceso} onChange={e => setEdit("sunset_acceso", e.target.checked)} /> Sunset</label>
+                </div>
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 10 }}>

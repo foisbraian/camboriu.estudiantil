@@ -21,6 +21,7 @@ class Empresa(Base):
 
     id = Column(Integer, primary_key=True)
     nombre = Column(String, unique=True, index=True)
+    numero_contacto = Column(String, nullable=True)
 
     # acceso simple sin login
     codigo_acceso = Column(String, default=generar_codigo, unique=True)
