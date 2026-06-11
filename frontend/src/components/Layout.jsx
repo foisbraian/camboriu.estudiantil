@@ -11,9 +11,6 @@ export default function Layout() {
     const [menuOpen, setMenuOpen] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
-    const [migrating, setMigrating] = useState(false);
-    const [migrationMessage, setMigrationMessage] = useState("");
-
     const now = new Date();
     const [mesSeleccionado, setMesSeleccionado] = useState(now.getMonth());
     const [anioSeleccionado, setAnioSeleccionado] = useState(now.getFullYear());
@@ -56,20 +53,6 @@ export default function Layout() {
         window.dispatchEvent(event);
     };
 
-    const handleMigrar = async () => {
-        setMigrating(true);
-        setMigrationMessage("");
-        try {
-            const response = await api.post("/maintenance/migrate");
-            const detail = response?.data?.detail || "Migración completada";
-            setMigrationMessage(detail);
-        } catch (error) {
-            const detail = error?.response?.data?.detail || "No se pudo ejecutar la migración";
-            setMigrationMessage(detail);
-        } finally {
-            setMigrating(false);
-        }
-    };
 
     return (
         <div style={{ position: "relative", width: "100%", height: "100vh", overflow: "hidden" }}>
