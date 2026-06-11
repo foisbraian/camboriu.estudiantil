@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
-import api from "../api";
 
 const MESES = [
     "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
