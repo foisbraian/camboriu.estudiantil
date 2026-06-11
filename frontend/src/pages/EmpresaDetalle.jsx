@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../api";
+import * as XLSX from "xlsx";
 
 const parseISODate = (value) => {
   if (!value) return null;
@@ -511,6 +512,44 @@ export default function EmpresaDetalle() {
     }
   }
 
+  const descargarExcelGrupos = () => {
+    if (grupos.length === 0) {
+      alert("No hay grupos para descargar.");
+      return;
+    }
+
+    const data = grupos.map(g => ({
+      "Nombre del Grupo": g.nombre,
+      "Estudiantes": g.cantidad_estudiantes,
+      "Padres": g.cantidad_padres,
+      "Guías": g.cantidad_guias,
+      "Total PAX": g.cantidad_pax || (parseInt(g.cantidad_estudiantes||0) + parseInt(g.cantidad_padres||0) + parseInt(g.cantidad_guias||0)),
+      "Fecha Entrada": g.fecha_entrada || "No especificada",
+      "Fecha Salida": g.fecha_salida || "No especificada",
+      "Discos Compradas": g.discos_compradas,
+      "Permite Alcohol": g.permite_alcohol ? "Sí" : "No",
+      "Parque Acceso": g.parque_acceso ? "Sí" : "No",
+      "Parque c/Comida": g.parque_con_comida ? "Sí" : "No",
+      "Pool Acceso": g.pool_acceso ? "Sí" : "No",
+      "Pool c/Comida": g.pool_con_comida ? "Sí" : "No",
+      "Cena Velas": g.cena_velas ? "Sí" : "No",
+      "Bar Hielo": g.bar_hielo ? "Sí" : "No",
+      "Surf": g.surf_acceso ? "Sí" : "No",
+      "Unipraias": g.unipraias_acceso ? "Sí" : "No",
+      "Beto Carrero": g.beto_acceso ? "Sí" : "No",
+      "Barco Pirata": g.barco_acceso ? "Sí" : "No",
+      "Cristo Luz": g.cristo_acceso ? "Sí" : "No",
+      "Sunset": g.sunset_acceso ? "Sí" : "No"
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Grupos");
+    
+    const fileName = `Grupos_${empresaNombre || "Empresa"}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+  };
+
   if (!empresa) return <p>Cargando...</p>;
 
   return (
@@ -738,7 +777,28 @@ export default function EmpresaDetalle() {
       </form>
 
       {/* ================= LISTA GRUPOS ================= */}
-      <h3>Grupos</h3>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 15 }}>
+        <h3 style={{ margin: 0 }}>Grupos</h3>
+        {grupos.length > 0 && (
+          <button 
+            onClick={descargarExcelGrupos}
+            style={{ 
+              background: "#10b981", 
+              color: "white", 
+              border: "none", 
+              padding: "8px 16px", 
+              borderRadius: 6, 
+              cursor: "pointer",
+              fontWeight: "bold",
+              display: "flex",
+              alignItems: "center",
+              gap: 8
+            }}
+          >
+            📊 Descargar Excel
+          </button>
+        )}
+      </div>
 
       {grupos.map((g) => (
         <div
