@@ -30,6 +30,7 @@ export default function FinanzasDetalle() {
         precio_barco: 0,
         precio_cristo: 0,
         precio_sunset: 0,
+        precio_quinta_comida: 0,
         es_combo: false,
         precio_combo: 0,
         combo_discos: 0,
@@ -43,6 +44,7 @@ export default function FinanzasDetalle() {
         combo_barco: false,
         combo_cristo: false,
         combo_sunset: false,
+        combo_quinta_comida: false,
 
         disco_liberados_ratio: 0,
         disco_padres_gratis: false,
@@ -336,6 +338,7 @@ export default function FinanzasDetalle() {
                                             { key: "precio_barco", label: "Barco Pirata" },
                                             { key: "precio_cristo", label: "Cristo Luz" },
                                             { key: "precio_sunset", label: "Sunset" },
+                                            { key: "precio_quinta_comida", label: "Quinta Comida" },
                                         ].map(({ key, label }) => (
                                             <div key={key}>
                                                 <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>{label}</p>
@@ -379,6 +382,7 @@ export default function FinanzasDetalle() {
                                     <label><input type="checkbox" checked={configForm.combo_barco} onChange={e => setConfigForm({ ...configForm, combo_barco: e.target.checked })} /> Barco Pirata</label>
                                     <label><input type="checkbox" checked={configForm.combo_cristo} onChange={e => setConfigForm({ ...configForm, combo_cristo: e.target.checked })} /> Cristo Luz</label>
                                     <label><input type="checkbox" checked={configForm.combo_sunset} onChange={e => setConfigForm({ ...configForm, combo_sunset: e.target.checked })} /> Sunset</label>
+                                    <label><input type="checkbox" checked={configForm.combo_quinta_comida || false} onChange={e => setConfigForm({ ...configForm, combo_quinta_comida: e.target.checked })} /> Quinta Comida</label>
                                 </div>
                                 <LiberadosInputs prefix="disco" label="Combo (Basado en Disco)" />
                             </div>

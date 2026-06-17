@@ -56,6 +56,7 @@ class GrupoCreate(BaseModel):
     barco_acceso: bool = False
     cristo_acceso: bool = False
     sunset_acceso: bool = False
+    quinta_comida_acceso: bool = False
 
     pagantes_finales_surf: int | None = None
     pagantes_finales_unipraias: int | None = None
@@ -63,6 +64,7 @@ class GrupoCreate(BaseModel):
     pagantes_finales_barco: int | None = None
     pagantes_finales_cristo: int | None = None
     pagantes_finales_sunset: int | None = None
+    pagantes_finales_quinta_comida: int | None = None
 
     @model_validator(mode="after")
     def fecha_salida_posterior(self):
@@ -155,6 +157,7 @@ class FinanzasEmpresaCreate(BaseModel):
     precio_barco: int = 0
     precio_cristo: int = 0
     precio_sunset: int = 0
+    precio_quinta_comida: int = 0
 
     combo_surf: bool = False
     combo_unipraias: bool = False
@@ -162,6 +165,7 @@ class FinanzasEmpresaCreate(BaseModel):
     combo_barco: bool = False
     combo_cristo: bool = False
     combo_sunset: bool = False
+    combo_quinta_comida: bool = False
     
     disco_liberados_ratio: int = 0
     disco_padres_gratis: bool = False

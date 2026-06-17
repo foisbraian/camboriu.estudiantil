@@ -64,6 +64,7 @@ def editar_grupo(grupo_id: int, data: schemas.GrupoUpdate, db: Session = Depends
     grupo.barco_acceso = data.barco_acceso
     grupo.cristo_acceso = data.cristo_acceso
     grupo.sunset_acceso = data.sunset_acceso
+    grupo.quinta_comida_acceso = data.quinta_comida_acceso
 
     grupo.pagantes_finales_surf = data.pagantes_finales_surf
     grupo.pagantes_finales_unipraias = data.pagantes_finales_unipraias
@@ -71,6 +72,7 @@ def editar_grupo(grupo_id: int, data: schemas.GrupoUpdate, db: Session = Depends
     grupo.pagantes_finales_barco = data.pagantes_finales_barco
     grupo.pagantes_finales_cristo = data.pagantes_finales_cristo
     grupo.pagantes_finales_sunset = data.pagantes_finales_sunset
+    grupo.pagantes_finales_quinta_comida = data.pagantes_finales_quinta_comida
 
     db.commit()
     db.refresh(grupo)
@@ -115,6 +117,10 @@ def migracion_nuevos_eventos(db: Session = Depends(get_db)):
         "ALTER TABLE finanzas_empresa ADD COLUMN combo_barco BOOLEAN DEFAULT FALSE",
         "ALTER TABLE finanzas_empresa ADD COLUMN combo_cristo BOOLEAN DEFAULT FALSE",
         "ALTER TABLE finanzas_empresa ADD COLUMN combo_sunset BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE grupos ADD COLUMN quinta_comida_acceso BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE grupos ADD COLUMN pagantes_finales_quinta_comida INTEGER",
+        "ALTER TABLE finanzas_empresa ADD COLUMN precio_quinta_comida INTEGER DEFAULT 0",
+        "ALTER TABLE finanzas_empresa ADD COLUMN combo_quinta_comida BOOLEAN DEFAULT FALSE",
     ]
     for c in comandos:
         try:

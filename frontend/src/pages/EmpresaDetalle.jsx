@@ -325,6 +325,7 @@ export default function EmpresaDetalle() {
     barco_acceso: false,
     cristo_acceso: false,
     sunset_acceso: false,
+    quinta_comida_acceso: false,
   });
 
   const [editingGroup, setEditingGroup] = useState(null);
@@ -351,6 +352,7 @@ export default function EmpresaDetalle() {
     barco_acceso: false,
     cristo_acceso: false,
     sunset_acceso: false,
+    quinta_comida_acceso: false,
   });
 
 
@@ -411,6 +413,7 @@ export default function EmpresaDetalle() {
       barco_acceso: false,
       cristo_acceso: false,
       sunset_acceso: false,
+      quinta_comida_acceso: false,
     });
 
     cargar();
@@ -439,6 +442,7 @@ export default function EmpresaDetalle() {
       barco_acceso: g.barco_acceso || false,
       cristo_acceso: g.cristo_acceso || false,
       sunset_acceso: g.sunset_acceso || false,
+      quinta_comida_acceso: g.quinta_comida_acceso || false,
     });
   }
 
@@ -539,7 +543,8 @@ export default function EmpresaDetalle() {
       "Beto Carrero": g.beto_acceso ? "Sí" : "No",
       "Barco Pirata": g.barco_acceso ? "Sí" : "No",
       "Cristo Luz": g.cristo_acceso ? "Sí" : "No",
-      "Sunset": g.sunset_acceso ? "Sí" : "No"
+      "Sunset": g.sunset_acceso ? "Sí" : "No",
+      "Quinta Comida": g.quinta_comida_acceso ? "Sí" : "No"
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(data);
@@ -770,6 +775,7 @@ export default function EmpresaDetalle() {
             <label><input type="checkbox" checked={form.barco_acceso} onChange={(e) => set("barco_acceso", e.target.checked)} /> Barco Pirata</label>
             <label><input type="checkbox" checked={form.cristo_acceso} onChange={(e) => set("cristo_acceso", e.target.checked)} /> Cristo Luz</label>
             <label><input type="checkbox" checked={form.sunset_acceso} onChange={(e) => set("sunset_acceso", e.target.checked)} /> Sunset</label>
+            <label><input type="checkbox" checked={form.quinta_comida_acceso} onChange={(e) => set("quinta_comida_acceso", e.target.checked)} /> Quinta Comida</label>
           </div>
         </fieldset>
 
@@ -903,6 +909,7 @@ export default function EmpresaDetalle() {
                   <label><input type="checkbox" checked={editForm.barco_acceso} onChange={e => setEdit("barco_acceso", e.target.checked)} /> Barco Pirata</label>
                   <label><input type="checkbox" checked={editForm.cristo_acceso} onChange={e => setEdit("cristo_acceso", e.target.checked)} /> Cristo Luz</label>
                   <label><input type="checkbox" checked={editForm.sunset_acceso} onChange={e => setEdit("sunset_acceso", e.target.checked)} /> Sunset</label>
+                  <label><input type="checkbox" checked={editForm.quinta_comida_acceso || false} onChange={e => setEdit("quinta_comida_acceso", e.target.checked)} /> Quinta Comida</label>
                 </div>
               </div>
 

@@ -39,7 +39,6 @@ def save_config(data: schemas.FinanzasEmpresaCreate, db: Session = Depends(get_d
 # =============================
 # PAYMENTS
 # =============================
-
 @router.get("/pagos/{empresa_id}", response_model=List[schemas.PagoOut])
 def get_pagos(empresa_id: int, db: Session = Depends(get_db)):
     return db.query(models.Pago).filter(models.Pago.empresa_id == empresa_id).order_by(models.Pago.fecha.desc()).all()
@@ -119,6 +118,8 @@ def _get_pagantes_finales_por_servicio(grupo, servicio_key: str):
         return grupo.pagantes_finales_cristo if getattr(grupo, "pagantes_finales_cristo", None) is not None else legacy
     if servicio_key == "sunset":
         return grupo.pagantes_finales_sunset if getattr(grupo, "pagantes_finales_sunset", None) is not None else legacy
+    if servicio_key == "quinta_comida":
+        return grupo.pagantes_finales_quinta_comida if getattr(grupo, "pagantes_finales_quinta_comida", None) is not None else legacy
     return None
 
 def _aplicar_pagantes_override(pax_base: int, grupo, servicio_key: str):
@@ -288,7 +289,8 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
             ("beto_acceso", "BETO", "beto", "precio_beto", "combo_beto", "Beto Carrero"),
             ("barco_acceso", "BARCO", "barco", "precio_barco", "combo_barco", "Barco Pirata"),
             ("cristo_acceso", "CRISTO", "cristo", "precio_cristo", "combo_cristo", "Cristo Luz"),
-            ("sunset_acceso", "SUNSET", "sunset", "precio_sunset", "combo_sunset", "Sunset")
+            ("sunset_acceso", "SUNSET", "sunset", "precio_sunset", "combo_sunset", "Sunset"),
+            ("quinta_comida_acceso", "QUINTA_COMIDA", "quinta_comida", "precio_quinta_comida", "combo_quinta_comida", "Quinta Comida"),
         ]
         
         for (g_attr, tipo_db, s_key, precio_attr, combo_attr, s_name) in nuevos_eventos:
@@ -332,6 +334,7 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
                 "barco": _get_pagantes_finales_por_servicio(g, "barco"),
                 "cristo": _get_pagantes_finales_por_servicio(g, "cristo"),
                 "sunset": _get_pagantes_finales_por_servicio(g, "sunset"),
+                "quinta_comida": _get_pagantes_finales_por_servicio(g, "quinta_comida"),
             },
             "estudiantes": g.cantidad_estudiantes or 0,
             "padres": g.cantidad_padres or 0,
@@ -560,7 +563,7 @@ def actualizar_pagantes_finales(grupo_id: int, body: schemas.GrupoPagantesUpdate
     servicio = body.servicio
     if servicio is not None:
         servicio = servicio.lower()
-    valid_servicios = {"disco", "parque", "pool", "cena", "hielo", "combo"}
+    valid_servicios = {"disco", "parque", "pool", "cena", "hielo", "combo", "surf", "unipraias", "beto", "barco", "cristo", "sunset", "quinta_comida"}
     if servicio and servicio not in valid_servicios:
         raise HTTPException(400, "Servicio inválido")
     if pagantes is not None:
@@ -585,6 +588,20 @@ def actualizar_pagantes_finales(grupo_id: int, body: schemas.GrupoPagantesUpdate
             grupo.pagantes_finales_hielo = pagantes
         elif servicio == "combo":
             grupo.pagantes_finales_combo = pagantes
+        elif servicio == "surf":
+            grupo.pagantes_finales_surf = pagantes
+        elif servicio == "unipraias":
+            grupo.pagantes_finales_unipraias = pagantes
+        elif servicio == "beto":
+            grupo.pagantes_finales_beto = pagantes
+        elif servicio == "barco":
+            grupo.pagantes_finales_barco = pagantes
+        elif servicio == "cristo":
+            grupo.pagantes_finales_cristo = pagantes
+        elif servicio == "sunset":
+            grupo.pagantes_finales_sunset = pagantes
+        elif servicio == "quinta_comida":
+            grupo.pagantes_finales_quinta_comida = pagantes
     db.commit()
     db.refresh(grupo)
     return {"ok": True, "pagantes_finales": pagantes, "servicio": servicio}
