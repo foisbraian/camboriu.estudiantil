@@ -548,6 +548,25 @@ def migracion_nuevos_eventos(db: Session = Depends(get_db)):
     db.commit()
     return {"ok": True}
 
+@router.post("/migracion-quinta-comida")
+def migracion_quinta_comida(db: Session = Depends(get_db)):
+    """Migración para agregar el servicio 'Quinta Comida' a la base de datos."""
+    comandos = [
+        "ALTER TABLE grupos ADD COLUMN IF NOT EXISTS quinta_comida_acceso BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE grupos ADD COLUMN IF NOT EXISTS pagantes_finales_quinta_comida INTEGER",
+        "ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS precio_quinta_comida INTEGER DEFAULT 0",
+        "ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS combo_quinta_comida BOOLEAN DEFAULT FALSE",
+    ]
+    resultados = []
+    for c in comandos:
+        try:
+            db.execute(text(c))
+            resultados.append({"sql": c, "status": "ok"})
+        except Exception as e:
+            resultados.append({"sql": c, "status": "skip", "error": str(e)})
+    db.commit()
+    return {"ok": True, "resultados": resultados}
+
 
 # =============================
 # PAGANTES FINALES POR GRUPO
