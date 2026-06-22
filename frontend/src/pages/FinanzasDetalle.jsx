@@ -12,6 +12,38 @@ export default function FinanzasDetalle() {
     const [loadingDetalle, setLoadingDetalle] = useState(false);
     const [pagantesFinalesForm, setPagantesFinalesForm] = useState({});
 
+    const [preciosMensuales, setPreciosMensuales] = useState([]);
+    const [nuevoMensualForm, setNuevoMensualForm] = useState({
+        servicio: "parque_con_comida",
+        mes: 10,
+        precio: 0
+    });
+
+    const SERVICIOS_MAP = {
+        "parque": "Parque (General)",
+        "parque_con_comida": "Parque con Comida",
+        "parque_sin_comida": "Parque sin Comida",
+        "pool": "Pool (General)",
+        "pool_con_comida": "Pool con Comida",
+        "pool_sin_comida": "Pool sin Comida",
+        "disco": "Discoteca",
+        "cena": "Cena de velas",
+        "hielo": "Bar de hielo",
+        "surf": "Surf",
+        "unipraias": "Parque Unipraias",
+        "beto": "Beto Carrero",
+        "barco": "Barco Pirata",
+        "cristo": "Cristo Luz",
+        "sunset": "Sunset",
+        "quinta_comida": "Quinta Comida",
+        "combo": "Combo"
+    };
+
+    const MESES = [
+        "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+        "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+    ];
+
     // Form para configuración
     const [configForm, setConfigForm] = useState({
         moneda: "USD",
@@ -109,6 +141,9 @@ export default function FinanzasDetalle() {
             const resP = await api.get(`/finanzas/pagos/${id}`);
             setPagos(resP.data);
 
+            const resM = await api.get(`/finanzas/config/${id}/mensuales`);
+            setPreciosMensuales(resM.data);
+
             // Si el modal está abierto, refrescar también sus asignaciones
             if (grupoDetalle && grupoDetalle.grupo) {
                 const resAsigs = await api.get(`/finanzas/asignaciones/${grupoDetalle.grupo.id}`);
@@ -136,6 +171,30 @@ export default function FinanzasDetalle() {
         await api.post("/finanzas/config", { ...configForm, empresa_id: Number(id) });
         alert("Configuración guardada");
         cargarTodo();
+    }
+
+    async function guardarPrecioMensual(e) {
+        e.preventDefault();
+        try {
+            await api.post(`/finanzas/config/mensuales?empresa_id=${id}`, nuevoMensualForm);
+            alert("Precio mensual guardado");
+            cargarTodo();
+        } catch (err) {
+            console.error(err);
+            alert("Error al guardar precio mensual: " + (err.response?.data?.detail || err.message));
+        }
+    }
+
+    async function eliminarPrecioMensual(overrideId) {
+        if (!window.confirm("¿Eliminar este precio mensual?")) return;
+        try {
+            await api.delete(`/finanzas/config/mensuales/${overrideId}`);
+            alert("Precio mensual eliminado");
+            cargarTodo();
+        } catch (err) {
+            console.error(err);
+            alert("Error al eliminar precio mensual: " + (err.response?.data?.detail || err.message));
+        }
     }
 
     async function registrarPago(e) {
@@ -393,6 +452,90 @@ export default function FinanzasDetalle() {
                     </div>
                 </div>
 
+                {/* CONFIGURACIÓN DE PRECIOS MENSUALES */}
+                <div style={{ background: "white", padding: 25, borderRadius: 12, boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)", gridColumn: "span 2" }}>
+                    <h3 style={{ marginTop: 0, marginBottom: 20 }}>📅 Precios Especiales por Mes</h3>
+                    
+                    {preciosMensuales.length === 0 ? (
+                        <p style={{ color: "#64748b", fontSize: "0.85rem", fontStyle: "italic" }}>No hay precios mensuales configurados para esta empresa. Se usarán los precios generales.</p>
+                    ) : (
+                        <div style={{ overflowX: "auto", marginBottom: 20 }}>
+                            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem", textAlign: "left" }}>
+                                <thead>
+                                    <tr style={{ background: "#f8fafc" }}>
+                                        <th style={{ padding: "8px 12px", borderBottom: "1px solid #cbd5e1" }}>Servicio</th>
+                                        <th style={{ padding: "8px 12px", borderBottom: "1px solid #cbd5e1" }}>Mes</th>
+                                        <th style={{ padding: "8px 12px", borderBottom: "1px solid #cbd5e1" }}>Precio Especial</th>
+                                        <th style={{ padding: "8px 12px", borderBottom: "1px solid #cbd5e1", textAlign: "right" }}>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {preciosMensuales.map(pm => (
+                                        <tr key={pm.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                                            <td style={{ padding: "8px 12px", fontWeight: 600 }}>{SERVICIOS_MAP[pm.servicio] || pm.servicio}</td>
+                                            <td style={{ padding: "8px 12px" }}>{MESES[pm.mes - 1]}</td>
+                                            <td style={{ padding: "8px 12px", color: "#2563eb", fontWeight: 700 }}>{formatMoney(pm.precio)}</td>
+                                            <td style={{ padding: "8px 12px", textAlign: "right" }}>
+                                                <button 
+                                                    onClick={() => eliminarPrecioMensual(pm.id)}
+                                                    style={{ padding: "3px 8px", background: "#ef4444", color: "white", border: "none", borderRadius: 4, cursor: "pointer", fontSize: "0.75rem" }}
+                                                >
+                                                    Eliminar
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+
+                    <form onSubmit={guardarPrecioMensual} style={{ display: "flex", gap: 10, alignItems: "flex-end", background: "#f8fafc", padding: 15, borderRadius: 8, flexWrap: "wrap" }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 5, flex: 1, minWidth: 150 }}>
+                            <span style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>Servicio</span>
+                            <select 
+                                value={nuevoMensualForm.servicio}
+                                onChange={e => setNuevoMensualForm({ ...nuevoMensualForm, servicio: e.target.value })}
+                                style={{ padding: 8, borderRadius: 6, border: "1px solid #cbd5e1", background: "white" }}
+                            >
+                                {Object.entries(SERVICIOS_MAP).map(([key, label]) => (
+                                    <option key={key} value={key}>{label}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 5, width: 120 }}>
+                            <span style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>Mes</span>
+                            <select 
+                                value={nuevoMensualForm.mes}
+                                onChange={e => setNuevoMensualForm({ ...nuevoMensualForm, mes: Number(e.target.value) })}
+                                style={{ padding: 8, borderRadius: 6, border: "1px solid #cbd5e1", background: "white" }}
+                            >
+                                {MESES.map((nombre, idx) => (
+                                    <option key={idx} value={idx + 1}>{nombre}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 5, width: 120 }}>
+                            <span style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>Precio</span>
+                            <input 
+                                type="number"
+                                min="0"
+                                value={nuevoMensualForm.precio || ""}
+                                onChange={e => setNuevoMensualForm({ ...nuevoMensualForm, precio: Number(e.target.value) })}
+                                placeholder="Precio"
+                                required
+                                style={{ padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
+                            />
+                        </div>
+                        <button 
+                            type="submit"
+                            style={{ padding: "9px 15px", background: "#2563eb", color: "white", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 700, height: 36 }}
+                        >
+                            Agregar Precio Especial
+                        </button>
+                    </form>
+                </div>
+
                 {/* REGISTRO DE PAGOS */}
                 <div style={{ background: "white", padding: 25, borderRadius: 12, boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" }}>
                     <h3 style={{ marginTop: 0, marginBottom: 20 }}>💸 Registrar Pago</h3>
@@ -486,7 +629,27 @@ export default function FinanzasDetalle() {
                                         <td style={{ padding: "8px 12px", paddingLeft: 30 }}>{s.servicio}</td>
                                         <td style={{ padding: "8px 12px" }}>{s.descripcion}</td>
                                         <td style={{ padding: "8px 12px", color: "#64748b" }}>
-                                            {formatMoney(s.precio_u)} x {s.cantidad} (Cant) x
+                                            {formatMoney(s.precio_u)} x {s.cantidad} (Cant)
+                                            {(() => {
+                                                if (!g.fecha_entrada) return null;
+                                                // g.fecha_entrada is YYYY-MM-DD
+                                                const parts = g.fecha_entrada.split("-");
+                                                if (parts.length < 2) return null;
+                                                const mesNum = Number(parts[1]); // 1-12
+                                                // support both exact service key or general park/pool keys
+                                                let matchingKey = s.servicio_key;
+                                                const override = preciosMensuales.find(pm => {
+                                                    if (pm.mes !== mesNum) return false;
+                                                    if (pm.servicio === matchingKey) return true;
+                                                    if (matchingKey.startsWith("parque") && pm.servicio === "parque") return true;
+                                                    if (matchingKey.startsWith("pool") && pm.servicio === "pool") return true;
+                                                    return false;
+                                                });
+                                                if (override) {
+                                                    return <span style={{ marginLeft: 6, padding: "2px 6px", background: "#dbeafe", color: "#1e40af", borderRadius: 4, fontSize: "0.7rem", fontWeight: 700 }}>Especial {MESES[mesNum - 1]}</span>;
+                                                }
+                                                return null;
+                                            })()} x
                                             <b style={{ color: "#2563eb", marginLeft: 4 }}>{s.pax} Pagantes</b>
                                             <span style={{ fontSize: "0.75rem", marginLeft: 4 }}>/ Total: {s.pax_original}</span>
 

@@ -235,6 +235,23 @@ class FinanzasEmpresa(Base):
     pool_guias_gratis = Column(Boolean, default=False)
 
     empresa = relationship("Empresa")
+    precios_mensuales = relationship("PrecioServicioMensual", back_populates="finanzas_empresa", cascade="all, delete-orphan")
+
+
+# =============================
+# PRECIOS MENSUALES DE SERVICIOS
+# =============================
+
+class PrecioServicioMensual(Base):
+    __tablename__ = "precios_servicios_mensuales"
+
+    id = Column(Integer, primary_key=True)
+    finanzas_empresa_id = Column(Integer, ForeignKey("finanzas_empresa.id", ondelete="CASCADE"))
+    servicio = Column(String)  # ej: "parque_con_comida", "parque_sin_comida", "disco", "pool_con_comida", etc.
+    mes = Column(Integer)  # 1 a 12
+    precio = Column(Integer, default=0)
+
+    finanzas_empresa = relationship("FinanzasEmpresa", back_populates="precios_mensuales")
 
 
 # =============================

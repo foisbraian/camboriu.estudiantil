@@ -36,6 +36,78 @@ def save_config(data: schemas.FinanzasEmpresaCreate, db: Session = Depends(get_d
     db.refresh(config)
     return config
 
+def obtener_precio_servicio_grupo(grupo, servicio_key: str, precio_base: int, config) -> int:
+    """
+    Determina si hay un precio mensual configurado para el mes de entrada del grupo.
+    De lo contrario, retorna el precio base.
+    """
+    if not grupo or not grupo.fecha_entrada:
+        return precio_base
+    mes = grupo.fecha_entrada.month
+    
+    # Intenta buscar coincidencia exacta
+    for override in getattr(config, "precios_mensuales", []):
+        if override.servicio == servicio_key and override.mes == mes:
+            return override.precio
+            
+    # Fallback si es parque_con_comida o parque_sin_comida a "parque"
+    if servicio_key in ("parque_con_comida", "parque_sin_comida"):
+        for override in getattr(config, "precios_mensuales", []):
+            if override.servicio == "parque" and override.mes == mes:
+                return override.precio
+                
+    # Fallback si es pool_con_comida o pool_sin_comida a "pool"
+    if servicio_key in ("pool_con_comida", "pool_sin_comida"):
+        for override in getattr(config, "precios_mensuales", []):
+            if override.servicio == "pool" and override.mes == mes:
+                return override.precio
+                
+    return precio_base
+
+@router.get("/config/{empresa_id}/mensuales", response_model=List[schemas.PrecioServicioMensualOut])
+def get_precios_mensuales(empresa_id: int, db: Session = Depends(get_db)):
+    config = db.query(models.FinanzasEmpresa).filter(models.FinanzasEmpresa.empresa_id == empresa_id).first()
+    if not config:
+        return []
+    return config.precios_mensuales
+
+@router.post("/config/mensuales", response_model=schemas.PrecioServicioMensualOut)
+def save_precio_mensual(data: schemas.PrecioServicioMensualCreate, empresa_id: int, db: Session = Depends(get_db)):
+    config = db.query(models.FinanzasEmpresa).filter(models.FinanzasEmpresa.empresa_id == empresa_id).first()
+    if not config:
+        raise HTTPException(404, "Configuración de finanzas no encontrada para la empresa")
+    
+    # Check if override already exists for this service and month
+    override = db.query(models.PrecioServicioMensual).filter(
+        models.PrecioServicioMensual.finanzas_empresa_id == config.id,
+        models.PrecioServicioMensual.servicio == data.servicio,
+        models.PrecioServicioMensual.mes == data.mes
+    ).first()
+    
+    if override:
+        override.precio = data.precio
+    else:
+        override = models.PrecioServicioMensual(
+            finanzas_empresa_id=config.id,
+            servicio=data.servicio,
+            mes=data.mes,
+            precio=data.precio
+        )
+        db.add(override)
+        
+    db.commit()
+    db.refresh(override)
+    return override
+
+@router.delete("/config/mensuales/{override_id}")
+def delete_precio_mensual(override_id: int, db: Session = Depends(get_db)):
+    override = db.query(models.PrecioServicioMensual).filter(models.PrecioServicioMensual.id == override_id).first()
+    if not override:
+        raise HTTPException(404, "Precio mensual no encontrado")
+    db.delete(override)
+    db.commit()
+    return {"ok": True}
+
 # =============================
 # PAYMENTS
 # =============================
@@ -373,62 +445,122 @@ def get_asignaciones_pagadas(empresa_id: int, db: Session):
                 
                 tipo = a.fecha_evento.evento.tipo
                 costo = 0
-                if tipo == "HIELO":
-                    if config.es_combo and config.combo_bar_hielo:
-                        costo = 0
-                    else:
-                        pax = _aplicar_pagantes_override((g.cantidad_pax or 0), g, "hielo")
-                        costo = pax * (config.precio_bar_hielo or 0)
-                elif config.es_combo:
+                
+                # Resolucion de combo
+                if config.es_combo:
+                    # Si es combo, el primer evento del grupo se cobra al precio del combo
+                    # Pero solo si el tipo de evento es parte del combo o si es el primer evento general
                     asigs_g_sorted = sorted(asigs_grupo, key=lambda x: x.fecha_evento.fecha if x.fecha_evento else date.max)
                     if asigs_g_sorted and a.id == asigs_g_sorted[0].id:
                         pax = calcular_pax_cobrar(g, config.disco_liberados_ratio, config.disco_padres_gratis, config.disco_guias_gratis)
                         pax = _aplicar_pagantes_override(pax, g, "combo")
-                        costo = pax * (config.precio_combo or 0)
+                        c_combo = obtener_precio_servicio_grupo(g, "combo", (config.precio_combo or 0), config)
+                        costo = pax * c_combo
+                    else:
+                        # Para los eventos siguientes, ver si no estan en el combo, se cobran individualmente
+                        es_adicional = False
+                        precio_u = 0
+                        s_key = None
+                        
+                        if tipo == "HIELO" and not config.combo_bar_hielo:
+                            es_adicional = True
+                            s_key = "hielo"
+                            precio_u = config.precio_bar_hielo or 0
+                        elif tipo == "CENA" and not config.combo_cena_velas:
+                            es_adicional = True
+                            s_key = "cena"
+                            precio_u = config.precio_cena_velas or 0
+                        elif tipo == "SURF" and not getattr(config, "combo_surf", False):
+                            es_adicional = True
+                            s_key = "surf"
+                            precio_u = getattr(config, "precio_surf", 0) or 0
+                        elif tipo == "UNIPRAIAS" and not getattr(config, "combo_unipraias", False):
+                            es_adicional = True
+                            s_key = "unipraias"
+                            precio_u = getattr(config, "precio_unipraias", 0) or 0
+                        elif tipo == "BETO" and not getattr(config, "combo_beto", False):
+                            es_adicional = True
+                            s_key = "beto"
+                            precio_u = getattr(config, "precio_beto", 0) or 0
+                        elif tipo == "BARCO" and not getattr(config, "combo_barco", False):
+                            es_adicional = True
+                            s_key = "barco"
+                            precio_u = getattr(config, "precio_barco", 0) or 0
+                        elif tipo == "CRISTO" and not getattr(config, "combo_cristo", False):
+                            es_adicional = True
+                            s_key = "cristo"
+                            precio_u = getattr(config, "precio_cristo", 0) or 0
+                        elif tipo == "SUNSET" and not getattr(config, "combo_sunset", False):
+                            es_adicional = True
+                            s_key = "sunset"
+                            precio_u = getattr(config, "precio_sunset", 0) or 0
+                        elif tipo == "QUINTA_COMIDA" and not getattr(config, "combo_quinta_comida", False):
+                            es_adicional = True
+                            s_key = "quinta_comida"
+                            precio_u = getattr(config, "precio_quinta_comida", 0) or 0
+                            
+                        if es_adicional and s_key:
+                            pax = _aplicar_pagantes_override((g.cantidad_pax or 0), g, s_key)
+                            precio_u = obtener_precio_servicio_grupo(g, s_key, precio_u, config)
+                            costo = pax * precio_u
                 else:
+                    # Sin combo: precios individuales
                     ratio, p_gratis, g_gratis = 0, False, False
                     precio_u = 0
+                    s_key = None
+                    
                     if tipo == "DISCO":
                         ratio, p_gratis, g_gratis = config.disco_liberados_ratio, config.disco_padres_gratis, config.disco_guias_gratis
-                        precio_u = config.precio_disco_individual or 0
+                        precio_u = obtener_precio_servicio_grupo(g, "disco", config.precio_disco_individual or 0, config)
+                        s_key = "disco"
                     elif tipo == "PARQUE":
                         ratio, p_gratis, g_gratis = config.parque_liberados_ratio, config.parque_padres_gratis, config.parque_guias_gratis
                         if g.parque_con_comida:
-                            precio_u = (config.precio_parque_con_comida or 0) or (config.precio_parque_individual or 0)
+                            precio_u = obtener_precio_servicio_grupo(g, "parque_con_comida", (config.precio_parque_con_comida or 0) or (config.precio_parque_individual or 0), config)
                         else:
-                            precio_u = (config.precio_parque_sin_comida or 0) or (config.precio_parque_individual or 0)
+                            precio_u = obtener_precio_servicio_grupo(g, "parque_sin_comida", (config.precio_parque_sin_comida or 0) or (config.precio_parque_individual or 0), config)
+                        s_key = "parque"
                     elif tipo == "POOL":
                         ratio, p_gratis, g_gratis = config.pool_liberados_ratio, config.pool_padres_gratis, config.pool_guias_gratis
                         if g.pool_con_comida:
-                            precio_u = (config.precio_pool_con_comida or 0) or (config.precio_pool_individual or 0)
+                            precio_u = obtener_precio_servicio_grupo(g, "pool_con_comida", (config.precio_pool_con_comida or 0) or (config.precio_pool_individual or 0), config)
                         else:
-                            precio_u = (config.precio_pool_sin_comida or 0) or (config.precio_pool_individual or 0)
+                            precio_u = obtener_precio_servicio_grupo(g, "pool_sin_comida", (config.precio_pool_sin_comida or 0) or (config.precio_pool_individual or 0), config)
+                        s_key = "pool"
                     elif tipo == "CENA":
-                        ratio, p_gratis, g_gratis = 0, False, False
-                        precio_u = config.precio_cena_velas or 0
+                        precio_u = obtener_precio_servicio_grupo(g, "cena", config.precio_cena_velas or 0, config)
+                        s_key = "cena"
                     elif tipo == "HIELO":
-                        ratio, p_gratis, g_gratis = 0, False, False
-                        precio_u = config.precio_bar_hielo or 0
+                        precio_u = obtener_precio_servicio_grupo(g, "hielo", config.precio_bar_hielo or 0, config)
+                        s_key = "hielo"
+                    elif tipo == "SURF":
+                        precio_u = obtener_precio_servicio_grupo(g, "surf", getattr(config, "precio_surf", 0) or 0, config)
+                        s_key = "surf"
+                    elif tipo == "UNIPRAIAS":
+                        precio_u = obtener_precio_servicio_grupo(g, "unipraias", getattr(config, "precio_unipraias", 0) or 0, config)
+                        s_key = "unipraias"
+                    elif tipo == "BETO":
+                        precio_u = obtener_precio_servicio_grupo(g, "beto", getattr(config, "precio_beto", 0) or 0, config)
+                        s_key = "beto"
+                    elif tipo == "BARCO":
+                        precio_u = obtener_precio_servicio_grupo(g, "barco", getattr(config, "precio_barco", 0) or 0, config)
+                        s_key = "barco"
+                    elif tipo == "CRISTO":
+                        precio_u = obtener_precio_servicio_grupo(g, "cristo", getattr(config, "precio_cristo", 0) or 0, config)
+                        s_key = "cristo"
+                    elif tipo == "SUNSET":
+                        precio_u = obtener_precio_servicio_grupo(g, "sunset", getattr(config, "precio_sunset", 0) or 0, config)
+                        s_key = "sunset"
+                    elif tipo == "QUINTA_COMIDA":
+                        precio_u = obtener_precio_servicio_grupo(g, "quinta_comida", getattr(config, "precio_quinta_comida", 0) or 0, config)
+                        s_key = "quinta_comida"
                     
-                    pax = calcular_pax_cobrar(g, ratio, p_gratis, g_gratis)
-                    if tipo == "DISCO":
-                        pax = _aplicar_pagantes_override(pax, g, "disco")
-                    elif tipo == "PARQUE":
-                        pax = _aplicar_pagantes_override(pax, g, "parque")
-                    elif tipo == "POOL":
-                        pax = _aplicar_pagantes_override(pax, g, "pool")
-                    elif tipo == "CENA":
-                        if config.es_combo and config.combo_cena_velas:
-                            costo = 0
-                            pax = 0
-                        else:
-                            pax = _aplicar_pagantes_override((g.cantidad_pax or 0), g, "cena")
-                    elif tipo == "HIELO":
-                        if config.es_combo and config.combo_bar_hielo:
-                            costo = 0
-                            pax = 0
-                        else:
-                            pax = _aplicar_pagantes_override((g.cantidad_pax or 0), g, "hielo")
+                    if s_key in ("disco", "parque", "pool"):
+                        pax = calcular_pax_cobrar(g, ratio, p_gratis, g_gratis)
+                        pax = _aplicar_pagantes_override(pax, g, s_key)
+                    else:
+                        pax = _aplicar_pagantes_override((g.cantidad_pax or 0), g, s_key)
+                        
                     costo = pax * precio_u
                 
                 items.append({

@@ -177,8 +177,19 @@ class FinanzasEmpresaCreate(BaseModel):
     pool_padres_gratis: bool = False
     pool_guias_gratis: bool = False
 
+class PrecioServicioMensualCreate(BaseModel):
+    servicio: str
+    mes: int
+    precio: int
+
+class PrecioServicioMensualOut(PrecioServicioMensualCreate):
+    id: int
+    class Config:
+        from_attributes = True
+
 class FinanzasEmpresaOut(FinanzasEmpresaCreate):
     id: int
+    precios_mensuales: list[PrecioServicioMensualOut] = []
     class Config:
         from_attributes = True
 
