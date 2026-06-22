@@ -83,6 +83,7 @@ class Grupo(Base):
     cristo_acceso = Column(Boolean, default=False)
     sunset_acceso = Column(Boolean, default=False)
     quinta_comida_acceso = Column(Boolean, default=False)
+    multiparque_acceso = Column(Boolean, default=False)
 
     pagantes_finales_surf = Column(Integer, nullable=True)
     pagantes_finales_unipraias = Column(Integer, nullable=True)
@@ -91,6 +92,7 @@ class Grupo(Base):
     pagantes_finales_cristo = Column(Integer, nullable=True)
     pagantes_finales_sunset = Column(Integer, nullable=True)
     pagantes_finales_quinta_comida = Column(Integer, nullable=True)
+    pagantes_finales_multiparque = Column(Integer, nullable=True)
 
     empresa = relationship("Empresa", back_populates="grupos")
     asignaciones = relationship("Asignacion", back_populates="grupo")
@@ -204,6 +206,7 @@ class FinanzasEmpresa(Base):
     precio_cristo = Column(Integer, default=0)
     precio_sunset = Column(Integer, default=0)
     precio_quinta_comida = Column(Integer, default=0)
+    precio_multiparque = Column(Integer, default=0)
 
     es_combo = Column(Boolean, default=False)
     precio_combo = Column(Integer, default=0)
@@ -220,6 +223,7 @@ class FinanzasEmpresa(Base):
     combo_cristo = Column(Boolean, default=False)
     combo_sunset = Column(Boolean, default=False)
     combo_quinta_comida = Column(Boolean, default=False)
+    combo_multiparque = Column(Boolean, default=False)
 
     # Liberados (Free entries)
     disco_liberados_ratio = Column(Integer, default=0)  # 20:1

@@ -103,7 +103,8 @@ def calendario(db: Session = Depends(get_db)):
             "BETO": "#ec4899",
             "BARCO": "#8b5cf6",
             "SUNSET": "#f59e0b",
-            "CRISTO": "#fcd34d"
+            "CRISTO": "#fcd34d",
+            "MULTIPARQUE": "#22c55e"
         }
 
         color = "red" if f.con_alcohol else color_map.get(f.evento.tipo, "gray")
@@ -269,7 +270,8 @@ def calendario(db: Session = Depends(get_db)):
                 f"Beto Carrero: {'SI' if getattr(g, 'beto_acceso', False) else 'NO'}\n"
                 f"Barco Pirata: {'SI' if getattr(g, 'barco_acceso', False) else 'NO'}\n"
                 f"Cristo Luz: {'SI' if getattr(g, 'cristo_acceso', False) else 'NO'}\n"
-                f"Sunset: {'SI' if getattr(g, 'sunset_acceso', False) else 'NO'}"
+                f"Sunset: {'SI' if getattr(g, 'sunset_acceso', False) else 'NO'}\n"
+                f"Multiparque: {'SI' if getattr(g, 'multiparque_acceso', False) else 'NO'}"
             )
 
             # Color Logic
@@ -306,7 +308,8 @@ def calendario(db: Session = Depends(get_db)):
                             "BETO": "#ec4899",     # Rosa
                             "BARCO": "#8b5cf6",    # Morado
                             "SUNSET": "#f59e0b",   # Naranja dorado
-                            "CRISTO": "#fcd34d"    # Amarillo/Dorado claro
+                            "CRISTO": "#fcd34d",   # Amarillo/Dorado claro
+                            "MULTIPARQUE": "#22c55e" # Verde brillante
                         }
                         bg_color_asig = color_map.get(asignacion.fecha_evento.evento.tipo, "gray")
                         text_color_asig = "black" if bg_color_asig in ["#e0f2fe", "#f59e0b", "#fcd34d"] else "white"
@@ -486,7 +489,8 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
             f"Beto Carrero: {'SI' if getattr(g, 'beto_acceso', False) else 'NO'}\n"
             f"Barco Pirata: {'SI' if getattr(g, 'barco_acceso', False) else 'NO'}\n"
             f"Cristo Luz: {'SI' if getattr(g, 'cristo_acceso', False) else 'NO'}\n"
-            f"Sunset: {'SI' if getattr(g, 'sunset_acceso', False) else 'NO'}"
+            f"Sunset: {'SI' if getattr(g, 'sunset_acceso', False) else 'NO'}\n"
+            f"Multiparque: {'SI' if getattr(g, 'multiparque_acceso', False) else 'NO'}"
         )
 
         bg_color_grupo = "#ef4444" if g.permite_alcohol else "#FFFF00"
@@ -509,7 +513,7 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                 otras_asignaciones = [a for a in asignaciones_dia if a.fecha_evento.evento.tipo != "HIELO"]
 
                 for asignacion in otras_asignaciones:
-                    color_map = {"DISCO": "#000000", "PARQUE": "#16a34a", "POOL": "#0ea5e9", "CENA": "#94a3b8", "HIELO": "#e0f2fe", "SURF": "#3b82f6", "UNIPRAIAS": "#10b981", "BETO": "#ec4899", "BARCO": "#8b5cf6", "SUNSET": "#f59e0b", "CRISTO": "#fcd34d"}
+                    color_map = {"DISCO": "#000000", "PARQUE": "#16a34a", "POOL": "#0ea5e9", "CENA": "#94a3b8", "HIELO": "#e0f2fe", "SURF": "#3b82f6", "UNIPRAIAS": "#10b981", "BETO": "#ec4899", "BARCO": "#8b5cf6", "SUNSET": "#f59e0b", "CRISTO": "#fcd34d", "MULTIPARQUE": "#22c55e"}
                     bg_color_asig = color_map.get(asignacion.fecha_evento.evento.tipo, "gray")
                     text_color_asig = "black" if bg_color_asig in ["#e0f2fe", "#f59e0b", "#fcd34d"] else "white"
 
@@ -568,7 +572,7 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
         fechas_globales = db.query(models.FechaEvento).filter(models.FechaEvento.id.in_(fecha_eventos_asignados_ids)).all()
         
         for f in fechas_globales:
-            color_map = {"DISCO": "yellow", "PARQUE": "green", "POOL": "skyblue", "CENA": "#e2e8f0", "HIELO": "#e0f2fe", "SURF": "#3b82f6", "UNIPRAIAS": "#10b981", "BETO": "#ec4899", "BARCO": "#8b5cf6", "SUNSET": "#f59e0b", "CRISTO": "#fcd34d"}
+            color_map = {"DISCO": "yellow", "PARQUE": "green", "POOL": "skyblue", "CENA": "#e2e8f0", "HIELO": "#e0f2fe", "SURF": "#3b82f6", "UNIPRAIAS": "#10b981", "BETO": "#ec4899", "BARCO": "#8b5cf6", "SUNSET": "#f59e0b", "CRISTO": "#fcd34d", "MULTIPARQUE": "#22c55e"}
             color = "red" if f.con_alcohol else color_map.get(f.evento.tipo, "gray")
             text_color = "black" if color in ("yellow", "#e2e8f0", "#e0f2fe", "#f59e0b", "#fcd34d") else "white"
             if f.es_privado:
@@ -678,6 +682,8 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
         raise HTTPException(400, "El grupo no tiene acceso a CRISTO LUZ")
     if tipo_nuevo == "SUNSET" and not getattr(grupo, "sunset_acceso", False):
         raise HTTPException(400, "El grupo no tiene acceso a SUNSET")
+    if tipo_nuevo == "MULTIPARQUE" and not getattr(grupo, "multiparque_acceso", False):
+        raise HTTPException(400, "El grupo no tiene acceso a MULTIPARQUE")
 
     # Validacion BAR DE HIELO
     if tipo_nuevo == "HIELO":

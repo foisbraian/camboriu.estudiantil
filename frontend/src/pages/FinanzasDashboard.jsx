@@ -74,6 +74,20 @@ export default function FinanzasDashboard() {
                     >
                         🍽️ Migrar Quinta Comida
                     </button>
+                    <button
+                        onClick={async () => {
+                            try {
+                                await api.post("/finanzas/migracion-multiparque");
+                                alert("✅ Migración Multiparque ejecutada correctamente");
+                                cargar();
+                            } catch (e) {
+                                alert("❌ Error en migración: " + (e.response?.data?.detail || e.message));
+                            }
+                        }}
+                        style={{ padding: "10px 16px", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 8, cursor: "pointer", fontSize: "0.85rem", fontWeight: 600, color: "#92400e" }}
+                    >
+                        🌳 Migrar Multiparque
+                    </button>
                 </div>
             </div>
 

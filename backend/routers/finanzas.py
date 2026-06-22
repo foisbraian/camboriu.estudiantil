@@ -192,6 +192,8 @@ def _get_pagantes_finales_por_servicio(grupo, servicio_key: str):
         return grupo.pagantes_finales_sunset if getattr(grupo, "pagantes_finales_sunset", None) is not None else legacy
     if servicio_key == "quinta_comida":
         return grupo.pagantes_finales_quinta_comida if getattr(grupo, "pagantes_finales_quinta_comida", None) is not None else legacy
+    if servicio_key == "multiparque":
+        return grupo.pagantes_finales_multiparque if getattr(grupo, "pagantes_finales_multiparque", None) is not None else legacy
     return None
 
 def _aplicar_pagantes_override(pax_base: int, grupo, servicio_key: str):
@@ -363,6 +365,7 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
             ("cristo_acceso", "CRISTO", "cristo", "precio_cristo", "combo_cristo", "Cristo Luz"),
             ("sunset_acceso", "SUNSET", "sunset", "precio_sunset", "combo_sunset", "Sunset"),
             ("quinta_comida_acceso", "QUINTA_COMIDA", "quinta_comida", "precio_quinta_comida", "combo_quinta_comida", "Quinta Comida"),
+            ("multiparque_acceso", "MULTIPARQUE", "multiparque", "precio_multiparque", "combo_multiparque", "Multiparque"),
         ]
         
         for (g_attr, tipo_db, s_key, precio_attr, combo_attr, s_name) in nuevos_eventos:
@@ -407,6 +410,7 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
                 "cristo": _get_pagantes_finales_por_servicio(g, "cristo"),
                 "sunset": _get_pagantes_finales_por_servicio(g, "sunset"),
                 "quinta_comida": _get_pagantes_finales_por_servicio(g, "quinta_comida"),
+                "multiparque": _get_pagantes_finales_por_servicio(g, "multiparque"),
             },
             "estudiantes": g.cantidad_estudiantes or 0,
             "padres": g.cantidad_padres or 0,
@@ -700,6 +704,25 @@ def migracion_quinta_comida(db: Session = Depends(get_db)):
     return {"ok": True, "resultados": resultados}
 
 
+@router.post("/migracion-multiparque")
+def migracion_multiparque(db: Session = Depends(get_db)):
+    """Migración para agregar el servicio 'Multiparque' a la base de datos."""
+    comandos = [
+        "ALTER TABLE grupos ADD COLUMN IF NOT EXISTS multiparque_acceso BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE grupos ADD COLUMN IF NOT EXISTS pagantes_finales_multiparque INTEGER",
+        "ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS precio_multiparque INTEGER DEFAULT 0",
+        "ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS combo_multiparque BOOLEAN DEFAULT FALSE",
+    ]
+    resultados = []
+    for c in comandos:
+        try:
+            db.execute(text(c))
+            resultados.append({"sql": c, "status": "ok"})
+        except Exception as e:
+            resultados.append({"sql": c, "status": "skip", "error": str(e)})
+    db.commit()
+    return {"ok": True, "resultados": resultados}
+
 # =============================
 # PAGANTES FINALES POR GRUPO
 # =============================
@@ -714,7 +737,7 @@ def actualizar_pagantes_finales(grupo_id: int, body: schemas.GrupoPagantesUpdate
     servicio = body.servicio
     if servicio is not None:
         servicio = servicio.lower()
-    valid_servicios = {"disco", "parque", "pool", "cena", "hielo", "combo", "surf", "unipraias", "beto", "barco", "cristo", "sunset", "quinta_comida"}
+    valid_servicios = {"disco", "parque", "pool", "cena", "hielo", "combo", "surf", "unipraias", "beto", "barco", "cristo", "sunset", "quinta_comida", "multiparque"}
     if servicio and servicio not in valid_servicios:
         raise HTTPException(400, "Servicio inválido")
     if pagantes is not None:
@@ -753,6 +776,8 @@ def actualizar_pagantes_finales(grupo_id: int, body: schemas.GrupoPagantesUpdate
             grupo.pagantes_finales_sunset = pagantes
         elif servicio == "quinta_comida":
             grupo.pagantes_finales_quinta_comida = pagantes
+        elif servicio == "multiparque":
+            grupo.pagantes_finales_multiparque = pagantes
     db.commit()
     db.refresh(grupo)
     return {"ok": True, "pagantes_finales": pagantes, "servicio": servicio}
