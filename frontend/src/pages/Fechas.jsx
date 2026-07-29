@@ -5,7 +5,7 @@ export default function Fechas() {
   const [eventos, setEventos] = useState([]);
   const [evento_id, setEvento] = useState("");
   const [fecha, setFecha] = useState("");
-  const [alcohol, setAlcohol] = useState(false);
+  const [tipoAlcohol, setTipoAlcohol] = useState("sin");
 
   // Cargar eventos al montar el componente
   useEffect(() => {
@@ -42,14 +42,15 @@ export default function Fechas() {
       await api.post("/eventos/fecha/", {
         evento_id: Number(evento_id),
         fecha,
-        con_alcohol: alcohol,
+        con_alcohol: tipoAlcohol === "con" || tipoAlcohol === "mix",
+        es_mix_evento: tipoAlcohol === "mix",
       });
 
       alert("Fecha creada");
       
       // Limpiar formulario
       setFecha("");
-      setAlcohol(false);
+      setTipoAlcohol("sin");
     } catch (error) {
       console.error("Error creando fecha:", error);
       alert("Error al crear fecha");
@@ -79,13 +80,17 @@ export default function Fechas() {
         onChange={(e) => setFecha(e.target.value)} 
       />
 
-      <label>
-        Alcohol
-        <input 
-          type="checkbox" 
-          checked={alcohol}
-          onChange={(e) => setAlcohol(e.target.checked)} 
-        />
+      <label style={{ marginLeft: "10px" }}>
+        Modalidad Alcohol:
+        <select 
+          value={tipoAlcohol}
+          onChange={(e) => setTipoAlcohol(e.target.value)}
+          style={{ marginLeft: "5px" }}
+        >
+          <option value="sin">🟡 Sin Alcohol</option>
+          <option value="mix">🟠 Mix / Pulsera</option>
+          <option value="con">🔴 Con Alcohol</option>
+        </select>
       </label>
 
       <button onClick={crear}>Crear</button>

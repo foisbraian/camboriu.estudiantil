@@ -62,6 +62,7 @@ export default function MobileDayView({ resources, events, loading }) {
           color: evt.backgroundColor || "#0f172a",
           textColor,
           conAlcohol: props.con_alcohol,
+          esMixEvento: props.es_mix_evento,
           esPrivado,
         };
       });
@@ -254,7 +255,13 @@ export default function MobileDayView({ resources, events, loading }) {
                       {evt.ocupacion != null && evt.capacidad != null && (
                         <span>Capacidad {evt.ocupacion}/{evt.capacidad}</span>
                       )}
-                      {evt.conAlcohol && <span style={{ marginLeft: 12 }}>🥂 Con alcohol</span>}
+                      {evt.esMixEvento ? (
+                        <span style={{ marginLeft: 12 }}>🍊 Mix (pulsera)</span>
+                      ) : evt.conAlcohol ? (
+                        <span style={{ marginLeft: 12 }}>🥂 Con alcohol</span>
+                      ) : evt.tipo === "DISCO" ? (
+                        <span style={{ marginLeft: 12 }}>🥤 Sin alcohol</span>
+                      ) : null}
                     </div>
                   </div>
                 ))}

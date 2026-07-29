@@ -85,7 +85,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
 
   const [eventosDisponibles, setEventosDisponibles] = useState([]);
   const [eventoSeleccionado, setEventoSeleccionado] = useState("");
-  const [conAlcohol, setConAlcohol] = useState(false);
+  const [tipoAlcohol, setTipoAlcohol] = useState("sin"); // "sin" | "con" | "mix"
 
   const [tematicas, setTematicas] = useState([]);
   const [tematicaSeleccionada, setTematicaSeleccionada] = useState("");
@@ -260,7 +260,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
     setGrupoAsignando(null); // No es grupo
     setEditando(null);       // No es edición de existente
     setEventoSeleccionado("");
-    setConAlcohol(false);
+    setTipoAlcohol("sin");
     setTematicaSeleccionada("");
     setEsPrivado(false);
     setEmpresaPrivadaId("");
@@ -320,7 +320,9 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
 
       setSelectedDate(fechaISO);
       setEventoSeleccionado(props.evento_id);
-      setConAlcohol(props.con_alcohol);
+      const esMix = props.es_mix_evento;
+      const esConAlcohol = props.con_alcohol;
+      setTipoAlcohol(esMix ? "mix" : (esConAlcohol ? "con" : "sin"));
       setTematicaSeleccionada(props.tematica_id || "");
       setEsPrivado(Boolean(props.es_privado));
       setEmpresaPrivadaId(props.empresa_privada_id ? String(props.empresa_privada_id) : "");
@@ -417,7 +419,8 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
         await api.put(`/calendario/fecha/${getCleanId(editando.id)}`, {
           evento_id: Number(eventoSeleccionado),
           fecha_nueva: selectedDate,
-          con_alcohol: conAlcohol,
+          con_alcohol: tipoAlcohol === "con" || tipoAlcohol === "mix",
+          es_mix_evento: tipoAlcohol === "mix",
           tematica_id: tematicaSeleccionada ? Number(tematicaSeleccionada) : null,
           es_privado: esPrivado,
           empresa_privada_id: esPrivado ? Number(empresaPrivadaId) : null,
@@ -429,7 +432,8 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
         await api.post("/eventos/fecha", {
           evento_id: Number(eventoSeleccionado),
           fecha: selectedDate,
-          con_alcohol: conAlcohol,
+          con_alcohol: tipoAlcohol === "con" || tipoAlcohol === "mix",
+          es_mix_evento: tipoAlcohol === "mix",
           tematica_id: tematicaSeleccionada ? Number(tematicaSeleccionada) : null,
           es_privado: esPrivado,
           empresa_privada_id: esPrivado ? Number(empresaPrivadaId) : null,
@@ -754,14 +758,22 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
 
                   return (
                     <>
-                      <label style={{ display: "block", marginTop: 10 }}>
-                        <input
-                          type="checkbox"
-                          checked={conAlcohol}
-                          onChange={(e) => setConAlcohol(e.target.checked)}
-                        />
-                        Con alcohol
-                      </label>
+                      {esDisco && (
+                        <div style={{ marginTop: 10 }}>
+                          <label style={{ display: "block", marginBottom: 5, fontSize: "0.9rem", fontWeight: "bold" }}>
+                            Modalidad Alcohol:
+                          </label>
+                          <select
+                            value={tipoAlcohol}
+                            onChange={(e) => setTipoAlcohol(e.target.value)}
+                            style={{ width: "100%", padding: "6px", borderRadius: "4px", border: "1px solid #cbd5e1" }}
+                          >
+                            <option value="sin">🟡 Sin Alcohol (Amarillo)</option>
+                            <option value="mix">🟠 Mix / Pulsera (Naranja)</option>
+                            <option value="con">🔴 Con Alcohol (Rojo)</option>
+                          </select>
+                        </div>
+                      )}
 
                       {esDisco && (
                         <div style={{ marginTop: 10 }}>

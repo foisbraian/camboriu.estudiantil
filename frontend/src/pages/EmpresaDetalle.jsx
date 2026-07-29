@@ -313,6 +313,7 @@ export default function EmpresaDetalle() {
     fecha_salida: "",
     discos_compradas: 0,
     permite_alcohol: false,
+    es_mix_grupo: false,
     parque_acceso: false,
     parque_con_comida: false,
     pool_acceso: false,
@@ -341,6 +342,7 @@ export default function EmpresaDetalle() {
     fecha_salida: "",
     discos_compradas: 0,
     permite_alcohol: false,
+    es_mix_grupo: false,
     parque_acceso: false,
     parque_con_comida: false,
     pool_acceso: false,
@@ -403,6 +405,7 @@ export default function EmpresaDetalle() {
       fecha_salida: "",
       discos_compradas: 0,
       permite_alcohol: false,
+      es_mix_grupo: false,
       parque_acceso: false,
       parque_con_comida: false,
       pool_acceso: false,
@@ -433,6 +436,7 @@ export default function EmpresaDetalle() {
       fecha_salida: g.fecha_salida,
       discos_compradas: g.discos_compradas,
       permite_alcohol: g.permite_alcohol,
+      es_mix_grupo: g.es_mix_grupo || false,
       parque_acceso: g.parque_acceso,
       parque_con_comida: g.parque_con_comida,
       pool_acceso: g.pool_acceso,
@@ -535,7 +539,7 @@ export default function EmpresaDetalle() {
       "Fecha Entrada": g.fecha_entrada || "No especificada",
       "Fecha Salida": g.fecha_salida || "No especificada",
       "Discos Compradas": g.discos_compradas,
-      "Permite Alcohol": g.permite_alcohol ? "Sí" : "No",
+      "Permite Alcohol": g.es_mix_grupo ? "Mix (Pulsera)" : (g.permite_alcohol ? "Sí" : "No"),
       "Parque Acceso": g.parque_acceso ? "Sí" : "No",
       "Parque c/Comida": g.parque_con_comida ? "Sí" : "No",
       "Pool Acceso": g.pool_acceso ? "Sí" : "No",
@@ -689,14 +693,30 @@ export default function EmpresaDetalle() {
         />
 
         {/* ================= ALCOHOL ================= */}
-        <label>
-          <input
-            type="checkbox"
-            checked={form.permite_alcohol}
-            onChange={(e) => set("permite_alcohol", e.target.checked)}
-          />
-          Permite alcohol
-        </label>
+        <div style={{ marginBottom: 15 }}>
+          <label style={{ display: "block", marginBottom: 5, fontWeight: "bold" }}>Permiso de Alcohol / Modalidad:</label>
+          <select
+            value={form.es_mix_grupo ? "mix" : (form.permite_alcohol ? "con" : "sin")}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === "mix") {
+                set("es_mix_grupo", true);
+                set("permite_alcohol", false);
+              } else if (val === "con") {
+                set("es_mix_grupo", false);
+                set("permite_alcohol", true);
+              } else {
+                set("es_mix_grupo", false);
+                set("permite_alcohol", false);
+              }
+            }}
+            style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ccc" }}
+          >
+            <option value="sin">🟡 Sin Alcohol (Amarillo)</option>
+            <option value="mix">🟠 Mix / Pulsera (Naranja)</option>
+            <option value="con">🔴 Con Alcohol (Rojo)</option>
+          </select>
+        </div>
 
         {/* ================= PARQUE ================= */}
         <fieldset style={{ padding: 10 }}>
@@ -882,7 +902,30 @@ export default function EmpresaDetalle() {
                 compact
               />
 
-              <label><input type="checkbox" checked={editForm.permite_alcohol} onChange={e => setEdit("permite_alcohol", e.target.checked)} /> Alcohol</label>
+              <div style={{ margin: "5px 0" }}>
+                <label style={{ display: "block", marginBottom: 3, fontWeight: "bold" }}>Alcohol:</label>
+                <select
+                  value={editForm.es_mix_grupo ? "mix" : (editForm.permite_alcohol ? "con" : "sin")}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "mix") {
+                      setEdit("es_mix_grupo", true);
+                      setEdit("permite_alcohol", false);
+                    } else if (val === "con") {
+                      setEdit("es_mix_grupo", false);
+                      setEdit("permite_alcohol", true);
+                    } else {
+                      setEdit("es_mix_grupo", false);
+                      setEdit("permite_alcohol", false);
+                    }
+                  }}
+                  style={{ width: "100%", padding: "4px", borderRadius: "4px", border: "1px solid #ccc" }}
+                >
+                  <option value="sin">🟡 Sin Alcohol</option>
+                  <option value="mix">🟠 Mix / Pulsera</option>
+                  <option value="con">🔴 Con Alcohol</option>
+                </select>
+              </div>
 
               <div style={{ border: "1px solid #eee", padding: 5 }}>
                 <b>Parque:</b>

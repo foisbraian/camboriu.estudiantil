@@ -3,17 +3,25 @@ import sqlite3
 def upgrade_db():
     conn = sqlite3.connect('app.db')
     cursor = conn.cursor()
-    try:
-        cursor.execute("ALTER TABLE finanzas_empresa ADD COLUMN moneda VARCHAR DEFAULT 'ARS'")
-        print("Column 'moneda' added successfully.")
-    except sqlite3.OperationalError as e:
-        if "duplicate column name" in str(e):
-            print("Column 'moneda' already exists.")
-        else:
-            print("Error:", e)
+    
+    migraciones = [
+        ("ALTER TABLE grupos ADD COLUMN es_mix_grupo BOOLEAN DEFAULT FALSE", "es_mix_grupo en grupos"),
+        ("ALTER TABLE fechas_evento ADD COLUMN es_mix_evento BOOLEAN DEFAULT FALSE", "es_mix_evento en fechas_evento"),
+    ]
+
+    for sql, descripcion in migraciones:
+        try:
+            cursor.execute(sql)
+            print(f"OK: {descripcion}")
+        except sqlite3.OperationalError as e:
+            if "duplicate column name" in str(e):
+                print(f"Ya existe: {descripcion}")
+            else:
+                print(f"Error en '{descripcion}': {e}")
     
     conn.commit()
     conn.close()
+    print("\nMigracion completada.")
 
 if __name__ == "__main__":
     upgrade_db()

@@ -42,6 +42,7 @@ def editar_grupo(grupo_id: int, data: schemas.GrupoUpdate, db: Session = Depends
     
     grupo.discos_compradas = data.discos_compradas
     grupo.permite_alcohol = data.permite_alcohol
+    grupo.es_mix_grupo = data.es_mix_grupo
     
     grupo.parque_acceso = data.parque_acceso
     grupo.parque_con_comida = data.parque_con_comida

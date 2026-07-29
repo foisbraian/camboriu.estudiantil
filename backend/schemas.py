@@ -34,6 +34,7 @@ class GrupoCreate(BaseModel):
 
     discos_compradas: int
     permite_alcohol: bool
+    es_mix_grupo: bool = False  # Mix (pulsera): acepta grupos con y sin alcohol
 
     parque_acceso: bool
     parque_con_comida: bool
@@ -119,6 +120,7 @@ class FechaEventoCreate(BaseModel):
     evento_id: int
     fecha: date  # solo date, Pydantic convertirá "YYYY-MM-DD"
     con_alcohol: bool = False
+    es_mix_evento: bool = False  # Mix (pulsera)
     tematica_id: Union[int, None] = None  # opcional, solo para discos
     es_privado: bool = False
     empresa_privada_id: Union[int, None] = None

@@ -26,6 +26,7 @@ export default function AdminCalendar() {
   const [anioSeleccionado, setAnioSeleccionado] = useState(now.getFullYear());
   const [filtroAlcohol, setFiltroAlcohol] = useState("global");
   const [filtroEmpresa, setFiltroEmpresa] = useState("todas");
+  const [showFiltros, setShowFiltros] = useState(true);
 
   // Lista de empresas derivada de los resources
   const empresas = useMemo(() => {
@@ -50,15 +51,17 @@ export default function AdminCalendar() {
       // Filtro alcohol (sobre los grupos que quedaron)
       if (filtroAlcohol !== "global") {
         if (res.parentId) {
-          if (filtroAlcohol === "con-alcohol") return res.extendedProps?.permite_alcohol === true;
-          if (filtroAlcohol === "sin-alcohol") return res.extendedProps?.permite_alcohol === false;
+          if (filtroAlcohol === "con-alcohol") return res.extendedProps?.permite_alcohol === true && !res.extendedProps?.es_mix_grupo;
+          if (filtroAlcohol === "sin-alcohol") return res.extendedProps?.permite_alcohol === false && !res.extendedProps?.es_mix_grupo;
+          if (filtroAlcohol === "mix-alcohol") return res.extendedProps?.es_mix_grupo === true;
         }
         if (res.extendedProps?.esEmpresa) {
           const empresaResourceId = res.id;
           const hasChildren = resources.some(child =>
             child.parentId === empresaResourceId &&
-            ((filtroAlcohol === "con-alcohol" && child.extendedProps?.permite_alcohol === true) ||
-             (filtroAlcohol === "sin-alcohol" && child.extendedProps?.permite_alcohol === false))
+            ((filtroAlcohol === "con-alcohol" && child.extendedProps?.permite_alcohol === true && !child.extendedProps?.es_mix_grupo) ||
+             (filtroAlcohol === "sin-alcohol" && child.extendedProps?.permite_alcohol === false && !child.extendedProps?.es_mix_grupo) ||
+             (filtroAlcohol === "mix-alcohol" && child.extendedProps?.es_mix_grupo === true))
           );
           return hasChildren;
         }
@@ -119,88 +122,138 @@ export default function AdminCalendar() {
   return (
     <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden", display: "flex", flexDirection: "column" }}>
       
-      {/* Control Filtrado flotante */}
-      <div 
-        className="hide-on-print"
-        style={{ 
-          position: "absolute", 
-          top: "10px", 
-          right: "20px", 
-          zIndex: 10,
-          background: "white",
-          padding: "6px 12px",
-          borderRadius: "8px",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-          display: "flex",
-          alignItems: "center",
-          gap: "12px"
-        }}
-      >
-        {/* Filtro por empresa */}
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#334155", whiteSpace: "nowrap" }}>🏢 Empresa:</label>
-          <select 
-            value={filtroEmpresa} 
-            onChange={(e) => setFiltroEmpresa(e.target.value)}
-            style={{ 
-              fontSize: "0.82rem", 
-              padding: "4px 8px", 
-              borderRadius: "4px", 
-              border: "1px solid #cbd5e1",
-              outline: "none",
-              maxWidth: "160px",
-              background: filtroEmpresa !== "todas" ? "#eff6ff" : "white",
-              color: filtroEmpresa !== "todas" ? "#1d4ed8" : "#334155",
-              fontWeight: filtroEmpresa !== "todas" ? 700 : 400,
-            }}
-          >
-            <option value="todas">Todas</option>
-            {empresas.map(e => (
-              <option key={e.id} value={e.extendedProps?.empresaId}>
-                {e.extendedProps?.empresaNombre || e.title}
-              </option>
-            ))}
-          </select>
-          {filtroEmpresa !== "todas" && (
+      {/* Control Filtrado Superior (Inline / Collapsible) */}
+      {showFiltros ? (
+        <div 
+          className="hide-on-print"
+          style={{ 
+            background: "#f8fafc",
+            borderBottom: "1px solid #e2e8f0",
+            padding: "8px 16px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px"
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Filtros Activos</span>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            {/* Filtro por empresa */}
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#475569" }}>Empresa:</label>
+              <select 
+                value={filtroEmpresa} 
+                onChange={(e) => setFiltroEmpresa(e.target.value)}
+                style={{ 
+                  fontSize: "0.82rem", 
+                  padding: "4px 8px", 
+                  borderRadius: "6px", 
+                  border: "1px solid #cbd5e1",
+                  outline: "none",
+                  maxWidth: "160px",
+                  background: filtroEmpresa !== "todas" ? "#eff6ff" : "white",
+                  color: filtroEmpresa !== "todas" ? "#1d4ed8" : "#334155",
+                  fontWeight: filtroEmpresa !== "todas" ? 700 : 400,
+                }}
+              >
+                <option value="todas">Todas</option>
+                {empresas.map(e => (
+                  <option key={e.id} value={e.extendedProps?.empresaId}>
+                    {e.extendedProps?.empresaNombre || e.title}
+                  </option>
+                ))}
+              </select>
+              {filtroEmpresa !== "todas" && (
+                <button
+                  onClick={() => setFiltroEmpresa("todas")}
+                  title="Quitar filtro de empresa"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: "0.8rem",
+                    color: "#94a3b8",
+                    padding: "0 2px",
+                    lineHeight: 1,
+                  }}
+                >✕</button>
+              )}
+            </div>
+
+            {/* Separador */}
+            <div style={{ width: 1, height: 20, background: "#cbd5e1" }} />
+
+            {/* Filtro alcohol */}
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#475569" }}>Alcohol:</label>
+              <select 
+                value={filtroAlcohol} 
+                onChange={(e) => setFiltroAlcohol(e.target.value)}
+                style={{ 
+                  fontSize: "0.82rem", 
+                  padding: "4px 8px", 
+                  borderRadius: "6px", 
+                  border: "1px solid #cbd5e1",
+                  outline: "none",
+                  background: filtroAlcohol !== "global" ? "#eff6ff" : "white",
+                  color: filtroAlcohol !== "global" ? "#1d4ed8" : "#334155",
+                  fontWeight: filtroAlcohol !== "global" ? 700 : 400,
+                }}
+              >
+                <option value="global">Todos</option>
+                <option value="con-alcohol">Con Alcohol</option>
+                <option value="mix-alcohol">Mix (Pulsera)</option>
+                <option value="sin-alcohol">Sin Alcohol</option>
+              </select>
+            </div>
+
+            {/* Separador */}
+            <div style={{ width: 1, height: 20, background: "#cbd5e1" }} />
+
+            {/* Botón Ocultar */}
             <button
-              onClick={() => setFiltroEmpresa("todas")}
-              title="Quitar filtro de empresa"
+              onClick={() => setShowFiltros(false)}
               style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
                 fontSize: "0.8rem",
-                color: "#94a3b8",
-                padding: "0 2px",
-                lineHeight: 1,
+                fontWeight: 600,
+                color: "#64748b",
+                background: "#f1f5f9",
+                border: "1px solid #cbd5e1",
+                borderRadius: "6px",
+                padding: "4px 10px",
+                cursor: "pointer",
               }}
-            >✕</button>
-          )}
+            >
+              Ocultar
+            </button>
+          </div>
         </div>
-
-        {/* Separador */}
-        <div style={{ width: 1, height: 20, background: "#e2e8f0" }} />
-
-        {/* Filtro alcohol */}
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#334155", whiteSpace: "nowrap" }}>🍺 Alcohol:</label>
-          <select 
-            value={filtroAlcohol} 
-            onChange={(e) => setFiltroAlcohol(e.target.value)}
-            style={{ 
-              fontSize: "0.82rem", 
-              padding: "4px 8px", 
-              borderRadius: "4px", 
-              border: "1px solid #cbd5e1",
-              outline: "none"
-            }}
-          >
-            <option value="global">Todos</option>
-            <option value="con-alcohol">Con Alcohol</option>
-            <option value="sin-alcohol">Sin Alcohol</option>
-          </select>
-        </div>
-      </div>
+      ) : (
+        <button
+          className="hide-on-print"
+          onClick={() => setShowFiltros(true)}
+          style={{
+            position: "absolute",
+            top: "12px",
+            right: "20px",
+            zIndex: 100,
+            fontSize: "0.8rem",
+            fontWeight: 600,
+            color: "#1e293b",
+            background: "white",
+            border: "1px solid #cbd5e1",
+            borderRadius: "6px",
+            padding: "6px 12px",
+            cursor: "pointer",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+          }}
+        >
+          Mostrar Filtros
+        </button>
+      )}
 
       {isMobile ? (
         <MobileDayView resources={filteredResources} events={events} loading={loading} />

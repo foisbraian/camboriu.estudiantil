@@ -29,6 +29,7 @@ class EditarFechaEventoBody(BaseModel):
     evento_id: int
     fecha_nueva: date
     con_alcohol: bool
+    es_mix_evento: bool = False  # Mix (pulsera)
     tematica_id: Optional[int] = None
     es_privado: bool = False
     empresa_privada_id: Optional[int] = None
@@ -107,13 +108,20 @@ def calendario(db: Session = Depends(get_db)):
             "MULTIPARQUE": "#22c55e"
         }
 
-        color = "red" if f.con_alcohol else color_map.get(f.evento.tipo, "gray")
+        # Mix (pulsera) → naranja; con alcohol → rojo; sin alcohol → amarillo (default)
+        es_mix = getattr(f, 'es_mix_evento', False)
+        if es_mix:
+            color = "#f97316"  # Naranja Mix
+        elif f.con_alcohol:
+            color = "red"
+        else:
+            color = color_map.get(f.evento.tipo, "gray")
         
         if f.es_privado:
             color = "#ede9fe"
             text_color = "#4c1d95"
         else:
-            # Text Color: Black if fondo claro
+            # Text Color: Black si fondo claro
             text_color = "black" if color in ("yellow", "#e2e8f0", "#e0f2fe", "#f59e0b", "#fcd34d") else "white"
         
         capacidad = f.evento.capacidad_maxima
@@ -168,6 +176,7 @@ def calendario(db: Session = Depends(get_db)):
                 "evento_tipo": f.evento.tipo,
                 "evento_nombre": f.evento.nombre,
                 "con_alcohol": f.con_alcohol,
+                "es_mix_evento": getattr(f, 'es_mix_evento', False),
                 "ocupacion": ocupacion,
                 "capacidad": capacidad,
                 "con_comida": con_comida,
@@ -184,16 +193,23 @@ def calendario(db: Session = Depends(get_db)):
         })
 
     # =====================================================
-    # RESUMEN GRUPOS POR DIA (CON / SIN ALCOHOL)
+    # RESUMEN GRUPOS POR DIA (CON / SIN / MIX ALCOHOL)
     # =====================================================
     resumen_discos = defaultdict(lambda: {
         "con": {"total": 0},
-        "sin": {"total": 0}
+        "sin": {"total": 0},
+        "mix": {"total": 0}
     })
 
     for empresa in empresas:
         for grupo in empresa.grupos:
-            bucket = "con" if grupo.permite_alcohol else "sin"
+            es_mix_g = getattr(grupo, 'es_mix_grupo', False)
+            if es_mix_g:
+                bucket = "mix"
+            elif grupo.permite_alcohol:
+                bucket = "con"
+            else:
+                bucket = "sin"
             estudiantes = grupo.cantidad_estudiantes or 0
             padres = grupo.cantidad_padres or 0
             guias = grupo.cantidad_guias or 0
@@ -205,16 +221,18 @@ def calendario(db: Session = Depends(get_db)):
                 current_date = current_date + timedelta(days=1)
 
     for fecha, totales in resumen_discos.items():
-        if not (totales["con"]["total"] or totales["sin"]["total"]):
+        if not (totales["con"]["total"] or totales["sin"]["total"] or totales["mix"]["total"]):
             continue
 
         con = totales["con"]
         sin = totales["sin"]
+        mix = totales["mix"]
 
         titulo = (
             "Resumen grupos\n"
             f"TOTAL C/A: {con['total']}\n"
-            f"TOTAL S/A: {sin['total']}"
+            f"TOTAL S/A: {sin['total']}\n"
+            f"TOTAL MIX: {mix['total']}"
         )
 
         events.append({
@@ -239,7 +257,7 @@ def calendario(db: Session = Depends(get_db)):
         for g in e.grupos:
 
             # info extra para tooltip
-            alcohol_txt = "SI" if g.permite_alcohol else "NO"
+            alcohol_txt = "MIX (pulsera)" if getattr(g, 'es_mix_grupo', False) else ("SI" if g.permite_alcohol else "NO")
             
             # Parque Logic
             if g.parque_acceso:
@@ -274,9 +292,17 @@ def calendario(db: Session = Depends(get_db)):
                 f"Multiparque: {'SI' if getattr(g, 'multiparque_acceso', False) else 'NO'}"
             )
 
-            # Color Logic
-            bg_color_grupo = "#ef4444" if g.permite_alcohol else "#FFFF00" # Amarillo Puro
-            text_color_grupo = "black" if not g.permite_alcohol else "white"
+            # Color del grupo según tipo de alcohol
+            es_mix_g = getattr(g, 'es_mix_grupo', False)
+            if es_mix_g:
+                bg_color_grupo = "#f97316"  # Naranja Mix
+                text_color_grupo = "white"
+            elif g.permite_alcohol:
+                bg_color_grupo = "#ef4444"  # Rojo Con Alcohol
+                text_color_grupo = "white"
+            else:
+                bg_color_grupo = "#FFFF00"  # Amarillo Sin Alcohol
+                text_color_grupo = "black"
 
             # Mapa de asignaciones por fecha (lista para soportar multiples)
             mapa_asignaciones = defaultdict(list)
@@ -443,6 +469,7 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                 "fechaEntrada": g.fecha_entrada,
                 "fechaSalida": g.fecha_salida,
                 "permite_alcohol": g.permite_alcohol,
+                "es_mix_grupo": getattr(g, 'es_mix_grupo', False),
             }
         })
         order_counter += 1
@@ -458,7 +485,7 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
     for g in empresa.grupos:
         # --- RENDERIZAR GRUPO (Background) y ASIGNACIONES ---
         
-        alcohol_txt = "SI" if g.permite_alcohol else "NO"
+        alcohol_txt = "MIX (pulsera)" if getattr(g, 'es_mix_grupo', False) else ("SI" if g.permite_alcohol else "NO")
         
         # Parque Logic
         if g.parque_acceso:
@@ -493,8 +520,17 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
             f"Multiparque: {'SI' if getattr(g, 'multiparque_acceso', False) else 'NO'}"
         )
 
-        bg_color_grupo = "#ef4444" if g.permite_alcohol else "#FFFF00"
-        text_color_grupo = "black" if not g.permite_alcohol else "white"
+        # Color del grupo según tipo de alcohol
+        es_mix_g = getattr(g, 'es_mix_grupo', False)
+        if es_mix_g:
+            bg_color_grupo = "#f97316"  # Naranja Mix
+            text_color_grupo = "white"
+        elif g.permite_alcohol:
+            bg_color_grupo = "#ef4444"  # Rojo Con Alcohol
+            text_color_grupo = "white"
+        else:
+            bg_color_grupo = "#FFFF00"  # Amarillo Sin Alcohol
+            text_color_grupo = "black"
 
         mapa_asignaciones = defaultdict(list)
         for a in g.asignaciones:
@@ -573,8 +609,14 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
         
         for f in fechas_globales:
             color_map = {"DISCO": "yellow", "PARQUE": "green", "POOL": "skyblue", "CENA": "#e2e8f0", "HIELO": "#e0f2fe", "SURF": "#3b82f6", "UNIPRAIAS": "#10b981", "BETO": "#ec4899", "BARCO": "#8b5cf6", "SUNSET": "#f59e0b", "CRISTO": "#fcd34d", "MULTIPARQUE": "#22c55e"}
-            color = "red" if f.con_alcohol else color_map.get(f.evento.tipo, "gray")
-            text_color = "black" if color in ("yellow", "#e2e8f0", "#e0f2fe", "#f59e0b", "#fcd34d") else "white"
+            es_mix = getattr(f, 'es_mix_evento', False)
+            if es_mix:
+                color = "#f97316"  # Naranja Mix
+            elif f.con_alcohol:
+                color = "red"
+            else:
+                color = color_map.get(f.evento.tipo, "gray")
+            text_color = "black" if color in ("yellow", "#e2e8f0", "#e0f2fe", "#f59e0b", "#fcd34d", "#f97316") else "white"
             if f.es_privado:
                 color = "#ede9fe"
                 text_color = "#4c1d95"
@@ -641,11 +683,20 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
 
     # Validacion Alcohol (Solo para DISCOS)
     if tipo_nuevo == "DISCO":
-        if nuevo_evento_fecha.con_alcohol and not grupo.permite_alcohol:
-            raise HTTPException(400, "El grupo no admite eventos con alcohol")
+        es_mix_evento = getattr(nuevo_evento_fecha, 'es_mix_evento', False)
+        es_mix_grupo = getattr(grupo, 'es_mix_grupo', False)
 
-        if grupo.permite_alcohol and not nuevo_evento_fecha.con_alcohol:
-            raise HTTPException(400, "El grupo con alcohol debe asistir a eventos con alcohol")
+        if es_mix_evento:
+            # Evento MIX: acepta tanto grupos con como sin alcohol, y también grupos mix
+            pass  # Sin restricción de alcohol
+        elif nuevo_evento_fecha.con_alcohol:
+            # Evento CON ALCOHOL: solo acepta grupos con alcohol o mix
+            if not grupo.permite_alcohol and not es_mix_grupo:
+                raise HTTPException(400, "El grupo no admite eventos con alcohol")
+        else:
+            # Evento SIN ALCOHOL: solo acepta grupos sin alcohol o mix
+            if grupo.permite_alcohol and not es_mix_grupo:
+                raise HTTPException(400, "El grupo con alcohol debe asistir a eventos con alcohol")
             
         # NUEVA VALIDACION: Capacidad de compras DISCO
         # Contar cuantas asignaciones de tipo DISCO tiene ya el grupo
@@ -791,10 +842,12 @@ def editar_fecha_evento(fecha_evento_id: int, body: EditarFechaEventoBody, db: S
 
     # Actualizar campos
     antiguo_con_alcohol = f.con_alcohol
+    antiguo_es_mix = getattr(f, 'es_mix_evento', False)
     setattr(f, "evento_id", body.evento_id)
     if body.fecha_nueva:
         setattr(f, "fecha", body.fecha_nueva)
     setattr(f, "con_alcohol", body.con_alcohol)
+    setattr(f, "es_mix_evento", body.es_mix_evento)
     setattr(f, "tematica_id", body.tematica_id)
 
     # Solo cambiar es_privado/empresa_privada_id si hay un cambio real
@@ -817,21 +870,28 @@ def editar_fecha_evento(fecha_evento_id: int, body: EditarFechaEventoBody, db: S
         setattr(f, "empresa_privada_id", None)
 
     # Lógica: Si cambia el estado de alcohol, quitar grupos incompatibles
-    if f.con_alcohol != antiguo_con_alcohol:
+    nuevo_es_mix = getattr(f, 'es_mix_evento', False)
+    estado_cambio = (f.con_alcohol != antiguo_con_alcohol) or (nuevo_es_mix != antiguo_es_mix)
+    if estado_cambio:
         for asig in f.asignaciones:
-            # Si ahora es CON ALCOHOL -> Quitar los que NO admiten alcohol
-            if f.con_alcohol and not asig.grupo.permite_alcohol:
-                db.delete(asig)
-            # Si ahora es SIN ALCOHOL -> Quitar los que SÍ admiten alcohol (regla: grupo con alcohol debe ir a evento con alcohol)
-            elif not f.con_alcohol and asig.grupo.permite_alcohol:
-                db.delete(asig)
+            es_mix_g = getattr(asig.grupo, 'es_mix_grupo', False)
+            if nuevo_es_mix:
+                # Ahora es MIX → acepta todos, no quitar nadie
+                pass
+            elif f.con_alcohol:
+                # Ahora es CON ALCOHOL → quitar grupos que NO admiten alcohol y no son mix
+                if not asig.grupo.permite_alcohol and not es_mix_g:
+                    db.delete(asig)
+            else:
+                # Ahora es SIN ALCOHOL → quitar grupos que SÍ tienen alcohol y no son mix
+                if asig.grupo.permite_alcohol and not es_mix_g:
+                    db.delete(asig)
 
     db.commit()
     return {"ok": True}
 
 
-# =========================================================
-# ELIMINAR FECHA EVENTO GLOBAL (CASCADE)
+
 # =========================================================
 @router.delete("/fecha/{fecha_evento_id}")
 def eliminar_fecha_evento_global(fecha_evento_id: int, db: Session = Depends(get_db)):

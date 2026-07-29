@@ -58,6 +58,7 @@ class Grupo(Base):
     # discos
     discos_compradas = Column(Integer, default=0)
     permite_alcohol = Column(Boolean, default=False)
+    es_mix_grupo = Column(Boolean, default=False)  # Mix (pulsera): acepta con y sin alcohol
 
     # parque
     parque_acceso = Column(Boolean, default=False)
@@ -146,6 +147,7 @@ class FechaEvento(Base):
 
     # solo discos usan esto
     con_alcohol = Column(Boolean, default=False)
+    es_mix_evento = Column(Boolean, default=False)  # Mix (pulsera): acepta grupos con y sin alcohol
 
     # temática (opcional, solo para discos)
     tematica_id = Column(Integer, ForeignKey("tematicas.id"), nullable=True)
