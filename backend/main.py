@@ -19,6 +19,7 @@ from routers import (
 )
 import models
 from database import engine
+import alter_db
 
 app = FastAPI()
 
@@ -29,6 +30,10 @@ class LoginBody(BaseModel):
 
 # 👇 CREA TABLAS AUTOMÁTICAMENTE
 models.Base.metadata.create_all(bind=engine)
+try:
+    alter_db.upgrade_db()
+except Exception as e:
+    print(f"Error al ejecutar migraciones automáticas: {e}")
 
 # Configuración de CORS dinámica
 frontend_url = os.getenv("FRONTEND_URL", "").strip().rstrip("/")
