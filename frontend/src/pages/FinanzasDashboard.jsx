@@ -49,8 +49,8 @@ export default function FinanzasDashboard() {
                     <button
                         onClick={async () => {
                             try {
-                                await api.post("/finanzas/migracion-parque-precios");
-                                alert("✅ Migración ejecutada correctamente");
+                                const res = await api.post("/maintenance/migrate");
+                                alert(`✅ ${res.data?.detail || "Migración ejecutada correctamente"}`);
                                 cargar();
                             } catch (e) {
                                 alert("❌ Error en migración: " + (e.response?.data?.detail || e.message));
