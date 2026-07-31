@@ -199,12 +199,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
   // EVENTOS DEL DIA SOLAMENTE
   // =========================================================
   const cargarEventosDelDia = async (fechaISO) => {
-    // 1. Obtener todas las definiciones de eventos (Eclipse, Parque, etc)
-    const res = await api.get("/eventos");
-    const todosLosEventos = res.data;
-
-    // 2. Obtener lo que está "abierto" ese día desde el calendario
-    // Si no hay evento global creado, el array estará vacío.
+    // Obtener lo que está "abierto" ese día desde el calendario
     const calendario = await api.get("/calendario");
 
     // Filtrar los que son resourceId "eventos" (la fila 0) y coinciden con la fecha
