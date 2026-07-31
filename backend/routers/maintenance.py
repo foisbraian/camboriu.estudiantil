@@ -304,6 +304,16 @@ MIGRATIONS = [
         "sqlite": "ALTER TABLE finanzas_empresa ADD COLUMN zacarias_guias_gratis BOOLEAN DEFAULT FALSE",
         "postgres": "ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS zacarias_guias_gratis BOOLEAN DEFAULT FALSE",
     },
+    {
+        "name": "grupos.pagantes_finales_campamento_p",
+        "sqlite": "ALTER TABLE grupos ADD COLUMN pagantes_finales_campamento_p INTEGER",
+        "postgres": "ALTER TABLE grupos ADD COLUMN IF NOT EXISTS pagantes_finales_campamento_p INTEGER",
+    },
+    {
+        "name": "grupos.pagantes_finales_zacarias_p",
+        "sqlite": "ALTER TABLE grupos ADD COLUMN pagantes_finales_zacarias_p INTEGER",
+        "postgres": "ALTER TABLE grupos ADD COLUMN IF NOT EXISTS pagantes_finales_zacarias_p INTEGER",
+    },
 ]
 
 
