@@ -7,6 +7,7 @@ import "./timeline.css";
 
 export default function TimelineCalendar({ resources, events, readOnly = false, onRegisterRef }) {
   const calendarRef = useRef(null);
+  const [initialDate] = useState(() => new Date());
 
   // Exponer método navegarAMes al padre via callback prop
   useEffect(() => {
@@ -59,7 +60,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
     if (hasCenteredToday.current) return;
     const api = calendarRef.current?.getApi();
     if (!api) return;
-    api.gotoDate(new Date());
+    api.gotoDate(initialDate);
 
     let attempts = 0;
     const maxAttempts = 6;
@@ -78,7 +79,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
     return () => {
       cancelAnimationFrame(raf);
     };
-  }, [centerToday, events]);
+  }, [centerToday, events, initialDate]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -570,7 +571,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           ref={calendarRef}
           plugins={[resourceTimelinePlugin, interactionPlugin]}
           initialView="resourceTimelineYear"
-          initialDate={new Date()}
+          initialDate={initialDate}
           views={{
             resourceTimelineMonth: {
               slotLabelFormat: [
