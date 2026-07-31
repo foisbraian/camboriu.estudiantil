@@ -278,12 +278,6 @@ def calendario(db: Session = Depends(get_db)):
             # info extra para tooltip
             alcohol_txt = "MIX (pulsera)" if getattr(g, 'es_mix_grupo', False) else ("SI" if g.permite_alcohol else "NO")
             
-            # Parque Logic
-            if g.parque_acceso:
-                parque_txt = "SI (Con Comida)" if g.parque_con_comida else "SI (Sin Comida)"
-            else:
-                parque_txt = "NO"
-
             # Campamento Logic
             if getattr(g, 'campamento_acceso', False):
                 campamento_txt = "SI (Con Comida)" if getattr(g, 'campamento_con_comida', False) else "SI (Sin Comida)"
@@ -311,7 +305,6 @@ def calendario(db: Session = Depends(get_db)):
                 f"Discos Compradas: {g.discos_compradas}\n"
                 f"----------------\n"
                 f"Alcohol: {alcohol_txt}\n"
-                f"Parque (deprecated): {parque_txt}\n"
                 f"Campamento: {campamento_txt}\n"
                 f"Zacarias: {zacarias_txt}\n"
                 f"Pool: {pool_txt}\n"
@@ -523,12 +516,6 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
         
         alcohol_txt = "MIX (pulsera)" if getattr(g, 'es_mix_grupo', False) else ("SI" if g.permite_alcohol else "NO")
         
-        # Parque Logic
-        if g.parque_acceso:
-            parque_txt = "SI (Con Comida)" if g.parque_con_comida else "SI (Sin Comida)"
-        else:
-            parque_txt = "NO"
-
         # Campamento Logic
         if getattr(g, 'campamento_acceso', False):
             campamento_txt = "SI (Con Comida)" if getattr(g, 'campamento_con_comida', False) else "SI (Sin Comida)"
@@ -556,7 +543,6 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
             f"Discos Compradas: {g.discos_compradas}\n"
             f"----------------\n"
             f"Alcohol: {alcohol_txt}\n"
-            f"Parque (deprecated): {parque_txt}\n"
             f"Campamento: {campamento_txt}\n"
             f"Zacarias: {zacarias_txt}\n"
             f"Pool: {pool_txt}\n"
