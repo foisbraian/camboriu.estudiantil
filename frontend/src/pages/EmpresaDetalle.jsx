@@ -316,6 +316,10 @@ export default function EmpresaDetalle() {
     es_mix_grupo: false,
     parque_acceso: false,
     parque_con_comida: false,
+    campamento_acceso: false,
+    campamento_con_comida: false,
+    zacarias_acceso: false,
+    zacarias_con_comida: false,
     pool_acceso: false,
     pool_con_comida: false,
     cena_velas: false,
@@ -345,6 +349,10 @@ export default function EmpresaDetalle() {
     es_mix_grupo: false,
     parque_acceso: false,
     parque_con_comida: false,
+    campamento_acceso: false,
+    campamento_con_comida: false,
+    zacarias_acceso: false,
+    zacarias_con_comida: false,
     pool_acceso: false,
     pool_con_comida: false,
     cena_velas: false,
@@ -408,6 +416,10 @@ export default function EmpresaDetalle() {
       es_mix_grupo: false,
       parque_acceso: false,
       parque_con_comida: false,
+      campamento_acceso: false,
+      campamento_con_comida: false,
+      zacarias_acceso: false,
+      zacarias_con_comida: false,
       pool_acceso: false,
       pool_con_comida: false,
       cena_velas: false,
@@ -439,6 +451,10 @@ export default function EmpresaDetalle() {
       es_mix_grupo: g.es_mix_grupo || false,
       parque_acceso: g.parque_acceso,
       parque_con_comida: g.parque_con_comida,
+      campamento_acceso: g.campamento_acceso || false,
+      campamento_con_comida: g.campamento_con_comida || false,
+      zacarias_acceso: g.zacarias_acceso || false,
+      zacarias_con_comida: g.zacarias_con_comida || false,
       pool_acceso: g.pool_acceso,
       pool_con_comida: g.pool_con_comida,
       cena_velas: g.cena_velas,
@@ -542,6 +558,10 @@ export default function EmpresaDetalle() {
       "Permite Alcohol": g.es_mix_grupo ? "Mix (Pulsera)" : (g.permite_alcohol ? "Sí" : "No"),
       "Parque Acceso": g.parque_acceso ? "Sí" : "No",
       "Parque c/Comida": g.parque_con_comida ? "Sí" : "No",
+      "Campamento Acceso": g.campamento_acceso ? "Sí" : "No",
+      "Campamento c/Comida": g.campamento_con_comida ? "Sí" : "No",
+      "Zacarias Acceso": g.zacarias_acceso ? "Sí" : "No",
+      "Zacarias c/Comida": g.zacarias_con_comida ? "Sí" : "No",
       "Pool Acceso": g.pool_acceso ? "Sí" : "No",
       "Pool c/Comida": g.pool_con_comida ? "Sí" : "No",
       "Cena Velas": g.cena_velas ? "Sí" : "No",
@@ -718,15 +738,15 @@ export default function EmpresaDetalle() {
           </select>
         </div>
 
-        {/* ================= PARQUE ================= */}
+        {/* ================= CAMPAMENTO AMERICANO ================= */}
         <fieldset style={{ padding: 10 }}>
-          <legend>Parque</legend>
+          <legend>Campamento Americano</legend>
 
           <label>
             <input
               type="checkbox"
-              checked={form.parque_acceso}
-              onChange={(e) => set("parque_acceso", e.target.checked)}
+              checked={form.campamento_acceso}
+              onChange={(e) => set("campamento_acceso", e.target.checked)}
             />
             Acceso
           </label>
@@ -734,8 +754,31 @@ export default function EmpresaDetalle() {
           <label style={{ marginLeft: 20 }}>
             <input
               type="checkbox"
-              checked={form.parque_con_comida}
-              onChange={(e) => set("parque_con_comida", e.target.checked)}
+              checked={form.campamento_con_comida}
+              onChange={(e) => set("campamento_con_comida", e.target.checked)}
+            />
+            Con comida
+          </label>
+        </fieldset>
+
+        {/* ================= ZACARIAS ================= */}
+        <fieldset style={{ padding: 10 }}>
+          <legend>Zacarias</legend>
+
+          <label>
+            <input
+              type="checkbox"
+              checked={form.zacarias_acceso}
+              onChange={(e) => set("zacarias_acceso", e.target.checked)}
+            />
+            Acceso
+          </label>
+
+          <label style={{ marginLeft: 20 }}>
+            <input
+              type="checkbox"
+              checked={form.zacarias_con_comida}
+              onChange={(e) => set("zacarias_con_comida", e.target.checked)}
             />
             Con comida
           </label>
@@ -928,9 +971,15 @@ export default function EmpresaDetalle() {
               </div>
 
               <div style={{ border: "1px solid #eee", padding: 5 }}>
-                <b>Parque:</b>
-                <label><input type="checkbox" checked={editForm.parque_acceso} onChange={e => setEdit("parque_acceso", e.target.checked)} /> Acceso</label>
-                <label style={{ marginLeft: 10 }}><input type="checkbox" checked={editForm.parque_con_comida} onChange={e => setEdit("parque_con_comida", e.target.checked)} /> Comida</label>
+                <b>Campamento Americano:</b>
+                <label><input type="checkbox" checked={editForm.campamento_acceso || false} onChange={e => setEdit("campamento_acceso", e.target.checked)} /> Acceso</label>
+                <label style={{ marginLeft: 10 }}><input type="checkbox" checked={editForm.campamento_con_comida || false} onChange={e => setEdit("campamento_con_comida", e.target.checked)} /> Comida</label>
+              </div>
+
+              <div style={{ border: "1px solid #eee", padding: 5 }}>
+                <b>Zacarias:</b>
+                <label><input type="checkbox" checked={editForm.zacarias_acceso || false} onChange={e => setEdit("zacarias_acceso", e.target.checked)} /> Acceso</label>
+                <label style={{ marginLeft: 10 }}><input type="checkbox" checked={editForm.zacarias_con_comida || false} onChange={e => setEdit("zacarias_con_comida", e.target.checked)} /> Comida</label>
               </div>
 
               <div style={{ border: "1px solid #eee", padding: 5 }}>

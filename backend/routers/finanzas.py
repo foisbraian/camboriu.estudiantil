@@ -56,6 +56,18 @@ def obtener_precio_servicio_grupo(grupo, servicio_key: str, precio_base: int, co
             if override.servicio == "parque" and override.mes == mes:
                 return override.precio
                 
+    # Fallback si es campamento_con_comida o campamento_sin_comida a "campamento"
+    if servicio_key in ("campamento_con_comida", "campamento_sin_comida"):
+        for override in getattr(config, "precios_mensuales", []):
+            if override.servicio == "campamento" and override.mes == mes:
+                return override.precio
+
+    # Fallback si es zacarias_con_comida o zacarias_sin_comida a "zacarias"
+    if servicio_key in ("zacarias_con_comida", "zacarias_sin_comida"):
+        for override in getattr(config, "precios_mensuales", []):
+            if override.servicio == "zacarias" and override.mes == mes:
+                return override.precio
+                
     # Fallback si es pool_con_comida o pool_sin_comida a "pool"
     if servicio_key in ("pool_con_comida", "pool_sin_comida"):
         for override in getattr(config, "precios_mensuales", []):
@@ -170,6 +182,10 @@ def _get_pagantes_finales_por_servicio(grupo, servicio_key: str):
         return grupo.pagantes_finales_disco
     if servicio_key == "parque":
         return grupo.pagantes_finales_parque
+    if servicio_key == "campamento":
+        return getattr(grupo, "pagantes_finales_campamento", None)
+    if servicio_key == "zacarias":
+        return getattr(grupo, "pagantes_finales_zacarias", None)
     if servicio_key == "pool":
         return grupo.pagantes_finales_pool
     if servicio_key == "cena":
@@ -231,7 +247,7 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
             servicios_detalle.append({
                 "servicio": "Combo",
                 "servicio_key": "combo",
-                "descripcion": f"({config.combo_discos} D + {'P' if config.combo_parque else ''} + {'W' if config.combo_pool else ''} + {'C' if config.combo_cena_velas else ''} + {'H' if config.combo_bar_hielo else ''} + {'Su' if getattr(config, 'combo_surf', False) else ''} + {'U' if getattr(config, 'combo_unipraias', False) else ''} + {'Be' if getattr(config, 'combo_beto', False) else ''} + {'Ba' if getattr(config, 'combo_barco', False) else ''} + {'Cr' if getattr(config, 'combo_cristo', False) else ''} + {'St' if getattr(config, 'combo_sunset', False) else ''})",
+                "descripcion": f"({config.combo_discos} D + {'P' if config.combo_parque else ''} + {'Ca' if getattr(config, 'combo_campamento', False) else ''} + {'Z' if getattr(config, 'combo_zacarias', False) else ''} + {'W' if config.combo_pool else ''} + {'C' if config.combo_cena_velas else ''} + {'H' if config.combo_bar_hielo else ''} + {'Su' if getattr(config, 'combo_surf', False) else ''} + {'U' if getattr(config, 'combo_unipraias', False) else ''} + {'Be' if getattr(config, 'combo_beto', False) else ''} + {'Ba' if getattr(config, 'combo_barco', False) else ''} + {'Cr' if getattr(config, 'combo_cristo', False) else ''} + {'St' if getattr(config, 'combo_sunset', False) else ''})",
                 "precio_u": c_combo,
                 "cantidad": 1,
                 "pax": pax_cobrar,
@@ -286,6 +302,62 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
                     "cantidad": 1,
                     "pax": pax_cobrar,
                     "subtotal": costo_parque,
+                    "pax_original": total_pax_grupo,
+                    "estudiantes": g.cantidad_estudiantes or 0,
+                    "padres": g.cantidad_padres or 0,
+                    "guias": g.cantidad_guias or 0
+                })
+                
+            # Campamento
+            if getattr(g, 'campamento_con_comida', False) or getattr(g, 'campamento_acceso', False) or db.query(models.FechaEvento).join(models.Asignacion).filter(models.Asignacion.grupo_id == g.id).join(models.Evento).filter(models.Evento.tipo == "CAMPAMENTO").first():
+                pax_cobrar = calcular_pax_cobrar(g, getattr(config, 'campamento_liberados_ratio', 0), getattr(config, 'campamento_padres_gratis', False), getattr(config, 'campamento_guias_gratis', False))
+                pax_cobrar = _aplicar_pagantes_override(pax_cobrar, g, "campamento")
+                if getattr(g, 'campamento_con_comida', False):
+                    base_campamento = (getattr(config, 'precio_campamento_con_comida', 0) or 0) or (getattr(config, 'precio_campamento_individual', 0) or 0)
+                    p_campamento = obtener_precio_servicio_grupo(g, "campamento_con_comida", base_campamento, config)
+                    descripcion_campamento = "Acceso con comida"
+                else:
+                    base_campamento = (getattr(config, 'precio_campamento_sin_comida', 0) or 0) or (getattr(config, 'precio_campamento_individual', 0) or 0)
+                    p_campamento = obtener_precio_servicio_grupo(g, "campamento_sin_comida", base_campamento, config)
+                    descripcion_campamento = "Acceso sin comida"
+                costo_campamento = pax_cobrar * p_campamento
+                costo_grupo += costo_campamento
+                servicios_detalle.append({
+                    "servicio": "Campamento Americano",
+                    "servicio_key": "campamento",
+                    "descripcion": descripcion_campamento,
+                    "precio_u": p_campamento,
+                    "cantidad": 1,
+                    "pax": pax_cobrar,
+                    "subtotal": costo_campamento,
+                    "pax_original": total_pax_grupo,
+                    "estudiantes": g.cantidad_estudiantes or 0,
+                    "padres": g.cantidad_padres or 0,
+                    "guias": g.cantidad_guias or 0
+                })
+
+            # Zacarias
+            if getattr(g, 'zacarias_con_comida', False) or getattr(g, 'zacarias_acceso', False) or db.query(models.FechaEvento).join(models.Asignacion).filter(models.Asignacion.grupo_id == g.id).join(models.Evento).filter(models.Evento.tipo == "ZACARIAS").first():
+                pax_cobrar = calcular_pax_cobrar(g, getattr(config, 'zacarias_liberados_ratio', 0), getattr(config, 'zacarias_padres_gratis', False), getattr(config, 'zacarias_guias_gratis', False))
+                pax_cobrar = _aplicar_pagantes_override(pax_cobrar, g, "zacarias")
+                if getattr(g, 'zacarias_con_comida', False):
+                    base_zacarias = (getattr(config, 'precio_zacarias_con_comida', 0) or 0) or (getattr(config, 'precio_zacarias_individual', 0) or 0)
+                    p_zacarias = obtener_precio_servicio_grupo(g, "zacarias_con_comida", base_zacarias, config)
+                    descripcion_zacarias = "Acceso con comida"
+                else:
+                    base_zacarias = (getattr(config, 'precio_zacarias_sin_comida', 0) or 0) or (getattr(config, 'precio_zacarias_individual', 0) or 0)
+                    p_zacarias = obtener_precio_servicio_grupo(g, "zacarias_sin_comida", base_zacarias, config)
+                    descripcion_zacarias = "Acceso sin comida"
+                costo_zacarias = pax_cobrar * p_zacarias
+                costo_grupo += costo_zacarias
+                servicios_detalle.append({
+                    "servicio": "Zacarias",
+                    "servicio_key": "zacarias",
+                    "descripcion": descripcion_zacarias,
+                    "precio_u": p_zacarias,
+                    "cantidad": 1,
+                    "pax": pax_cobrar,
+                    "subtotal": costo_zacarias,
                     "pax_original": total_pax_grupo,
                     "estudiantes": g.cantidad_estudiantes or 0,
                     "padres": g.cantidad_padres or 0,
@@ -403,6 +475,8 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
             "pagantes_finales_servicios": {
                 "disco": _get_pagantes_finales_por_servicio(g, "disco"),
                 "parque": _get_pagantes_finales_por_servicio(g, "parque"),
+                "campamento": _get_pagantes_finales_por_servicio(g, "campamento"),
+                "zacarias": _get_pagantes_finales_por_servicio(g, "zacarias"),
                 "pool": _get_pagantes_finales_por_servicio(g, "pool"),
                 "cena": _get_pagantes_finales_por_servicio(g, "cena"),
                 "hielo": _get_pagantes_finales_por_servicio(g, "hielo"),
@@ -528,6 +602,20 @@ def get_asignaciones_pagadas(empresa_id: int, db: Session):
                         else:
                             precio_u = obtener_precio_servicio_grupo(g, "parque_sin_comida", (config.precio_parque_sin_comida or 0) or (config.precio_parque_individual or 0), config)
                         s_key = "parque"
+                    elif tipo == "CAMPAMENTO":
+                        ratio, p_gratis, g_gratis = getattr(config, "campamento_liberados_ratio", 0), getattr(config, "campamento_padres_gratis", False), getattr(config, "campamento_guias_gratis", False)
+                        if getattr(g, "campamento_con_comida", False):
+                            precio_u = obtener_precio_servicio_grupo(g, "campamento_con_comida", (getattr(config, "precio_campamento_con_comida", 0) or 0) or (getattr(config, "precio_campamento_individual", 0) or 0), config)
+                        else:
+                            precio_u = obtener_precio_servicio_grupo(g, "campamento_sin_comida", (getattr(config, "precio_campamento_sin_comida", 0) or 0) or (getattr(config, "precio_campamento_individual", 0) or 0), config)
+                        s_key = "campamento"
+                    elif tipo == "ZACARIAS":
+                        ratio, p_gratis, g_gratis = getattr(config, "zacarias_liberados_ratio", 0), getattr(config, "zacarias_padres_gratis", False), getattr(config, "zacarias_guias_gratis", False)
+                        if getattr(g, "zacarias_con_comida", False):
+                            precio_u = obtener_precio_servicio_grupo(g, "zacarias_con_comida", (getattr(config, "precio_zacarias_con_comida", 0) or 0) or (getattr(config, "precio_zacarias_individual", 0) or 0), config)
+                        else:
+                            precio_u = obtener_precio_servicio_grupo(g, "zacarias_sin_comida", (getattr(config, "precio_zacarias_sin_comida", 0) or 0) or (getattr(config, "precio_zacarias_individual", 0) or 0), config)
+                        s_key = "zacarias"
                     elif tipo == "POOL":
                         ratio, p_gratis, g_gratis = config.pool_liberados_ratio, config.pool_padres_gratis, config.pool_guias_gratis
                         if g.pool_con_comida:
@@ -563,7 +651,7 @@ def get_asignaciones_pagadas(empresa_id: int, db: Session):
                         precio_u = obtener_precio_servicio_grupo(g, "quinta_comida", getattr(config, "precio_quinta_comida", 0) or 0, config)
                         s_key = "quinta_comida"
                     
-                    if s_key in ("disco", "parque", "pool"):
+                    if s_key in ("disco", "parque", "campamento", "zacarias", "pool"):
                         pax = calcular_pax_cobrar(g, ratio, p_gratis, g_gratis)
                         pax = _aplicar_pagantes_override(pax, g, s_key)
                     else:
@@ -741,7 +829,7 @@ def actualizar_pagantes_finales(grupo_id: int, body: schemas.GrupoPagantesUpdate
     servicio = body.servicio
     if servicio is not None:
         servicio = servicio.lower()
-    valid_servicios = {"disco", "parque", "pool", "cena", "hielo", "combo", "surf", "unipraias", "beto", "barco", "cristo", "sunset", "quinta_comida", "multiparque"}
+    valid_servicios = {"disco", "parque", "campamento", "zacarias", "pool", "cena", "hielo", "combo", "surf", "unipraias", "beto", "barco", "cristo", "sunset", "quinta_comida", "multiparque"}
     if servicio and servicio not in valid_servicios:
         raise HTTPException(400, "Servicio inválido")
     if pagantes is not None:
@@ -758,6 +846,10 @@ def actualizar_pagantes_finales(grupo_id: int, body: schemas.GrupoPagantesUpdate
             grupo.pagantes_finales_disco = pagantes
         elif servicio == "parque":
             grupo.pagantes_finales_parque = pagantes
+        elif servicio == "campamento":
+            grupo.pagantes_finales_campamento = pagantes
+        elif servicio == "zacarias":
+            grupo.pagantes_finales_zacarias = pagantes
         elif servicio == "pool":
             grupo.pagantes_finales_pool = pagantes
         elif servicio == "cena":

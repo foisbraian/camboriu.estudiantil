@@ -199,6 +199,111 @@ MIGRATIONS = [
         "sqlite": "ALTER TABLE finanzas_empresa ADD COLUMN combo_sunset BOOLEAN DEFAULT FALSE",
         "postgres": "ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS combo_sunset BOOLEAN DEFAULT FALSE",
     },
+    {
+        "name": "fechas_evento.horario",
+        "sqlite": "ALTER TABLE fechas_evento ADD COLUMN horario VARCHAR",
+        "postgres": "ALTER TABLE fechas_evento ADD COLUMN IF NOT EXISTS horario VARCHAR",
+    },
+    {
+        "name": "grupos.campamento_acceso",
+        "sqlite": "ALTER TABLE grupos ADD COLUMN campamento_acceso BOOLEAN DEFAULT FALSE",
+        "postgres": "ALTER TABLE grupos ADD COLUMN IF NOT EXISTS campamento_acceso BOOLEAN DEFAULT FALSE",
+    },
+    {
+        "name": "grupos.campamento_con_comida",
+        "sqlite": "ALTER TABLE grupos ADD COLUMN campamento_con_comida BOOLEAN DEFAULT FALSE",
+        "postgres": "ALTER TABLE grupos ADD COLUMN IF NOT EXISTS campamento_con_comida BOOLEAN DEFAULT FALSE",
+    },
+    {
+        "name": "grupos.zacarias_acceso",
+        "sqlite": "ALTER TABLE grupos ADD COLUMN zacarias_acceso BOOLEAN DEFAULT FALSE",
+        "postgres": "ALTER TABLE grupos ADD COLUMN IF NOT EXISTS zacarias_acceso BOOLEAN DEFAULT FALSE",
+    },
+    {
+        "name": "grupos.zacarias_con_comida",
+        "sqlite": "ALTER TABLE grupos ADD COLUMN zacarias_con_comida BOOLEAN DEFAULT FALSE",
+        "postgres": "ALTER TABLE grupos ADD COLUMN IF NOT EXISTS zacarias_con_comida BOOLEAN DEFAULT FALSE",
+    },
+    {
+        "name": "grupos.pagantes_finales_campamento",
+        "sqlite": "ALTER TABLE grupos ADD COLUMN pagantes_finales_campamento INTEGER",
+        "postgres": "ALTER TABLE grupos ADD COLUMN IF NOT EXISTS pagantes_finales_campamento INTEGER",
+    },
+    {
+        "name": "grupos.pagantes_finales_zacarias",
+        "sqlite": "ALTER TABLE grupos ADD COLUMN pagantes_finales_zacarias INTEGER",
+        "postgres": "ALTER TABLE grupos ADD COLUMN IF NOT EXISTS pagantes_finales_zacarias INTEGER",
+    },
+    {
+        "name": "finanzas_empresa.precio_campamento_individual",
+        "sqlite": "ALTER TABLE finanzas_empresa ADD COLUMN precio_campamento_individual INTEGER DEFAULT 0",
+        "postgres": "ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS precio_campamento_individual INTEGER DEFAULT 0",
+    },
+    {
+        "name": "finanzas_empresa.precio_campamento_con_comida",
+        "sqlite": "ALTER TABLE finanzas_empresa ADD COLUMN precio_campamento_con_comida INTEGER DEFAULT 0",
+        "postgres": "ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS precio_campamento_con_comida INTEGER DEFAULT 0",
+    },
+    {
+        "name": "finanzas_empresa.precio_campamento_sin_comida",
+        "sqlite": "ALTER TABLE finanzas_empresa ADD COLUMN precio_campamento_sin_comida INTEGER DEFAULT 0",
+        "postgres": "ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS precio_campamento_sin_comida INTEGER DEFAULT 0",
+    },
+    {
+        "name": "finanzas_empresa.precio_zacarias_individual",
+        "sqlite": "ALTER TABLE finanzas_empresa ADD COLUMN precio_zacarias_individual INTEGER DEFAULT 0",
+        "postgres": "ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS precio_zacarias_individual INTEGER DEFAULT 0",
+    },
+    {
+        "name": "finanzas_empresa.precio_zacarias_con_comida",
+        "sqlite": "ALTER TABLE finanzas_empresa ADD COLUMN precio_zacarias_con_comida INTEGER DEFAULT 0",
+        "postgres": "ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS precio_zacarias_con_comida INTEGER DEFAULT 0",
+    },
+    {
+        "name": "finanzas_empresa.precio_zacarias_sin_comida",
+        "sqlite": "ALTER TABLE finanzas_empresa ADD COLUMN precio_zacarias_sin_comida INTEGER DEFAULT 0",
+        "postgres": "ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS precio_zacarias_sin_comida INTEGER DEFAULT 0",
+    },
+    {
+        "name": "finanzas_empresa.combo_campamento",
+        "sqlite": "ALTER TABLE finanzas_empresa ADD COLUMN combo_campamento BOOLEAN DEFAULT FALSE",
+        "postgres": "ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS combo_campamento BOOLEAN DEFAULT FALSE",
+    },
+    {
+        "name": "finanzas_empresa.combo_zacarias",
+        "sqlite": "ALTER TABLE finanzas_empresa ADD COLUMN combo_zacarias BOOLEAN DEFAULT FALSE",
+        "postgres": "ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS combo_zacarias BOOLEAN DEFAULT FALSE",
+    },
+    {
+        "name": "finanzas_empresa.campamento_liberados_ratio",
+        "sqlite": "ALTER TABLE finanzas_empresa ADD COLUMN campamento_liberados_ratio INTEGER DEFAULT 0",
+        "postgres": "ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS campamento_liberados_ratio INTEGER DEFAULT 0",
+    },
+    {
+        "name": "finanzas_empresa.campamento_padres_gratis",
+        "sqlite": "ALTER TABLE finanzas_empresa ADD COLUMN campamento_padres_gratis BOOLEAN DEFAULT FALSE",
+        "postgres": "ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS campamento_padres_gratis BOOLEAN DEFAULT FALSE",
+    },
+    {
+        "name": "finanzas_empresa.campamento_guias_gratis",
+        "sqlite": "ALTER TABLE finanzas_empresa ADD COLUMN campamento_guias_gratis BOOLEAN DEFAULT FALSE",
+        "postgres": "ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS campamento_guias_gratis BOOLEAN DEFAULT FALSE",
+    },
+    {
+        "name": "finanzas_empresa.zacarias_liberados_ratio",
+        "sqlite": "ALTER TABLE finanzas_empresa ADD COLUMN zacarias_liberados_ratio INTEGER DEFAULT 0",
+        "postgres": "ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS zacarias_liberados_ratio INTEGER DEFAULT 0",
+    },
+    {
+        "name": "finanzas_empresa.zacarias_padres_gratis",
+        "sqlite": "ALTER TABLE finanzas_empresa ADD COLUMN zacarias_padres_gratis BOOLEAN DEFAULT FALSE",
+        "postgres": "ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS zacarias_padres_gratis BOOLEAN DEFAULT FALSE",
+    },
+    {
+        "name": "finanzas_empresa.zacarias_guias_gratis",
+        "sqlite": "ALTER TABLE finanzas_empresa ADD COLUMN zacarias_guias_gratis BOOLEAN DEFAULT FALSE",
+        "postgres": "ALTER TABLE finanzas_empresa ADD COLUMN IF NOT EXISTS zacarias_guias_gratis BOOLEAN DEFAULT FALSE",
+    },
 ]
 
 

@@ -64,6 +64,14 @@ class Grupo(Base):
     parque_acceso = Column(Boolean, default=False)
     parque_con_comida = Column(Boolean, default=False)
 
+    # campamento americano
+    campamento_acceso = Column(Boolean, default=False)
+    campamento_con_comida = Column(Boolean, default=False)
+
+    # zacarias
+    zacarias_acceso = Column(Boolean, default=False)
+    zacarias_con_comida = Column(Boolean, default=False)
+
     # pool
     pool_acceso = Column(Boolean, default=False)
     pool_con_comida = Column(Boolean, default=False)
@@ -72,6 +80,8 @@ class Grupo(Base):
     pagantes_finales = Column(Integer, nullable=True)
     pagantes_finales_disco = Column(Integer, nullable=True)
     pagantes_finales_parque = Column(Integer, nullable=True)
+    pagantes_finales_campamento = Column(Integer, nullable=True)
+    pagantes_finales_zacarias = Column(Integer, nullable=True)
     pagantes_finales_pool = Column(Integer, nullable=True)
     pagantes_finales_cena = Column(Integer, nullable=True)
     pagantes_finales_hielo = Column(Integer, nullable=True)
@@ -94,6 +104,8 @@ class Grupo(Base):
     pagantes_finales_sunset = Column(Integer, nullable=True)
     pagantes_finales_quinta_comida = Column(Integer, nullable=True)
     pagantes_finales_multiparque = Column(Integer, nullable=True)
+    pagantes_finales_campamento_p = Column(Integer, nullable=True) # alias/extra if needed but we use pagantes_finales_campamento
+    pagantes_finales_zacarias_p = Column(Integer, nullable=True)
 
     empresa = relationship("Empresa", back_populates="grupos")
     asignaciones = relationship("Asignacion", back_populates="grupo")
@@ -144,6 +156,7 @@ class FechaEvento(Base):
 
     evento_id = Column(Integer, ForeignKey("eventos.id"))
     fecha = Column(Date)
+    horario = Column(String, nullable=True)
 
     # solo discos usan esto
     con_alcohol = Column(Boolean, default=False)
@@ -195,6 +208,17 @@ class FinanzasEmpresa(Base):
     precio_parque_individual = Column(Integer, default=0)
     precio_parque_con_comida = Column(Integer, default=0)
     precio_parque_sin_comida = Column(Integer, default=0)
+    
+    # Campamento Americano
+    precio_campamento_individual = Column(Integer, default=0)
+    precio_campamento_con_comida = Column(Integer, default=0)
+    precio_campamento_sin_comida = Column(Integer, default=0)
+
+    # Zacarias
+    precio_zacarias_individual = Column(Integer, default=0)
+    precio_zacarias_con_comida = Column(Integer, default=0)
+    precio_zacarias_sin_comida = Column(Integer, default=0)
+
     precio_pool_individual = Column(Integer, default=0)
     precio_pool_con_comida = Column(Integer, default=0)
     precio_pool_sin_comida = Column(Integer, default=0)
@@ -214,6 +238,8 @@ class FinanzasEmpresa(Base):
     precio_combo = Column(Integer, default=0)
     combo_discos = Column(Integer, default=0)
     combo_parque = Column(Boolean, default=False)
+    combo_campamento = Column(Boolean, default=False)
+    combo_zacarias = Column(Boolean, default=False)
     combo_pool = Column(Boolean, default=False)
     combo_cena_velas = Column(Boolean, default=False)
     combo_bar_hielo = Column(Boolean, default=False)
@@ -235,6 +261,14 @@ class FinanzasEmpresa(Base):
     parque_liberados_ratio = Column(Integer, default=0)
     parque_padres_gratis = Column(Boolean, default=False)
     parque_guias_gratis = Column(Boolean, default=False)
+
+    campamento_liberados_ratio = Column(Integer, default=0)
+    campamento_padres_gratis = Column(Boolean, default=False)
+    campamento_guias_gratis = Column(Boolean, default=False)
+
+    zacarias_liberados_ratio = Column(Integer, default=0)
+    zacarias_padres_gratis = Column(Boolean, default=False)
+    zacarias_guias_gratis = Column(Boolean, default=False)
 
     pool_liberados_ratio = Column(Integer, default=0)
     pool_padres_gratis = Column(Boolean, default=False)

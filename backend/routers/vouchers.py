@@ -22,6 +22,9 @@ BALNEARIO_TZ = ZoneInfo("America/Sao_Paulo")
 WINDOW_CONFIG = {
     "DISCO": {"start": time(22, 0), "end": time(6, 0), "offset_days": 1},
     "PARQUE": {"start": time(8, 0), "end": time(18, 0), "offset_days": 0},
+    "CAMPAMENTO": {"start": time(8, 0), "end": time(18, 0), "offset_days": 0},
+    "ZACARIAS": {"start": time(8, 0), "end": time(18, 0), "offset_days": 0},
+    "BIENVENIDA": {"start": time(9, 0), "end": time(21, 0), "offset_days": 0},
     "POOL": {"start": time(10, 0), "end": time(18, 0), "offset_days": 0},
     "CENA": {"start": time(20, 0), "end": time(23, 30), "offset_days": 0},
 }
@@ -181,13 +184,23 @@ def generate_voucher(asignacion_id: int, db: Session = Depends(get_db)):
     draw.text((40, 120), f"{empresa.nombre} - {grupo.nombre}", fill=color_text, font=font_sub)
     
     draw.text((40, 160), "SERVICIO:", fill=color_label, font=font_label)
-    draw.text((40, 180), f"{evento.nombre}", fill=color_text, font=font_sub)
+    
+    horario_val = getattr(fecha_evento, "horario", None)
+    servicio_desc = f"{evento.nombre}"
+    if horario_val:
+        servicio_desc += f" ({horario_val})"
+        
+    draw.text((40, 180), servicio_desc, fill=color_text, font=font_sub)
 
     tipo_upper = (evento.tipo or "").upper()
     nombre_lower = (evento.nombre or "").lower()
     comida_label = None
     if tipo_upper == "PARQUE":
         comida_label = "CON COMIDA" if grupo.parque_con_comida else "SIN COMIDA"
+    elif tipo_upper == "CAMPAMENTO":
+        comida_label = "CON COMIDA" if getattr(grupo, "campamento_con_comida", False) else "SIN COMIDA"
+    elif tipo_upper == "ZACARIAS":
+        comida_label = "CON COMIDA" if getattr(grupo, "zacarias_con_comida", False) else "SIN COMIDA"
     elif tipo_upper in {"POOL", "CASCATA"} or "cascata" in nombre_lower:
         comida_label = "CON COMIDA" if grupo.pool_con_comida else "SIN COMIDA"
 

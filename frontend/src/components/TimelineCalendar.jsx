@@ -93,6 +93,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
   const [empresaPrivadaId, setEmpresaPrivadaId] = useState("");
   const [empresas, setEmpresas] = useState([]);
   const [empresaObjetivo, setEmpresaObjetivo] = useState(null);
+  const [horario, setHorario] = useState("");
 
   const [editando, setEditando] = useState(null);
   const [grupoAsignando, setGrupoAsignando] = useState(null);
@@ -211,10 +212,29 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
       (e) => e.resourceId === "eventos" && e.start.startsWith(fechaISO)
     );
 
-    const ids = existentes.map((e) => e.extendedProps?.evento_id);
+    const filtrados = existentes.map(ext => {
+      const cleanFid = getCleanId(ext.id);
+      const evId = ext.extendedProps?.evento_id;
+      const evTipo = ext.extendedProps?.evento_tipo;
+      const evNombre = ext.extendedProps?.evento_nombre || ext.title;
+      const horarioVal = ext.extendedProps?.horario;
+      const capMax = ext.extendedProps?.capacidad;
+      const esPriv = ext.extendedProps?.es_privado;
+      const empPrivId = ext.extendedProps?.empresa_privada_id;
+      const empPrivNom = ext.extendedProps?.empresa_privada_nombre;
 
-    // Filtrar la lista de definiciones
-    const filtrados = todosLosEventos.filter((ev) => ids.includes(ev.id));
+      return {
+        id: evId,
+        fecha_evento_id: cleanFid,
+        tipo: evTipo,
+        nombre: evNombre,
+        horario: horarioVal,
+        capacidad_maxima: capMax,
+        es_privado: esPriv,
+        empresa_privada_id: empPrivId,
+        empresa_privada_nombre: empPrivNom
+      };
+    });
 
     setEventosDisponibles(filtrados);
   };
@@ -264,6 +284,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
     setTematicaSeleccionada("");
     setEsPrivado(false);
     setEmpresaPrivadaId("");
+    setHorario("");
 
     // Para crear global, mostramos TODOS los eventos posibles para elegir
     const res = await api.get("/eventos/");
@@ -326,6 +347,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
       setTematicaSeleccionada(props.tematica_id || "");
       setEsPrivado(Boolean(props.es_privado));
       setEmpresaPrivadaId(props.empresa_privada_id ? String(props.empresa_privada_id) : "");
+      setHorario(props.horario || "");
 
       // CRITICAL FIX: Do NOT spread info.event directly. It's a complex object.
       // Extract what we need.
@@ -408,9 +430,11 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
       // 1. Asignar a grupo (Nueva asignación)
       if (grupoAsignando && !editando) {
         if (!eventoSeleccionado) return;
+        const seleccionadoObj = eventosDisponibles.find(ev => (ev.fecha_evento_id || ev.id) === Number(eventoSeleccionado));
         await api.post(`/calendario/grupo/${grupoAsignando}/asignar`, {
-          evento_id: Number(eventoSeleccionado),
+          evento_id: seleccionadoObj ? seleccionadoObj.id : Number(eventoSeleccionado),
           fecha: selectedDate,
+          fecha_evento_id: seleccionadoObj ? seleccionadoObj.fecha_evento_id : null
         });
       }
 
@@ -424,6 +448,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           tematica_id: tematicaSeleccionada ? Number(tematicaSeleccionada) : null,
           es_privado: esPrivado,
           empresa_privada_id: esPrivado ? Number(empresaPrivadaId) : null,
+          horario: horario || null,
         });
       }
 
@@ -437,6 +462,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           tematica_id: tematicaSeleccionada ? Number(tematicaSeleccionada) : null,
           es_privado: esPrivado,
           empresa_privada_id: esPrivado ? Number(empresaPrivadaId) : null,
+          horario: horario || null,
         });
       }
 
@@ -742,8 +768,9 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
                       label += ` [Privado: ${instancia.extendedProps.empresa_privada_nombre}]`;
                     }
 
+                    const optionVal = ev.fecha_evento_id || ev.id;
                     return (
-                      <option key={ev.id} value={ev.id}>
+                      <option key={optionVal} value={optionVal}>
                         {label}
                       </option>
                     );
@@ -794,6 +821,19 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
                           </select>
                         </div>
                       )}
+
+                      <div style={{ marginTop: 10 }}>
+                        <label style={{ display: "block", marginBottom: 5 }}>
+                          Horario / Turno (opcional, ej: 18:00hs):
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="ej: 18:00hs"
+                          value={horario}
+                          onChange={(e) => setHorario(e.target.value)}
+                          style={{ width: "100%", padding: "6px", borderRadius: "4px", border: "1px solid #cbd5e1" }}
+                        />
+                      </div>
 
                       <label style={{ display: "block", marginTop: 12 }}>
                         <input

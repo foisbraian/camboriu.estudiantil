@@ -71,9 +71,12 @@ def exportar_excel(background_tasks: BackgroundTasks, db: Session = Depends(get_
             continue
         
         # Determinar si tiene comida según el tipo de servicio
-        con_comida = ""
         if evento.tipo == "PARQUE":
             con_comida = "SI" if grupo.parque_con_comida else "NO"
+        elif evento.tipo == "CAMPAMENTO":
+            con_comida = "SI" if getattr(grupo, "campamento_con_comida", False) else "NO"
+        elif evento.tipo == "ZACARIAS":
+            con_comida = "SI" if getattr(grupo, "zacarias_con_comida", False) else "NO"
         elif evento.tipo == "POOL":
             con_comida = "SI" if grupo.pool_con_comida else "NO"
         else:  # DISCO
@@ -156,9 +159,52 @@ def exportar_excel(background_tasks: BackgroundTasks, db: Session = Depends(get_
             ws3.append([f.fecha, emp, datos["con"], datos["sin"]])
 
     # =================================================
+    # HOJA CAMPAMENTO (POR EMPRESA)
+    # =================================================
+    ws_camp = wb.create_sheet("Campamento Americano")
+    ws_camp.append(["Fecha", "Empresa", "Pax con comida", "Pax sin comida"])
+    for f in fechas:
+        if f.evento.tipo != "CAMPAMENTO":
+            continue
+        empresas = {}
+        for a in f.asignaciones:
+            if not a.grupo or not a.grupo.empresa:
+                continue
+            empresa = a.grupo.empresa.nombre
+            if empresa not in empresas:
+                empresas[empresa] = {"con": 0, "sin": 0}
+            if getattr(a.grupo, "campamento_con_comida", False):
+                empresas[empresa]["con"] += a.grupo.cantidad_pax
+            else:
+                empresas[empresa]["sin"] += a.grupo.cantidad_pax
+        for emp, datos in empresas.items():
+            ws_camp.append([f.fecha, emp, datos["con"], datos["sin"]])
+
+    # =================================================
+    # HOJA ZACARIAS (POR EMPRESA)
+    # =================================================
+    ws_zac = wb.create_sheet("Zacarias")
+    ws_zac.append(["Fecha", "Empresa", "Pax con comida", "Pax sin comida"])
+    for f in fechas:
+        if f.evento.tipo != "ZACARIAS":
+            continue
+        empresas = {}
+        for a in f.asignaciones:
+            if not a.grupo or not a.grupo.empresa:
+                continue
+            empresa = a.grupo.empresa.nombre
+            if empresa not in empresas:
+                empresas[empresa] = {"con": 0, "sin": 0}
+            if getattr(a.grupo, "zacarias_con_comida", False):
+                empresas[empresa]["con"] += a.grupo.cantidad_pax
+            else:
+                empresas[empresa]["sin"] += a.grupo.cantidad_pax
+        for emp, datos in empresas.items():
+            ws_zac.append([f.fecha, emp, datos["con"], datos["sin"]])
+
+    # =================================================
     # HOJA 4 → POOL (POR EMPRESA)
     # =================================================
-
     ws4 = wb.create_sheet("Pool")
 
     ws4.append(["Fecha", "Empresa", "Pax con comida", "Pax sin comida"])

@@ -14,14 +14,17 @@ from collections import defaultdict
 
 router = APIRouter(prefix="/calendario", tags=["Calendario"])
 
+router = APIRouter(prefix="/calendario", tags=["Calendario"])
+
 
 # =========================================================
 # SCHEMAS
 # =========================================================
 
 class AsignarEventoBody(BaseModel):
-    evento_id: int
+    evento_id: Optional[int] = None
     fecha: date
+    fecha_evento_id: Optional[int] = None
 
 
 
@@ -33,6 +36,7 @@ class EditarFechaEventoBody(BaseModel):
     tematica_id: Optional[int] = None
     es_privado: bool = False
     empresa_privada_id: Optional[int] = None
+    horario: Optional[str] = None
 
 
 # =========================================================
@@ -96,6 +100,9 @@ def calendario(db: Session = Depends(get_db)):
         color_map = {
             "DISCO": "yellow",
             "PARQUE": "green",
+            "CAMPAMENTO": "#16a34a",
+            "ZACARIAS": "#15803d",
+            "BIENVENIDA": "#a855f7",
             "POOL": "skyblue",
             "CENA": "#e2e8f0",
             "HIELO": "#e0f2fe",
@@ -146,6 +153,12 @@ def calendario(db: Session = Depends(get_db)):
         if f.evento.tipo == "PARQUE":
             con_comida = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo and a.grupo.parque_con_comida)
             sin_comida = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo and not a.grupo.parque_con_comida)
+        elif f.evento.tipo == "CAMPAMENTO":
+            con_comida = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo and getattr(a.grupo, "campamento_con_comida", False))
+            sin_comida = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo and not getattr(a.grupo, "campamento_con_comida", False))
+        elif f.evento.tipo == "ZACARIAS":
+            con_comida = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo and getattr(a.grupo, "zacarias_con_comida", False))
+            sin_comida = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo and not getattr(a.grupo, "zacarias_con_comida", False))
         elif f.evento.tipo == "POOL":
             con_comida = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo and a.grupo.pool_con_comida)
             sin_comida = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo and not a.grupo.pool_con_comida)
@@ -156,6 +169,11 @@ def calendario(db: Session = Depends(get_db)):
             titulo = f"{f.evento.nombre} (Turnos: {turnos} x {capacidad_turno})"
         else:
             titulo = f"{f.evento.nombre} ({ocupacion}/{capacidad})"
+        
+        horario_val = getattr(f, "horario", None)
+        if horario_val:
+            titulo += f" - {horario_val}"
+
         if f.tematica:
             titulo += f"\n{f.tematica.nombre}"
         
@@ -177,6 +195,7 @@ def calendario(db: Session = Depends(get_db)):
                 "evento_nombre": f.evento.nombre,
                 "con_alcohol": f.con_alcohol,
                 "es_mix_evento": getattr(f, 'es_mix_evento', False),
+                "horario": getattr(f, "horario", None),
                 "ocupacion": ocupacion,
                 "capacidad": capacidad,
                 "con_comida": con_comida,
@@ -265,6 +284,18 @@ def calendario(db: Session = Depends(get_db)):
             else:
                 parque_txt = "NO"
 
+            # Campamento Logic
+            if getattr(g, 'campamento_acceso', False):
+                campamento_txt = "SI (Con Comida)" if getattr(g, 'campamento_con_comida', False) else "SI (Sin Comida)"
+            else:
+                campamento_txt = "NO"
+
+            # Zacarias Logic
+            if getattr(g, 'zacarias_acceso', False):
+                zacarias_txt = "SI (Con Comida)" if getattr(g, 'zacarias_con_comida', False) else "SI (Sin Comida)"
+            else:
+                zacarias_txt = "NO"
+
             # Pool Logic
             if g.pool_acceso:
                 pool_txt = "SI (Con Comida)" if g.pool_con_comida else "SI (Sin Comida)"
@@ -280,7 +311,9 @@ def calendario(db: Session = Depends(get_db)):
                 f"Discos Compradas: {g.discos_compradas}\n"
                 f"----------------\n"
                 f"Alcohol: {alcohol_txt}\n"
-                f"Parque: {parque_txt}\n"
+                f"Parque (deprecated): {parque_txt}\n"
+                f"Campamento: {campamento_txt}\n"
+                f"Zacarias: {zacarias_txt}\n"
                 f"Pool: {pool_txt}\n"
                 f"Bar de hielo: {'SI' if g.bar_hielo else 'NO'}\n"
                 f"Surf: {'SI' if getattr(g, 'surf_acceso', False) else 'NO'}\n"
@@ -326,6 +359,9 @@ def calendario(db: Session = Depends(get_db)):
                         color_map = {
                             "DISCO": "#000000",    # Negro
                             "PARQUE": "#16a34a",   # Verde
+                            "CAMPAMENTO": "#16a34a",
+                            "ZACARIAS": "#15803d",
+                            "BIENVENIDA": "#a855f7",
                             "POOL": "#0ea5e9",     # Azul claro
                             "CENA": "#94a3b8",     # Gris
                             "HIELO": "#e0f2fe",    # Celeste claro
@@ -493,6 +529,18 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
         else:
             parque_txt = "NO"
 
+        # Campamento Logic
+        if getattr(g, 'campamento_acceso', False):
+            campamento_txt = "SI (Con Comida)" if getattr(g, 'campamento_con_comida', False) else "SI (Sin Comida)"
+        else:
+            campamento_txt = "NO"
+
+        # Zacarias Logic
+        if getattr(g, 'zacarias_acceso', False):
+            zacarias_txt = "SI (Con Comida)" if getattr(g, 'zacarias_con_comida', False) else "SI (Sin Comida)"
+        else:
+            zacarias_txt = "NO"
+
         # Pool Logic
         if g.pool_acceso:
             pool_txt = "SI (Con Comida)" if g.pool_con_comida else "SI (Sin Comida)"
@@ -508,7 +556,9 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
             f"Discos Compradas: {g.discos_compradas}\n"
             f"----------------\n"
             f"Alcohol: {alcohol_txt}\n"
-            f"Parque: {parque_txt}\n"
+            f"Parque (deprecated): {parque_txt}\n"
+            f"Campamento: {campamento_txt}\n"
+            f"Zacarias: {zacarias_txt}\n"
             f"Pool: {pool_txt}\n"
             f"Bar de hielo: {'SI' if g.bar_hielo else 'NO'}\n"
             f"Surf: {'SI' if getattr(g, 'surf_acceso', False) else 'NO'}\n"
@@ -549,7 +599,7 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                 otras_asignaciones = [a for a in asignaciones_dia if a.fecha_evento.evento.tipo != "HIELO"]
 
                 for asignacion in otras_asignaciones:
-                    color_map = {"DISCO": "#000000", "PARQUE": "#16a34a", "POOL": "#0ea5e9", "CENA": "#94a3b8", "HIELO": "#e0f2fe", "SURF": "#3b82f6", "UNIPRAIAS": "#10b981", "BETO": "#ec4899", "BARCO": "#8b5cf6", "SUNSET": "#f59e0b", "CRISTO": "#fcd34d", "MULTIPARQUE": "#22c55e"}
+                    color_map = {"DISCO": "#000000", "PARQUE": "#16a34a", "CAMPAMENTO": "#16a34a", "ZACARIAS": "#15803d", "BIENVENIDA": "#a855f7", "POOL": "#0ea5e9", "CENA": "#94a3b8", "HIELO": "#e0f2fe", "SURF": "#3b82f6", "UNIPRAIAS": "#10b981", "BETO": "#ec4899", "BARCO": "#8b5cf6", "SUNSET": "#f59e0b", "CRISTO": "#fcd34d", "MULTIPARQUE": "#22c55e"}
                     bg_color_asig = color_map.get(asignacion.fecha_evento.evento.tipo, "gray")
                     text_color_asig = "black" if bg_color_asig in ["#e0f2fe", "#f59e0b", "#fcd34d"] else "white"
 
@@ -608,7 +658,7 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
         fechas_globales = db.query(models.FechaEvento).filter(models.FechaEvento.id.in_(fecha_eventos_asignados_ids)).all()
         
         for f in fechas_globales:
-            color_map = {"DISCO": "yellow", "PARQUE": "green", "POOL": "skyblue", "CENA": "#e2e8f0", "HIELO": "#e0f2fe", "SURF": "#3b82f6", "UNIPRAIAS": "#10b981", "BETO": "#ec4899", "BARCO": "#8b5cf6", "SUNSET": "#f59e0b", "CRISTO": "#fcd34d", "MULTIPARQUE": "#22c55e"}
+            color_map = {"DISCO": "yellow", "PARQUE": "green", "CAMPAMENTO": "#16a34a", "ZACARIAS": "#15803d", "BIENVENIDA": "#a855f7", "POOL": "skyblue", "CENA": "#e2e8f0", "HIELO": "#e0f2fe", "SURF": "#3b82f6", "UNIPRAIAS": "#10b981", "BETO": "#ec4899", "BARCO": "#8b5cf6", "SUNSET": "#f59e0b", "CRISTO": "#fcd34d", "MULTIPARQUE": "#22c55e"}
             es_mix = getattr(f, 'es_mix_evento', False)
             if es_mix:
                 color = "#f97316"  # Naranja Mix
@@ -667,9 +717,12 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
         raise HTTPException(400, "Fuera de estadía")
 
     # Obtener evento a asignar
-    nuevo_evento_fecha = db.query(models.FechaEvento) \
-        .filter_by(evento_id=evento_id, fecha=fecha).first()
-
+    if body.fecha_evento_id:
+        nuevo_evento_fecha = db.get(models.FechaEvento, body.fecha_evento_id)
+    else:
+        nuevo_evento_fecha = db.query(models.FechaEvento) \
+            .filter_by(evento_id=evento_id, fecha=fecha).first()
+            
     if not nuevo_evento_fecha:
         raise HTTPException(400, "No existe evento ese día")
 
@@ -715,6 +768,14 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
     # Validacion PARQUE
     if tipo_nuevo == "PARQUE" and not grupo.parque_acceso:
         raise HTTPException(400, "El grupo no tiene acceso a PARQUE")
+
+    # Validacion CAMPAMENTO
+    if tipo_nuevo == "CAMPAMENTO" and not getattr(grupo, "campamento_acceso", False):
+        raise HTTPException(400, "El grupo no tiene acceso a CAMPAMENTO AMERICANO")
+
+    # Validacion ZACARIAS
+    if tipo_nuevo == "ZACARIAS" and not getattr(grupo, "zacarias_acceso", False):
+        raise HTTPException(400, "El grupo no tiene acceso a ZACARIAS")
 
     # Validacion POOL
     if tipo_nuevo == "POOL" and not grupo.pool_acceso:
@@ -849,6 +910,7 @@ def editar_fecha_evento(fecha_evento_id: int, body: EditarFechaEventoBody, db: S
     setattr(f, "con_alcohol", body.con_alcohol)
     setattr(f, "es_mix_evento", body.es_mix_evento)
     setattr(f, "tematica_id", body.tematica_id)
+    setattr(f, "horario", body.horario)
 
     # Solo cambiar es_privado/empresa_privada_id si hay un cambio real
     # NO borrar asignaciones al marcar como privado

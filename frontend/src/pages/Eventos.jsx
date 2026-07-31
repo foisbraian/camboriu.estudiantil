@@ -60,7 +60,10 @@ export default function Eventos() {
 
       <select onChange={(e) => setTipo(e.target.value)}>
         <option value="DISCO">Disco</option>
-        <option value="PARQUE">Parque</option>
+        <option value="PARQUE">Parque (deprecated)</option>
+        <option value="CAMPAMENTO">Campamento Americano</option>
+        <option value="ZACARIAS">Zacarias</option>
+        <option value="BIENVENIDA">Bienvenida</option>
         <option value="POOL">Pool</option>
         <option value="CENA">Cena de velas</option>
         <option value="HIELO">Bar de hielo</option>

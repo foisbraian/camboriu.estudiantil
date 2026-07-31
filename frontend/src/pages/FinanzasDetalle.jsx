@@ -23,6 +23,12 @@ export default function FinanzasDetalle() {
         "parque": "Parque (General)",
         "parque_con_comida": "Parque con Comida",
         "parque_sin_comida": "Parque sin Comida",
+        "campamento": "Campamento Americano (General)",
+        "campamento_con_comida": "Campamento Americano con Comida",
+        "campamento_sin_comida": "Campamento Americano sin Comida",
+        "zacarias": "Zacarias (General)",
+        "zacarias_con_comida": "Zacarias con Comida",
+        "zacarias_sin_comida": "Zacarias sin Comida",
         "pool": "Pool (General)",
         "pool_con_comida": "Pool con Comida",
         "pool_sin_comida": "Pool sin Comida",
@@ -52,6 +58,12 @@ export default function FinanzasDetalle() {
         precio_parque_individual: 0,
         precio_parque_con_comida: 0,
         precio_parque_sin_comida: 0,
+        precio_campamento_individual: 0,
+        precio_campamento_con_comida: 0,
+        precio_campamento_sin_comida: 0,
+        precio_zacarias_individual: 0,
+        precio_zacarias_con_comida: 0,
+        precio_zacarias_sin_comida: 0,
         precio_pool_individual: 0,
         precio_pool_con_comida: 0,
         precio_pool_sin_comida: 0,
@@ -87,6 +99,12 @@ export default function FinanzasDetalle() {
         parque_liberados_ratio: 0,
         parque_padres_gratis: false,
         parque_guias_gratis: false,
+        campamento_liberados_ratio: 0,
+        campamento_padres_gratis: false,
+        campamento_guias_gratis: false,
+        zacarias_liberados_ratio: 0,
+        zacarias_padres_gratis: false,
+        zacarias_guias_gratis: false,
         pool_liberados_ratio: 0,
         pool_padres_gratis: false,
         pool_guias_gratis: false,
@@ -341,6 +359,69 @@ export default function FinanzasDetalle() {
                                     </div>
                                     <LiberadosInputs prefix="parque" label="Parque" />
                                 </div>
+
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                                    <p style={{ margin: "0 0 4px 0", fontSize: "0.8rem", color: "#64748b" }}>Precio Campamento Americano</p>
+                                    <input
+                                        type="number"
+                                        value={configForm.precio_campamento_individual || 0}
+                                        onChange={e => setConfigForm({ ...configForm, precio_campamento_individual: Number(e.target.value) })}
+                                        style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
+                                    />
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
+                                        <div>
+                                            <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Con comida</p>
+                                            <input
+                                                type="number"
+                                                value={configForm.precio_campamento_con_comida || 0}
+                                                onChange={e => setConfigForm({ ...configForm, precio_campamento_con_comida: Number(e.target.value) })}
+                                                style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Sin comida</p>
+                                            <input
+                                                type="number"
+                                                value={configForm.precio_campamento_sin_comida || 0}
+                                                onChange={e => setConfigForm({ ...configForm, precio_campamento_sin_comida: Number(e.target.value) })}
+                                                style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
+                                            />
+                                        </div>
+                                    </div>
+                                    <LiberadosInputs prefix="campamento" label="Campamento" />
+                                </div>
+
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                                    <p style={{ margin: "0 0 4px 0", fontSize: "0.8rem", color: "#64748b" }}>Precio Zacarias</p>
+                                    <input
+                                        type="number"
+                                        value={configForm.precio_zacarias_individual || 0}
+                                        onChange={e => setConfigForm({ ...configForm, precio_zacarias_individual: Number(e.target.value) })}
+                                        style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
+                                    />
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
+                                        <div>
+                                            <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Con comida</p>
+                                            <input
+                                                type="number"
+                                                value={configForm.precio_zacarias_con_comida || 0}
+                                                onChange={e => setConfigForm({ ...configForm, precio_zacarias_con_comida: Number(e.target.value) })}
+                                                style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Sin comida</p>
+                                            <input
+                                                type="number"
+                                                value={configForm.precio_zacarias_sin_comida || 0}
+                                                onChange={e => setConfigForm({ ...configForm, precio_zacarias_sin_comida: Number(e.target.value) })}
+                                                style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
+                                            />
+                                        </div>
+                                    </div>
+                                    <LiberadosInputs prefix="zacarias" label="Zacarias" />
+                                </div>
+
                                     <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                                         <p style={{ margin: "0 0 4px 0", fontSize: "0.8rem", color: "#64748b" }}>Precio Pool</p>
                                         <input

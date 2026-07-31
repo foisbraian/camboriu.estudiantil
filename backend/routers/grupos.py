@@ -47,6 +47,12 @@ def editar_grupo(grupo_id: int, data: schemas.GrupoUpdate, db: Session = Depends
     grupo.parque_acceso = data.parque_acceso
     grupo.parque_con_comida = data.parque_con_comida
     
+    grupo.campamento_acceso = data.campamento_acceso
+    grupo.campamento_con_comida = data.campamento_con_comida
+
+    grupo.zacarias_acceso = data.zacarias_acceso
+    grupo.zacarias_con_comida = data.zacarias_con_comida
+    
     grupo.pool_acceso = data.pool_acceso
     grupo.pool_con_comida = data.pool_con_comida
     grupo.cena_velas = data.cena_velas
@@ -54,6 +60,8 @@ def editar_grupo(grupo_id: int, data: schemas.GrupoUpdate, db: Session = Depends
     grupo.pagantes_finales = data.pagantes_finales
     grupo.pagantes_finales_disco = data.pagantes_finales_disco
     grupo.pagantes_finales_parque = data.pagantes_finales_parque
+    grupo.pagantes_finales_campamento = data.pagantes_finales_campamento
+    grupo.pagantes_finales_zacarias = data.pagantes_finales_zacarias
     grupo.pagantes_finales_pool = data.pagantes_finales_pool
     grupo.pagantes_finales_cena = data.pagantes_finales_cena
     grupo.pagantes_finales_hielo = data.pagantes_finales_hielo

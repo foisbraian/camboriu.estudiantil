@@ -39,6 +39,12 @@ class GrupoCreate(BaseModel):
     parque_acceso: bool
     parque_con_comida: bool
 
+    campamento_acceso: bool = False
+    campamento_con_comida: bool = False
+
+    zacarias_acceso: bool = False
+    zacarias_con_comida: bool = False
+
     pool_acceso: bool
     pool_con_comida: bool
     cena_velas: bool = False
@@ -46,6 +52,8 @@ class GrupoCreate(BaseModel):
     pagantes_finales: int | None = None
     pagantes_finales_disco: int | None = None
     pagantes_finales_parque: int | None = None
+    pagantes_finales_campamento: int | None = None
+    pagantes_finales_zacarias: int | None = None
     pagantes_finales_pool: int | None = None
     pagantes_finales_cena: int | None = None
     pagantes_finales_hielo: int | None = None
@@ -119,6 +127,7 @@ class EventoUpdate(BaseModel):
 class FechaEventoCreate(BaseModel):
     evento_id: int
     fecha: date  # solo date, Pydantic convertirá "YYYY-MM-DD"
+    horario: Union[str, None] = None
     con_alcohol: bool = False
     es_mix_evento: bool = False  # Mix (pulsera)
     tematica_id: Union[int, None] = None  # opcional, solo para discos
@@ -142,6 +151,15 @@ class FinanzasEmpresaCreate(BaseModel):
     precio_parque_individual: int = 0
     precio_parque_con_comida: int = 0
     precio_parque_sin_comida: int = 0
+    
+    precio_campamento_individual: int = 0
+    precio_campamento_con_comida: int = 0
+    precio_campamento_sin_comida: int = 0
+
+    precio_zacarias_individual: int = 0
+    precio_zacarias_con_comida: int = 0
+    precio_zacarias_sin_comida: int = 0
+
     precio_pool_individual: int = 0
     precio_pool_con_comida: int = 0
     precio_pool_sin_comida: int = 0
@@ -151,6 +169,8 @@ class FinanzasEmpresaCreate(BaseModel):
     precio_combo: int = 0
     combo_discos: int = 0
     combo_parque: bool = False
+    combo_campamento: bool = False
+    combo_zacarias: bool = False
     combo_pool: bool = False
     combo_cena_velas: bool = False
     combo_bar_hielo: bool = False
@@ -179,6 +199,15 @@ class FinanzasEmpresaCreate(BaseModel):
     parque_liberados_ratio: int = 0
     parque_padres_gratis: bool = False
     parque_guias_gratis: bool = False
+    
+    campamento_liberados_ratio: int = 0
+    campamento_padres_gratis: bool = False
+    campamento_guias_gratis: bool = False
+
+    zacarias_liberados_ratio: int = 0
+    zacarias_padres_gratis: bool = False
+    zacarias_guias_gratis: bool = False
+
     pool_liberados_ratio: int = 0
     pool_padres_gratis: bool = False
     pool_guias_gratis: bool = False
