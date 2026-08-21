@@ -308,6 +308,7 @@ def calendario(db: Session = Depends(get_db)):
                 f"Campamento: {campamento_txt}\n"
                 f"Zacarias: {zacarias_txt}\n"
                 f"Pool: {pool_txt}\n"
+                f"Cena de Velas: {'SI' if getattr(g, 'cena_velas', False) else 'NO'}\n"
                 f"Bar de hielo: {'SI' if g.bar_hielo else 'NO'}\n"
                 f"Surf: {'SI' if getattr(g, 'surf_acceso', False) else 'NO'}\n"
                 f"Unipraias: {'SI' if getattr(g, 'unipraias_acceso', False) else 'NO'}\n"
@@ -546,6 +547,7 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
             f"Campamento: {campamento_txt}\n"
             f"Zacarias: {zacarias_txt}\n"
             f"Pool: {pool_txt}\n"
+            f"Cena de Velas: {'SI' if getattr(g, 'cena_velas', False) else 'NO'}\n"
             f"Bar de hielo: {'SI' if g.bar_hielo else 'NO'}\n"
             f"Surf: {'SI' if getattr(g, 'surf_acceso', False) else 'NO'}\n"
             f"Unipraias: {'SI' if getattr(g, 'unipraias_acceso', False) else 'NO'}\n"
@@ -662,8 +664,25 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
             # No especificó si deben ver la ocupación global o no.
             # Por simplicidad y privacidad, mostraremos el nombre del evento.
             
-            # Título con temática si existe
-            titulo_portal = f"{f.evento.nombre}"
+            # Calcular ocupación solo para esta empresa
+            pax_empresa = 0
+            turnos_empresa = 0
+            if f.evento.tipo == "HIELO":
+                turnos_empresa = sum(1 for a in f.asignaciones if a.grupo and a.grupo.empresa_id == empresa.id)
+                for a in f.asignaciones:
+                    if a.grupo and a.grupo.empresa_id == empresa.id:
+                        if a.pax_asignados is not None:
+                            pax_empresa += a.pax_asignados
+                        else:
+                            pax_empresa += a.grupo.cantidad_pax
+                titulo_portal = f"{f.evento.nombre} ({pax_empresa} PAX - {turnos_empresa} Turnos)"
+            else:
+                pax_empresa = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo and a.grupo.empresa_id == empresa.id)
+                titulo_portal = f"{f.evento.nombre} ({pax_empresa} PAX)"
+
+            if getattr(f, "horario", None):
+                titulo_portal += f" - {f.horario}"
+
             if f.tematica:
                 titulo_portal += f"\n{f.tematica.nombre}"
             
@@ -754,6 +773,10 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
     # Validacion PARQUE
     if tipo_nuevo == "PARQUE" and not grupo.parque_acceso:
         raise HTTPException(400, "El grupo no tiene acceso a PARQUE")
+
+    # Validacion CENA DE VELAS
+    if tipo_nuevo == "CENA" and not getattr(grupo, "cena_velas", False):
+        raise HTTPException(400, "El grupo no tiene Cena de Velas")
 
     # Validacion CAMPAMENTO
     if tipo_nuevo == "CAMPAMENTO" and not getattr(grupo, "campamento_acceso", False):
