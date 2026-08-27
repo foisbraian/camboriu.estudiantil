@@ -20,6 +20,7 @@ from routers import (
 import models
 from database import engine
 import alter_db
+from routers import upload
 
 app = FastAPI()
 
@@ -117,3 +118,4 @@ app.include_router(proveedores.router)
 app.include_router(backup.router)
 app.include_router(hoteleria.router)
 app.include_router(maintenance.router)
+app.include_router(upload.router)
