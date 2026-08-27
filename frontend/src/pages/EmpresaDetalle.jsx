@@ -584,6 +584,54 @@ export default function EmpresaDetalle() {
     XLSX.writeFile(workbook, fileName);
   };
 
+  const fileInputRef = useRef(null);
+
+  const handleUploadExcel = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await api.post(`/grupos/empresa/${id}/upload`, formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      alert(`Se han cargado ${res.data.created} grupos exitosamente.`);
+      cargar();
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.detail || "Error al subir el archivo Excel");
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const descargarPlantilla = () => {
+    const templateData = [{
+      "Nombre": "Ejemplo Grupo 1",
+      "PAX": 45,
+      "Fecha Entrada": "2026-12-01",
+      "Fecha Salida": "2026-12-07",
+      "Discos": 3,
+      "Campamento Acceso": "Si",
+      "Campamento Con Comida": "Si",
+      "Zacarias Acceso": "Si",
+      "Zacarias Con Comida": "No",
+      "Pool Acceso": "No",
+      "Pool Con Comida": "No",
+      "Permite Alcohol": "Si",
+      "Mix": "No",
+      "Parque Acceso": "No",
+      "Parque Con Comida": "No"
+    }];
+
+    const worksheet = XLSX.utils.json_to_sheet(templateData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Plantilla");
+    XLSX.writeFile(workbook, "Plantilla_Grupos.xlsx");
+  };
+
   if (!empresa) return <p>Cargando...</p>;
 
   return (
@@ -632,53 +680,6 @@ export default function EmpresaDetalle() {
         </div>
       </div>
 
-  const fileInputRef = useRef(null);
-
-  const handleUploadExcel = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const res = await api.post(`/grupos/empresa/${id}/upload`, formData, {
-        headers: { "Content-Type": "multipart/form-data" }
-      });
-      alert(`Se han cargado ${res.data.created} grupos exitosamente.`);
-      cargar();
-    } catch (error) {
-      console.error(error);
-      alert(error.response?.data?.detail || "Error al subir el archivo Excel");
-    } finally {
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
-
-  const descargarPlantilla = () => {
-    const templateData = [{
-      "Nombre": "Ejemplo Grupo 1",
-      "PAX": 45,
-      "Fecha Entrada": "2026-12-01",
-      "Fecha Salida": "2026-12-07",
-      "Discos": 3,
-      "Campamento Acceso": "Si",
-      "Campamento Con Comida": "Si",
-      "Zacarias Acceso": "Si",
-      "Zacarias Con Comida": "No",
-      "Pool Acceso": "No",
-      "Pool Con Comida": "No",
-      "Permite Alcohol": "Si",
-      "Mix": "No",
-      "Parque Acceso": "No",
-      "Parque Con Comida": "No"
-    }];
-
-    const worksheet = XLSX.utils.json_to_sheet(templateData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Plantilla");
-    XLSX.writeFile(workbook, "Plantilla_Grupos.xlsx");
-  };
 
       {/* ================= NUEVO GRUPO ================= */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 20 }}>
