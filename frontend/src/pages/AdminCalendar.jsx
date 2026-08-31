@@ -30,7 +30,13 @@ export default function AdminCalendar() {
 
   // Lista de empresas derivada de los resources
   const empresas = useMemo(() => {
-    return resources.filter(r => r.extendedProps?.esEmpresa);
+    return resources
+      .filter(r => r.extendedProps?.esEmpresa)
+      .sort((a, b) => {
+        const nombreA = (a.extendedProps?.empresaNombre || a.title || "").toLowerCase();
+        const nombreB = (b.extendedProps?.empresaNombre || b.title || "").toLowerCase();
+        return nombreA.localeCompare(nombreB, "es");
+      });
   }, [resources]);
 
   // Filtrado de recursos (empresas y grupos)
