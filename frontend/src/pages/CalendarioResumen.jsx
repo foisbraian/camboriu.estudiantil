@@ -8,9 +8,9 @@ const MESES = [
 ];
 
 const SEL = {
-  fontSize: "0.82rem",
-  padding: "5px 8px",
-  borderRadius: 6,
+  fontSize: "0.75rem",
+  padding: "2px 4px",
+  borderRadius: 4,
   border: "1px solid #475569",
   outline: "none",
   background: "#334155",
@@ -40,7 +40,7 @@ export default function CalendarioResumen() {
       setEvents(res.data.events);
     } catch (e) {
       console.error("Error cargando resumen", e);
-      setError("Error al cargar datos. Revisá la conexión con el servidor.");
+      setError("Error al cargar datos.");
     } finally {
       setLoading(false);
     }
@@ -54,18 +54,18 @@ export default function CalendarioResumen() {
         background: "#f8fafc",
       }}
     >
-      {/* Controls bar */}
+      {/* Controls bar (Compact) */}
       <div
         className="hide-on-print"
         style={{
-          display: "flex", alignItems: "center", gap: 12,
-          padding: "8px 16px",
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "4px 8px",
           background: "#1e293b", borderBottom: "1px solid #334155",
           flexShrink: 0,
         }}
       >
-        <span style={{ color: "#e2e8f0", fontWeight: 800, fontSize: "0.9rem", marginRight: 8 }}>
-          📊 Resumen Calendario
+        <span style={{ color: "#e2e8f0", fontWeight: 800, fontSize: "0.8rem", marginRight: 4 }}>
+          📊 Resumen
         </span>
 
         <select value={mes} onChange={(e) => setMes(Number(e.target.value))} style={SEL}>
@@ -82,40 +82,22 @@ export default function CalendarioResumen() {
 
         <button
           onClick={cargar}
+          title="Actualizar datos"
           style={{
             background: "#2563eb", color: "white",
-            border: "none", borderRadius: 6,
-            padding: "5px 12px", fontSize: "0.82rem", fontWeight: 600, cursor: "pointer",
+            border: "none", borderRadius: 4,
+            padding: "2px 8px", fontSize: "0.75rem", fontWeight: 600, cursor: "pointer",
           }}
         >
-          ↻ Actualizar
+          ↻
         </button>
-
-        {/* Legend */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
-          {[
-            { label: "S/A", bg: "#fef08a", text: "#1e293b" },
-            { label: "C/A", bg: "#ef4444", text: "white" },
-            { label: "MIX", bg: "#f97316", text: "white" },
-          ].map(({ label, bg, text }) => (
-            <span
-              key={label}
-              style={{ background: bg, color: text, borderRadius: 4, padding: "2px 8px", fontSize: "0.7rem", fontWeight: 800 }}
-            >
-              {label}
-            </span>
-          ))}
-          <span style={{ color: "#64748b", fontSize: "0.7rem" }}>
-            Celda = servicio + PAX total del grupo
-          </span>
-        </div>
       </div>
 
       {/* Content */}
       <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
         {loading ? (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#64748b", fontSize: "1rem", gap: 10 }}>
-            <span style={{ fontSize: "1.4rem" }}>⏳</span> Cargando resumen...
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#64748b", fontSize: "0.9rem", gap: 8 }}>
+            <span>⏳</span> Cargando...
           </div>
         ) : error ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#ef4444" }}>
