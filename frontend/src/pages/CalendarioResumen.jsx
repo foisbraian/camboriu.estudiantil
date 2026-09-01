@@ -48,6 +48,7 @@ export default function CalendarioResumen() {
 
   return (
     <div
+      className="resumen-container"
       style={{
         display: "flex", flexDirection: "column",
         height: "100vh", overflow: "hidden",
@@ -91,10 +92,53 @@ export default function CalendarioResumen() {
         >
           ↻
         </button>
+
+        <button
+          onClick={() => window.print()}
+          title="Imprimir / Exportar a PDF"
+          style={{
+            background: "#10b981", color: "white",
+            border: "none", borderRadius: 4,
+            padding: "2px 8px", fontSize: "0.75rem", fontWeight: 600, cursor: "pointer",
+            marginLeft: "auto"
+          }}
+        >
+          🖨️ Imprimir
+        </button>
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+      <div className="resumen-content" style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+        <style>{`
+          @media print {
+            @page { size: landscape; margin: 10mm; }
+            html, body, #root, .resumen-container {
+              height: auto !important;
+              min-height: auto !important;
+              overflow: visible !important;
+              background: white !important;
+            }
+            .hide-on-print { display: none !important; }
+            .resumen-content {
+              overflow: visible !important;
+              position: static !important;
+              display: block !important;
+            }
+            /* Forzar a que los navegadores impriman los colores de fondo */
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            /* Achicar tabla para que entre en una hoja */
+            table {
+              width: 100% !important;
+              max-width: 100% !important;
+            }
+            th, td { padding: 1px !important; }
+            /* Evitar cortes a la mitad de una fila */
+            tr { page-break-inside: avoid; }
+          }
+        `}</style>
         {loading ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#64748b", fontSize: "0.9rem", gap: 8 }}>
             <span>⏳</span> Cargando...

@@ -273,7 +273,7 @@ export default function ResumenCalendarView({ resources, events, mes, anio }) {
                           borderBottom: "1px solid #e2e8f0",
                           borderLeft: `1px solid ${isToday ? "#bfdbfe" : isWeekend ? "#e2e8f0" : "#f1f5f9"}`,
                           background: isToday ? "#eff6ff" : isWeekend ? "#f8fafc" : "white",
-                          padding: sp ? 2 : 0,
+                          padding: (sp || inRange) ? 2 : 0,
                           verticalAlign: "middle", textAlign: "center",
                         }}
                       >
@@ -299,8 +299,9 @@ export default function ResumenCalendarView({ resources, events, mes, anio }) {
                           <div
                             style={{
                               width: "100%", height: "100%", minHeight: 36,
-                              background: meta.inTownBg,
-                              opacity: 0.6
+                              background: meta.bg,
+                              borderRadius: 4,
+                              opacity: 1
                             }}
                           />
                         ) : null}
