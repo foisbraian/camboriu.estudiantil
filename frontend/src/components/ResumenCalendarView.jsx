@@ -10,18 +10,70 @@ const TIPO_META = {
 const DIAS = ["D","L","M","X","J","V","S"];
 
 export default function ResumenCalendarView({ resources, events, mes, anio }) {
-  // Lookup: resourceId -> dateStr -> eventData
-  const eventMap = useMemo(() => {
+  
+  // 1. Agrupar recursos por (Empresa + Tipo Alcohol)
+  // Ignoramos fecha_entrada y fecha_salida para juntar todo en 1 sola fila
+  const groupedResources = useMemo(() => {
     const map = new Map();
+    for (const res of resources) {
+      const ext = res.extendedProps || {};
+      const emp = ext.empresaNombre || "Sin Empresa";
+      const tipo = ext.tipoAlcohol || "sin";
+      const key = `${emp}-${tipo}`;
+
+      if (!map.has(key)) {
+        map.set(key, {
+          id: key,
+          empresaNombre: emp,
+          tipoAlcohol: tipo,
+          totalGrupos: 0,
+          originalIds: []
+        });
+      }
+      
+      const group = map.get(key);
+      group.totalGrupos += (ext.totalGrupos || 1);
+      group.originalIds.push(res.id);
+    }
+    return Array.from(map.values());
+  }, [resources]);
+
+  // 2. Mapear eventos a las nuevas filas agrupadas
+  const eventMap = useMemo(() => {
+    const map = new Map(); // key -> dateStr -> { serviciosPax: {} }
+    
+    // Reverse lookup: originalId -> synthetic key
+    const idToKey = {};
+    for (const grp of groupedResources) {
+      for (const origId of grp.originalIds) {
+        idToKey[origId] = grp.id;
+      }
+    }
+
     for (const ev of events) {
-      if (!map.has(ev.resourceId)) map.set(ev.resourceId, new Map());
+      const key = idToKey[ev.resourceId];
+      if (!key) continue;
+
+      if (!map.has(key)) map.set(key, new Map());
+      const dateMap = map.get(key);
+
       const d = typeof ev.start === "string" ? ev.start.slice(0, 10) : String(ev.start);
-      map.get(ev.resourceId).set(d, ev);
+      
+      if (!dateMap.has(d)) {
+        dateMap.set(d, { serviciosPax: {} });
+      }
+      
+      const destPax = dateMap.get(d).serviciosPax;
+      const srcPax = ev.extendedProps?.serviciosPax || {};
+      
+      for (const [srv, pax] of Object.entries(srcPax)) {
+        destPax[srv] = (destPax[srv] || 0) + pax;
+      }
     }
     return map;
-  }, [events]);
+  }, [events, groupedResources]);
 
-  // Days in selected month
+  // 3. Días del mes
   const days = useMemo(() => {
     const count = new Date(anio, mes + 1, 0).getDate();
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -38,39 +90,31 @@ export default function ResumenCalendarView({ resources, events, mes, anio }) {
     });
   }, [mes, anio]);
 
-  // Filtrar y Ordenar:
-  // 1. Solo mantener los que tienen actividad en el mes seleccionado
-  // 2. Ordenar por tipo (con < mix < sin) -> empresa ASC -> fechaEntrada
+  // 4. Filtrar y Ordenar
   const sortedResources = useMemo(() => {
     const firstDay = new Date(anio, mes, 1).toISOString().slice(0, 10);
     const lastDay = new Date(anio, mes + 1, 0).toISOString().slice(0, 10);
 
+    const filtrados = groupedResources.filter(grp => {
+      const rm = eventMap.get(grp.id);
+      if (!rm) return false;
+      // Solo mostrar si tienen al menos 1 servicio asignado en ESTE mes
+      for (const dateStr of rm.keys()) {
+        if (dateStr >= firstDay && dateStr <= lastDay) return true;
+      }
+      return false;
+    });
+
     const ord = { con: 0, mix: 1, sin: 2 };
-
-    const filtrados = resources.filter(res => {
-      const ext = res.extendedProps || {};
-      const fe = ext.fechaEntrada || "";
-      const fs = ext.fechaSalida || "";
-      if (!fe || !fs) return false;
-      return fe <= lastDay && fs >= firstDay;
-    });
-
     return filtrados.sort((a, b) => {
-      const ta = ord[a.extendedProps?.tipoAlcohol] ?? 9;
-      const tb = ord[b.extendedProps?.tipoAlcohol] ?? 9;
+      const ta = ord[a.tipoAlcohol] ?? 9;
+      const tb = ord[b.tipoAlcohol] ?? 9;
       if (ta !== tb) return ta - tb;
-
-      const ea = (a.extendedProps?.empresaNombre || "").toLowerCase();
-      const eb = (b.extendedProps?.empresaNombre || "").toLowerCase();
-      if (ea !== eb) return ea.localeCompare(eb, "es");
-
-      return (a.extendedProps?.fechaEntrada || "").localeCompare(
-        b.extendedProps?.fechaEntrada || ""
-      );
+      return a.empresaNombre.localeCompare(b.empresaNombre, "es");
     });
-  }, [resources, mes, anio]);
+  }, [groupedResources, eventMap, mes, anio]);
 
-  // Daily totals across all rows
+  // Totales por día
   const totalesDia = useMemo(() => {
     const map = new Map();
     for (const res of sortedResources) {
@@ -79,7 +123,7 @@ export default function ResumenCalendarView({ resources, events, mes, anio }) {
       for (const [ds, ev] of rm) {
         if (!map.has(ds)) map.set(ds, {});
         const dest = map.get(ds);
-        const sp = ev.extendedProps?.serviciosPax || {};
+        const sp = ev.serviciosPax || {};
         for (const [k, v] of Object.entries(sp)) {
           dest[k] = (dest[k] || 0) + v;
         }
@@ -90,44 +134,45 @@ export default function ResumenCalendarView({ resources, events, mes, anio }) {
 
   if (!sortedResources.length) {
     return (
-      <div style={{ padding: 48, textAlign: "center", color: "#94a3b8" }}>
+      <div style={{ padding: 48, textAlign: "center", color: "#94a3b8", fontSize: "1rem" }}>
         No hay actividad en el mes seleccionado.
       </div>
     );
   }
 
-  const LABEL_W = 150;
+  // Volvemos a darles un ancho razonable para que se pueda leer (se habilita scroll horizontal si hace falta)
+  const LABEL_W = 200;
+  const DAY_W = 55;
 
   return (
-    <div style={{ width: "100%", height: "100%", overflowX: "hidden", overflowY: "auto" }}>
+    <div style={{ width: "100%", height: "100%", overflowX: "auto", overflowY: "auto" }}>
       <table
         style={{
           borderCollapse: "collapse",
           tableLayout: "fixed",
-          width: "100%",
+          width: LABEL_W + (days.length * DAY_W),
           fontFamily: "system-ui, sans-serif",
         }}
       >
         <colgroup>
           <col style={{ width: LABEL_W }} />
           {days.map((d) => (
-            <col key={d.dateStr} />
+            <col key={d.dateStr} style={{ width: DAY_W }} />
           ))}
         </colgroup>
 
-        {/* ── Header ── */}
         <thead>
           <tr>
             <th
               style={{
                 position: "sticky", left: 0, top: 0, zIndex: 30,
                 background: "#1e293b", color: "#64748b",
-                fontSize: "0.65rem", fontWeight: 600,
-                padding: "2px 6px", textAlign: "left",
+                fontSize: "0.75rem", fontWeight: 600,
+                padding: "4px 8px", textAlign: "left",
                 borderBottom: "2px solid #334155",
               }}
             >
-              Empresa / Rango
+              Empresa
             </th>
             {days.map(({ num, dateStr, dow, isWeekend, isToday }) => (
               <th
@@ -136,34 +181,28 @@ export default function ResumenCalendarView({ resources, events, mes, anio }) {
                   position: "sticky", top: 0, zIndex: 20,
                   background: isToday ? "#2563eb" : isWeekend ? "#334155" : "#1e293b",
                   color: "white",
-                  fontSize: "0.6rem", fontWeight: isToday ? 800 : 500,
-                  padding: "2px 0", textAlign: "center",
+                  fontSize: "0.75rem", fontWeight: isToday ? 800 : 500,
+                  padding: "4px 2px", textAlign: "center",
                   borderLeft: "1px solid rgba(255,255,255,0.06)",
                   borderBottom: "2px solid #334155",
-                  lineHeight: 1.1,
-                  wordBreak: "break-all"
+                  lineHeight: 1.2,
                 }}
               >
                 <div>{num}</div>
-                <div style={{ opacity: 0.6, fontSize: "0.5rem" }}>{DIAS[dow]}</div>
+                <div style={{ opacity: 0.6, fontSize: "0.6rem" }}>{DIAS[dow]}</div>
               </th>
             ))}
           </tr>
         </thead>
 
-        {/* ── Body ── */}
         <tbody>
           {sortedResources.map((res, idx) => {
             const prev   = sortedResources[idx - 1];
-            // Cambiamos de tipo de alcohol?
-            const isNewTipo = !prev || prev.extendedProps?.tipoAlcohol !== res.extendedProps?.tipoAlcohol;
-            const ext    = res.extendedProps || {};
-            const tipo   = ext.tipoAlcohol || "sin";
+            const isNewTipo = !prev || prev.tipoAlcohol !== res.tipoAlcohol;
+            const tipo   = res.tipoAlcohol || "sin";
             const meta   = TIPO_META[tipo] || TIPO_META.sin;
             const rm     = eventMap.get(res.id) || new Map();
-            const fe     = ext.fechaEntrada || "";
-            const fsal   = ext.fechaSalida  || "";
-            const tg     = ext.totalGrupos  || 1;
+            const tg     = res.totalGrupos;
 
             return (
               <React.Fragment key={res.id}>
@@ -171,30 +210,30 @@ export default function ResumenCalendarView({ resources, events, mes, anio }) {
                   <tr>
                     <td
                       colSpan={days.length + 1}
-                      style={{ padding: "4px 8px", background: meta.bg, color: meta.text, fontWeight: "bold", fontSize: "0.7rem", textAlign: "center" }}
+                      style={{ padding: "6px 8px", background: meta.bg, color: meta.text, fontWeight: "bold", fontSize: "0.8rem", textAlign: "center" }}
                     >
                       {meta.label === "S/A" ? "SIN ALCOHOL" : meta.label === "C/A" ? "CON ALCOHOL" : "MIX (PULSERA)"}
                     </td>
                   </tr>
                 )}
 
-                <tr style={{ height: 32 }}>
-                  {/* Left label */}
+                <tr style={{ height: 48 }}>
+                  {/* Celda de la empresa */}
                   <td
                     style={{
                       position: "sticky", left: 0, zIndex: 5,
                       background: "white",
                       borderBottom: "1px solid #e2e8f0",
                       borderRight: `3px solid ${meta.sepColor}`,
-                      padding: "2px 4px", verticalAlign: "middle",
+                      padding: "4px 8px", verticalAlign: "middle",
                       overflow: "hidden"
                     }}
                   >
                     <div style={{ display: "flex", flexDirection: "column" }}>
                       <span
-                        title={ext.empresaNombre}
+                        title={res.empresaNombre}
                         style={{
-                          fontSize: "0.65rem",
+                          fontSize: "0.8rem",
                           fontWeight: 700,
                           color: "#1e293b",
                           whiteSpace: "nowrap",
@@ -202,19 +241,18 @@ export default function ResumenCalendarView({ resources, events, mes, anio }) {
                           textOverflow: "ellipsis"
                         }}
                       >
-                        {ext.empresaNombre}
+                        {res.empresaNombre}
                       </span>
-                      <div style={{ fontSize: "0.5rem", color: "#64748b", marginTop: 1 }}>
-                        {fe.slice(5).replace("-", "/")} &rarr; {fsal.slice(5).replace("-", "/")} ({tg}G)
+                      <div style={{ fontSize: "0.65rem", color: "#64748b", marginTop: 2 }}>
+                        {tg} grupo{tg !== 1 ? "s" : ""} en total
                       </div>
                     </div>
                   </td>
 
-                  {/* Day cells */}
+                  {/* Celdas de días */}
                   {days.map(({ dateStr, isWeekend, isToday }) => {
-                    const ev      = rm.get(dateStr);
-                    const inRange = dateStr >= fe && dateStr < fsal;
-                    const sp      = ev?.extendedProps?.serviciosPax || null;
+                    const ev = rm.get(dateStr);
+                    const sp = ev?.serviciosPax || null;
 
                     return (
                       <td
@@ -223,7 +261,7 @@ export default function ResumenCalendarView({ resources, events, mes, anio }) {
                           borderBottom: "1px solid #e2e8f0",
                           borderLeft: `1px solid ${isToday ? "#bfdbfe" : isWeekend ? "#e2e8f0" : "#f1f5f9"}`,
                           background: isToday ? "#eff6ff" : isWeekend ? "#f8fafc" : "white",
-                          padding: sp ? 1 : 0,
+                          padding: sp ? 2 : 0,
                           verticalAlign: "middle", textAlign: "center",
                         }}
                       >
@@ -232,27 +270,19 @@ export default function ResumenCalendarView({ resources, events, mes, anio }) {
                             title={Object.entries(sp).map(([k, v]) => `${k}: ${v} pax`).join("\n")}
                             style={{
                               background: meta.bg, color: meta.text,
-                              borderRadius: 2, padding: "1px 0",
-                              fontSize: "0.45rem", fontWeight: 700,
-                              lineHeight: 1.1,
+                              borderRadius: 4, padding: "2px",
+                              fontSize: "0.65rem", fontWeight: 700,
+                              lineHeight: 1.2,
                               border: tipo === "sin" ? "1px solid #fde047" : "none",
                               overflow: "hidden", textOverflow: "ellipsis",
-                              whiteSpace: "nowrap"
                             }}
                           >
                             {Object.entries(sp).map(([servicio, pax]) => (
                               <div key={servicio}>
-                                {servicio.substring(0,2)}:{pax}
+                                <span style={{fontWeight: 800}}>{servicio.substring(0,3)}</span><br/><span style={{opacity:0.9}}>{pax}</span>
                               </div>
                             ))}
                           </div>
-                        ) : inRange ? (
-                          <div
-                            style={{
-                              width: "100%", height: "100%", minHeight: 28,
-                              background: "rgba(241,245,249,0.5)",
-                            }}
-                          />
                         ) : null}
                       </td>
                     );
@@ -262,15 +292,15 @@ export default function ResumenCalendarView({ resources, events, mes, anio }) {
             );
           })}
 
-          {/* ── Totals row ── */}
+          {/* Fila Totales */}
           <tr>
             <td
               style={{
                 position: "sticky", left: 0, zIndex: 5,
                 background: "#f8fafc",
                 borderTop: "2px solid #334155",
-                padding: "2px 4px",
-                fontSize: "0.6rem", fontWeight: 700, color: "#1e293b",
+                padding: "4px 8px",
+                fontSize: "0.75rem", fontWeight: 700, color: "#1e293b",
               }}
             >
               TOTAL PAX
@@ -283,15 +313,15 @@ export default function ResumenCalendarView({ resources, events, mes, anio }) {
                   style={{
                     borderTop: "2px solid #334155",
                     background: isToday ? "#dbeafe" : isWeekend ? "#f1f5f9" : "#f8fafc",
-                    padding: 0, textAlign: "center", verticalAlign: "middle",
-                    fontSize: "0.45rem", fontWeight: 700, color: "#0f172a",
+                    padding: 2, textAlign: "center", verticalAlign: "middle",
+                    fontSize: "0.6rem", fontWeight: 700, color: "#0f172a",
                   }}
                 >
                   {tot && (
-                    <div style={{ lineHeight: 1.1 }}>
+                    <div style={{ lineHeight: 1.2 }}>
                       {Object.entries(tot).map(([k, v]) => (
                         <div key={k} title={`${k}: ${v}`}>
-                          <span style={{ opacity: 0.65 }}>{k.substring(0, 1)}</span> {v}
+                          <span style={{ opacity: 0.65 }}>{k.substring(0, 3)}</span> {v}
                         </div>
                       ))}
                     </div>
