@@ -2,17 +2,16 @@ import { useMemo } from "react";
 import React from "react";
 
 const TIPO_META = {
-  con: { bg: "#ef4444", text: "white",   label: "C/A", sepColor: "#f87171" },
-  mix: { bg: "#f97316", text: "white",   label: "MIX", sepColor: "#fb923c" },
-  sin: { bg: "#fef08a", text: "#1e293b", label: "S/A", sepColor: "#fde047" },
+  con: { bg: "#ef4444", text: "white",   label: "C/A", sepColor: "#f87171", inTownBg: "#fee2e2" },
+  mix: { bg: "#f97316", text: "white",   label: "MIX", sepColor: "#fb923c", inTownBg: "#ffedd5" },
+  sin: { bg: "#fef08a", text: "#1e293b", label: "S/A", sepColor: "#fde047", inTownBg: "#fef9c3" },
 };
 
 const DIAS = ["D","L","M","X","J","V","S"];
 
 export default function ResumenCalendarView({ resources, events, mes, anio }) {
   
-  // 1. Agrupar recursos por (Empresa + Tipo Alcohol)
-  // Ignoramos fecha_entrada y fecha_salida para juntar todo en 1 sola fila
+  // 1. Agrupar recursos por (Empresa + Tipo Alcohol) y calcular días en destino
   const groupedResources = useMemo(() => {
     const map = new Map();
     for (const res of resources) {
@@ -27,13 +26,30 @@ export default function ResumenCalendarView({ resources, events, mes, anio }) {
           empresaNombre: emp,
           tipoAlcohol: tipo,
           totalGrupos: 0,
-          originalIds: []
+          originalIds: [],
+          diasPresentes: new Set()
         });
       }
       
       const group = map.get(key);
       group.totalGrupos += (ext.totalGrupos || 1);
       group.originalIds.push(res.id);
+
+      // Calcular todos los días entre fechaEntrada y fechaSalida
+      const fe = ext.fechaEntrada;
+      const fs = ext.fechaSalida;
+      if (fe && fs) {
+        let current = fe;
+        // Límite de seguridad para evitar loops infinitos si hay error en fechas
+        let safety = 0; 
+        while (current < fs && safety < 100) {
+          group.diasPresentes.add(current);
+          const d = new Date(current + 'T12:00:00Z');
+          d.setUTCDate(d.getUTCDate() + 1);
+          current = d.toISOString().slice(0, 10);
+          safety++;
+        }
+      }
     }
     return Array.from(map.values());
   }, [resources]);
@@ -96,11 +112,9 @@ export default function ResumenCalendarView({ resources, events, mes, anio }) {
     const lastDay = new Date(anio, mes + 1, 0).toISOString().slice(0, 10);
 
     const filtrados = groupedResources.filter(grp => {
-      const rm = eventMap.get(grp.id);
-      if (!rm) return false;
-      // Solo mostrar si tienen al menos 1 servicio asignado en ESTE mes
-      for (const dateStr of rm.keys()) {
-        if (dateStr >= firstDay && dateStr <= lastDay) return true;
+      // Mostrar si tienen presencia en la ciudad durante el mes seleccionado
+      for (const ds of grp.diasPresentes) {
+        if (ds >= firstDay && ds <= lastDay) return true;
       }
       return false;
     });
@@ -112,7 +126,7 @@ export default function ResumenCalendarView({ resources, events, mes, anio }) {
       if (ta !== tb) return ta - tb;
       return a.empresaNombre.localeCompare(b.empresaNombre, "es");
     });
-  }, [groupedResources, eventMap, mes, anio]);
+  }, [groupedResources, mes, anio]);
 
   // Totales por día
   const totalesDia = useMemo(() => {
@@ -140,7 +154,6 @@ export default function ResumenCalendarView({ resources, events, mes, anio }) {
     );
   }
 
-  // Volvemos a darles un ancho razonable para que se pueda leer (se habilita scroll horizontal si hace falta)
   const LABEL_W = 200;
   const DAY_W = 55;
 
@@ -218,7 +231,6 @@ export default function ResumenCalendarView({ resources, events, mes, anio }) {
                 )}
 
                 <tr style={{ height: 48 }}>
-                  {/* Celda de la empresa */}
                   <td
                     style={{
                       position: "sticky", left: 0, zIndex: 5,
@@ -249,10 +261,10 @@ export default function ResumenCalendarView({ resources, events, mes, anio }) {
                     </div>
                   </td>
 
-                  {/* Celdas de días */}
                   {days.map(({ dateStr, isWeekend, isToday }) => {
                     const ev = rm.get(dateStr);
                     const sp = ev?.serviciosPax || null;
+                    const inRange = res.diasPresentes.has(dateStr);
 
                     return (
                       <td
@@ -283,6 +295,14 @@ export default function ResumenCalendarView({ resources, events, mes, anio }) {
                               </div>
                             ))}
                           </div>
+                        ) : inRange ? (
+                          <div
+                            style={{
+                              width: "100%", height: "100%", minHeight: 36,
+                              background: meta.inTownBg,
+                              opacity: 0.6
+                            }}
+                          />
                         ) : null}
                       </td>
                     );
@@ -292,7 +312,6 @@ export default function ResumenCalendarView({ resources, events, mes, anio }) {
             );
           })}
 
-          {/* Fila Totales */}
           <tr>
             <td
               style={{
