@@ -16,6 +16,7 @@ export default function Layout() {
 
     const NAV_ITEMS = [
         { label: "📅 Calendario", path: "/calendario" },
+        { label: "📊 Resumen", path: "/calendario-resumen" },
         { label: "🏢 Empresas", path: "/empresas" },
         { label: "🎉 Eventos", path: "/eventos" },
         { label: "🎨 Temáticas", path: "/tematicas" },
@@ -27,7 +28,7 @@ export default function Layout() {
     ];
     const role = localStorage.getItem("auth_role");
     const navItems = role === "calendar"
-        ? NAV_ITEMS.filter((item) => item.path === "/calendario")
+        ? NAV_ITEMS.filter((item) => item.path === "/calendario" || item.path === "/calendario-resumen")
         : NAV_ITEMS;
 
     function salir() {

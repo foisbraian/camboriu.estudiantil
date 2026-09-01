@@ -449,6 +449,117 @@ def calendario(db: Session = Depends(get_db)):
 
 
 # =========================================================
+# GET CALENDARIO RESUMEN (Vista comprimida por empresa/tipo)
+# =========================================================
+@router.get("/resumen")
+def calendario_resumen(db: Session = Depends(get_db)):
+    """
+    Devuelve una vista comprimida del calendario:
+    - Una fila por cada combinación única de (empresa, tipo_alcohol, fecha_entrada, fecha_salida)
+    - Por cada día, el total de PAX agrupado por servicio asignado
+    """
+    empresas = (
+        db.query(models.Empresa)
+        .join(models.Grupo)
+        .distinct()
+        .order_by(models.Empresa.nombre)
+        .all()
+    )
+
+    resources = []
+    events = []
+
+    # Agrupamos grupos por (empresa_id, empresa_nombre, tipo_alcohol, fecha_entrada, fecha_salida)
+    slot_map: dict = {}
+
+    for empresa in empresas:
+        for grupo in empresa.grupos:
+            es_mix = getattr(grupo, "es_mix_grupo", False)
+            if es_mix:
+                tipo = "mix"
+            elif grupo.permite_alcohol:
+                tipo = "con"
+            else:
+                tipo = "sin"
+
+            key = (empresa.id, empresa.nombre, tipo, grupo.fecha_entrada, grupo.fecha_salida)
+            if key not in slot_map:
+                slot_map[key] = []
+            slot_map[key].append(grupo)
+
+    color_map_tipo = {
+        "mix": {"bg": "#f97316", "text": "white"},
+        "con": {"bg": "#ef4444", "text": "white"},
+        "sin": {"bg": "#fef08a", "text": "#1e293b"},
+    }
+
+    for idx, (key, grupos) in enumerate(slot_map.items()):
+        empresa_id, empresa_nombre, tipo, fecha_entrada, fecha_salida = key
+
+        resource_id = f"resumen-{empresa_id}-{tipo}-{fecha_entrada}-{fecha_salida}"
+        tipo_label = {"mix": "MIX", "con": "C/A", "sin": "S/A"}[tipo]
+        entrada_str = fecha_entrada.strftime("%d/%m") if fecha_entrada else "?"
+        salida_str = fecha_salida.strftime("%d/%m") if fecha_salida else "?"
+
+        resources.append({
+            "id": resource_id,
+            "title": f"{empresa_nombre} — {tipo_label}  ·  {entrada_str}→{salida_str}",
+            "extendedProps": {
+                "empresaNombre": empresa_nombre,
+                "empresaId": empresa_id,
+                "tipoAlcohol": tipo,
+                "tipoLabel": tipo_label,
+                "fechaEntrada": str(fecha_entrada),
+                "fechaSalida": str(fecha_salida),
+                "totalGrupos": len(grupos),
+                "orden": idx,
+            },
+        })
+
+        # Por cada día del rango, acumulamos PAX por servicio
+        current_date = fecha_entrada
+        while current_date < fecha_salida:
+            next_date = current_date + timedelta(days=1)
+
+            # servicios_pax: {nombre_servicio: pax_total}
+            servicios_pax: dict = {}
+
+            for grupo in grupos:
+                pax = grupo.cantidad_pax
+                asigs_hoy = [
+                    a for a in grupo.asignaciones
+                    if a.fecha_evento.fecha == current_date
+                ]
+                for a in asigs_hoy:
+                    nombre_ev = a.fecha_evento.evento.nombre
+                    servicios_pax[nombre_ev] = servicios_pax.get(nombre_ev, 0) + pax
+
+            if servicios_pax:
+                colors = color_map_tipo[tipo]
+                # Título multilinea: "DISCO 876 / PARQUE 200"
+                partes = [f"{k} {v}" for k, v in servicios_pax.items()]
+                titulo = " / ".join(partes)
+
+                events.append({
+                    "resourceId": resource_id,
+                    "start": str(current_date),
+                    "end": str(next_date),
+                    "title": titulo,
+                    "backgroundColor": colors["bg"],
+                    "borderColor": "transparent",
+                    "textColor": colors["text"],
+                    "extendedProps": {
+                        "serviciosPax": servicios_pax,
+                        "totalPax": sum(servicios_pax.values()),
+                    },
+                })
+
+            current_date = next_date
+
+    return {"resources": resources, "events": events}
+
+
+# =========================================================
 # GET CALENDARIO PORTAL (READ ONLY - FILTRADO)
 # =========================================================
 @router.get("/portal/{codigo_acceso}")

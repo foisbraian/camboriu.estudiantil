@@ -5,6 +5,8 @@ import Empresas from "./pages/Empresas";
 import Eventos from "./pages/Eventos";
 import Tematicas from "./pages/Tematicas";
 import AdminCalendar from "./pages/AdminCalendar";
+import CalendarioResumen from "./pages/CalendarioResumen";
+
 import EmpresaDetalle from "./pages/EmpresaDetalle";
 import PortalEmpresa from "./pages/PortalEmpresa";
 import Login from "./pages/Login";
@@ -77,6 +79,7 @@ export default function App() {
         {/* Calendario compartido entre admin y rol solo lectura */}
         <Route element={<Protected allow={["admin", "calendar"]}><Layout /></Protected>}>
           <Route path="/calendario" element={<AdminCalendar />} />
+          <Route path="/calendario-resumen" element={<CalendarioResumen />} />
         </Route>
 
         {/* Resto de rutas solo para admin */}
