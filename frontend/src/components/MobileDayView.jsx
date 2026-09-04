@@ -44,7 +44,7 @@ export default function MobileDayView({ resources, events, loading }) {
 
   const globalEvents = useMemo(() => {
     return events
-      .filter((evt) => String(evt.resourceId) === "eventos" && matchesCurrentDate(evt.start))
+      .filter((evt) => String(evt.resourceId).startsWith("servicio-") && matchesCurrentDate(evt.start))
       .filter((evt) => evt.extendedProps?.tipo !== "resumen_servicios")
       .map((evt) => {
         const props = evt.extendedProps || {};
@@ -71,7 +71,7 @@ export default function MobileDayView({ resources, events, loading }) {
   const groupEntries = useMemo(() => {
     const seen = new Set();
     const entries = events
-      .filter((evt) => evt.resourceId && evt.resourceId !== "eventos")
+      .filter((evt) => evt.resourceId && !String(evt.resourceId).startsWith("servicio-"))
       .filter((evt) => matchesCurrentDate(evt.start))
       .filter((evt) => {
         const tipo = evt.extendedProps?.tipo;

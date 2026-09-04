@@ -79,7 +79,8 @@ async def upload_grupos(empresa_id: int, file: UploadFile = File(...), db: Sessi
             cristo_acceso=get_bool('cristo'),
             sunset_acceso=get_bool('sunset'),
             quinta_comida_acceso=get_bool('quinta comida'),
-            multiparque_acceso=get_bool('multiparque')
+            multiparque_acceso=get_bool('multiparque'),
+            cena_velas=get_bool('cena velas') or get_bool('cena de velas')
         )
         db.add(g)
         created_count += 1

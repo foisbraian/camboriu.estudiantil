@@ -43,7 +43,7 @@ export default function AdminCalendar() {
   const filteredResources = useMemo(() => {
     return resources.filter(res => {
       // Siempre mantener la fila de eventos globales
-      if (res.id === "eventos") return true;
+      if (res.id === "servicios-parent" || String(res.id).startsWith("servicio-")) return true;
 
       // Filtro por empresa
       if (filtroEmpresa !== "todas") {

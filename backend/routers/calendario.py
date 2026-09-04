@@ -50,10 +50,44 @@ def calendario(db: Session = Depends(get_db)):
 
     # Fila superior para servicios/eventos globales
     resources.append({
-        "id": "eventos",
-        "title": "Servicios",
+        "id": "servicios-parent",
+        "title": "SERVICIOS",
         "order": 0,
+        "extendedProps": {
+            "esEmpresa": True,
+            "empresaNombre": "SERVICIOS",
+        }
     })
+
+    tipos_servicios = [
+        ("ZACARIAS", "Zacarias"),
+        ("POOL", "Cascata / Pool"),
+        ("MULTIPARQUE", "Multiparque"),
+        ("HIELO", "Bar de Hielo"),
+        ("CENA", "Velas"),
+        ("DISCO", "Boliches"),
+        ("PARQUE", "Parque"),
+        ("CAMPAMENTO", "Campamento"),
+        ("BIENVENIDA", "Bienvenida"),
+        ("SURF", "Surf"),
+        ("UNIPRAIAS", "Unipraias"),
+        ("BETO", "Beto Carrero"),
+        ("BARCO", "Barco Pirata"),
+        ("SUNSET", "Sunset"),
+        ("CRISTO", "Cristo Luz"),
+    ]
+
+    for i, (tipo_id, tipo_nombre) in enumerate(tipos_servicios):
+        resources.append({
+            "id": f"servicio-{tipo_id}",
+            "parentId": "servicios-parent",
+            "title": tipo_nombre,
+            "order": 0.1 + (i * 0.01),
+            "extendedProps": {
+                "esServicio": True,
+                "servicioTipo": tipo_id
+            }
+        })
 
     empresas = db.query(models.Empresa).join(models.Grupo).distinct().all()
 
@@ -183,7 +217,7 @@ def calendario(db: Session = Depends(get_db)):
 
         events.append({
             "id": f"id-{f.id}",
-            "resourceId": "eventos",
+            "resourceId": f"servicio-{f.evento.tipo}",
             "start": f.fecha,
             "end": f.fecha + timedelta(days=1),
             "title": titulo + titulo_extra, 
@@ -256,7 +290,7 @@ def calendario(db: Session = Depends(get_db)):
 
         events.append({
             "id": f"resumen-disco-{fecha}",
-            "resourceId": "eventos",
+            "resourceId": "servicio-DISCO",
             "start": fecha,
             "end": fecha + timedelta(days=1),
             "title": titulo,
@@ -577,10 +611,44 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
 
     # Fila superior para servicios/eventos globales
     resources.append({
-        "id": "eventos",
-        "title": "Servicios",
+        "id": "servicios-parent",
+        "title": "SERVICIOS",
         "order": 0,
+        "extendedProps": {
+            "esEmpresa": True,
+            "empresaNombre": "SERVICIOS",
+        }
     })
+
+    tipos_servicios = [
+        ("ZACARIAS", "Zacarias"),
+        ("POOL", "Cascata / Pool"),
+        ("MULTIPARQUE", "Multiparque"),
+        ("HIELO", "Bar de Hielo"),
+        ("CENA", "Velas"),
+        ("DISCO", "Boliches"),
+        ("PARQUE", "Parque"),
+        ("CAMPAMENTO", "Campamento"),
+        ("BIENVENIDA", "Bienvenida"),
+        ("SURF", "Surf"),
+        ("UNIPRAIAS", "Unipraias"),
+        ("BETO", "Beto Carrero"),
+        ("BARCO", "Barco Pirata"),
+        ("SUNSET", "Sunset"),
+        ("CRISTO", "Cristo Luz"),
+    ]
+
+    for i, (tipo_id, tipo_nombre) in enumerate(tipos_servicios):
+        resources.append({
+            "id": f"servicio-{tipo_id}",
+            "parentId": "servicios-parent",
+            "title": tipo_nombre,
+            "order": 0.1 + (i * 0.01),
+            "extendedProps": {
+                "esServicio": True,
+                "servicioTipo": tipo_id
+            }
+        })
 
     # Empresa
     resources.append({
@@ -803,7 +871,7 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
 
             events.append({
                 "id": f"id-{f.id}",
-                "resourceId": "eventos",
+                "resourceId": f"servicio-{f.evento.tipo}",
                 "start": f.fecha,
                 "end": f.fecha + timedelta(days=1),
                 "title": titulo_portal + titulo_extra, 

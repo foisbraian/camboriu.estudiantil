@@ -158,8 +158,8 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
 
     // Both sides: datagrid (left labels) and timeline (right events)
     const selectors = [
-      '.fc-datagrid-body tr[data-resource-id="eventos"]',
-      '.fc-timeline-body tr[data-resource-id="eventos"]',
+      '.fc-datagrid-body tr[data-resource-id="servicios-parent"]',
+      '.fc-timeline-body tr[data-resource-id="servicios-parent"]',
     ];
 
     selectors.forEach((sel) => {
@@ -203,9 +203,9 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
     // Obtener lo que está "abierto" ese día desde el calendario
     const calendario = await api.get("/calendario");
 
-    // Filtrar los que son resourceId "eventos" (la fila 0) y coinciden con la fecha
+    // Filtrar los que son de servicios y coinciden con la fecha
     const existentes = calendario.data.events.filter(
-      (e) => e.resourceId === "eventos" && e.start.startsWith(fechaISO)
+      (e) => String(e.resourceId).startsWith("servicio-") && e.start.startsWith(fechaISO)
     );
 
     const filtrados = existentes.map(ext => {
@@ -331,7 +331,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
     // ---------------------------------------------------------
     // C. CLICK EN EVENTO GLOBAL (Fila sup) → EDITAR
     // ---------------------------------------------------------
-    if (info.event.getResources()[0]?.id === "eventos") {
+    if (String(info.event.getResources()[0]?.id).startsWith("servicio-")) {
       const res = await api.get("/eventos/");
       setEventosDisponibles(res.data);
 
@@ -393,7 +393,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
     const fechaISO = info.dateStr;
 
     // A. CLIC EN FILA DE EVENTOS GLOBAL (No debería pasar mucho si está lleno, pero por si acaso)
-    if (resourceIdStr === "eventos") {
+    if (resourceIdStr.startsWith("servicio-") || resourceIdStr === "servicios-parent") {
       abrirNuevoGlobal(info.date);
       return;
     }
@@ -593,10 +593,19 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           resourceAreaHeaderContent="Empresas"
           resourceAreaWidth={230}
           resourceLabelContent={(arg) => {
-            if (arg.resource.id === "eventos") {
-              return <span style={{ fontWeight: 700, fontSize: "1em" }}>Servicios</span>;
-            }
             const props = arg.resource.extendedProps || {};
+            
+            if (arg.resource.id === "servicios-parent") {
+              return <span style={{ fontWeight: 800, fontSize: "0.95em", color: "#0f172a", textTransform: "uppercase" }}>{arg.resource.title}</span>;
+            }
+            if (props.esServicio) {
+              return (
+                <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
+                  <span style={{ fontWeight: 600, color: "#475569", fontSize: "0.9em" }}>{arg.resource.title}</span>
+                </div>
+              );
+            }
+
             if (props.esEmpresa) {
               const companyLabel = props.empresaNombre || arg.resource.title;
               return (
@@ -729,7 +738,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
                     // Pero localEvents tiene 'id' "id-X".
                     // Buscamos en localEvents
                     const instancia = localEvents.find(e =>
-                      e.resourceId === "eventos" &&
+                      String(e.resourceId).startsWith("servicio-") &&
                       Number(e.extendedProps?.evento_id) === Number(ev.id) &&
                       e.start.startsWith(selectedDate)
                     );
