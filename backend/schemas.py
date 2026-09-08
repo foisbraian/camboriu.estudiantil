@@ -67,6 +67,7 @@ class GrupoCreate(BaseModel):
     sunset_acceso: bool = False
     quinta_comida_acceso: bool = False
     multiparque_acceso: bool = False
+    parador_acceso: bool = False
 
     pagantes_finales_surf: int | None = None
     pagantes_finales_unipraias: int | None = None

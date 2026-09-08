@@ -95,6 +95,7 @@ class Grupo(Base):
     sunset_acceso = Column(Boolean, default=False)
     quinta_comida_acceso = Column(Boolean, default=False)
     multiparque_acceso = Column(Boolean, default=False)
+    parador_acceso = Column(Boolean, default=False)
 
     pagantes_finales_surf = Column(Integer, nullable=True)
     pagantes_finales_unipraias = Column(Integer, nullable=True)

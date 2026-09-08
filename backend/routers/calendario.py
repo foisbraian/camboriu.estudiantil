@@ -846,7 +846,7 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
 
             events.append({
                 "id": f"id-{f.id}",
-                "resourceId": "eventos",
+                "resourceId": f"servicio-{f.evento.tipo}",
                 "start": f.fecha,
                 "end": f.fecha + timedelta(days=1),
                 "title": titulo_portal + titulo_extra, 
@@ -883,7 +883,20 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
             .filter_by(evento_id=evento_id, fecha=fecha).first()
             
     if not nuevo_evento_fecha:
-        raise HTTPException(400, "No existe evento ese día")
+        # Si no existe la fecha de evento global, la creamos automáticamente para facilitar el flujo
+        base_evento = db.get(models.Evento, evento_id)
+        if not base_evento:
+            raise HTTPException(400, "El tipo de evento base no existe")
+        
+        nuevo_evento_fecha = models.FechaEvento(
+            evento_id=evento_id,
+            fecha=fecha,
+            con_alcohol=False,
+            es_privado=False,
+        )
+        db.add(nuevo_evento_fecha)
+        db.commit()
+        db.refresh(nuevo_evento_fecha)
 
     if nuevo_evento_fecha.es_privado:
         if not nuevo_evento_fecha.empresa_privada_id:
@@ -959,6 +972,8 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
         raise HTTPException(400, "El grupo no tiene acceso a SUNSET")
     if tipo_nuevo == "MULTIPARQUE" and not getattr(grupo, "multiparque_acceso", False):
         raise HTTPException(400, "El grupo no tiene acceso a MULTIPARQUE")
+    if tipo_nuevo == "PARADOR" and not getattr(grupo, "parador_acceso", False):
+        raise HTTPException(400, "El grupo no tiene acceso a PARADOR")
 
     # Validacion BAR DE HIELO
     if tipo_nuevo == "HIELO":

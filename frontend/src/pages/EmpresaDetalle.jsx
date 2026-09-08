@@ -332,6 +332,7 @@ export default function EmpresaDetalle() {
     sunset_acceso: false,
     quinta_comida_acceso: false,
     multiparque_acceso: false,
+    parador_acceso: false,
   });
 
   const [editingGroup, setEditingGroup] = useState(null);
@@ -365,6 +366,7 @@ export default function EmpresaDetalle() {
     sunset_acceso: false,
     quinta_comida_acceso: false,
     multiparque_acceso: false,
+    parador_acceso: false,
   });
 
 
@@ -432,6 +434,7 @@ export default function EmpresaDetalle() {
       sunset_acceso: false,
       quinta_comida_acceso: false,
       multiparque_acceso: false,
+      parador_acceso: false,
     });
 
     cargar();
@@ -467,6 +470,7 @@ export default function EmpresaDetalle() {
       sunset_acceso: g.sunset_acceso || false,
       quinta_comida_acceso: g.quinta_comida_acceso || false,
       multiparque_acceso: g.multiparque_acceso || false,
+      parador_acceso: g.parador_acceso || false,
     });
   }
 
@@ -573,7 +577,8 @@ export default function EmpresaDetalle() {
       "Cristo Luz": g.cristo_acceso ? "Sí" : "No",
       "Sunset": g.sunset_acceso ? "Sí" : "No",
       "Quinta Comida": g.quinta_comida_acceso ? "Sí" : "No",
-      "Multiparque": g.multiparque_acceso ? "Sí" : "No"
+      "Multiparque": g.multiparque_acceso ? "Sí" : "No",
+      "Parador": g.parador_acceso ? "Sí" : "No"
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(data);
@@ -914,6 +919,7 @@ export default function EmpresaDetalle() {
             <label><input type="checkbox" checked={form.sunset_acceso} onChange={(e) => set("sunset_acceso", e.target.checked)} /> Sunset</label>
             <label><input type="checkbox" checked={form.quinta_comida_acceso} onChange={(e) => set("quinta_comida_acceso", e.target.checked)} /> Quinta Comida</label>
             <label><input type="checkbox" checked={form.multiparque_acceso} onChange={(e) => set("multiparque_acceso", e.target.checked)} /> Multiparque</label>
+            <label><input type="checkbox" checked={form.parador_acceso} onChange={(e) => set("parador_acceso", e.target.checked)} /> Parador</label>
           </div>
         </fieldset>
 
@@ -1078,6 +1084,7 @@ export default function EmpresaDetalle() {
                   <label><input type="checkbox" checked={editForm.sunset_acceso} onChange={e => setEdit("sunset_acceso", e.target.checked)} /> Sunset</label>
                   <label><input type="checkbox" checked={editForm.quinta_comida_acceso || false} onChange={e => setEdit("quinta_comida_acceso", e.target.checked)} /> Quinta Comida</label>
                   <label><input type="checkbox" checked={editForm.multiparque_acceso || false} onChange={e => setEdit("multiparque_acceso", e.target.checked)} /> Multiparque</label>
+                  <label><input type="checkbox" checked={editForm.parador_acceso || false} onChange={e => setEdit("parador_acceso", e.target.checked)} /> Parador</label>
                 </div>
               </div>
 
