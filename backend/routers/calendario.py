@@ -67,13 +67,13 @@ def calendario(db: Session = Depends(get_db)):
         ("HIELO", "Bar de Hielo"),
         ("CENA", "Velas"),
         ("DISCO", "Boliches"),
-        ("CAMPAMENTO", "Campamento"),
-        ("BIENVENIDA", "Bienvenida"),
         ("SURF", "Surf"),
         ("UNIPRAIAS", "Unipraias"),
         ("BETO", "Beto Carrero"),
         ("BARCO", "Barco Pirata"),
         ("CRISTO", "Cristo Luz"),
+        # CAMPAMENTO: deprecated, oculto del calendario pero preservado en BD
+        # BIENVENIDA: es temática de disco, no servicio independiente
         # SUNSET: deprecated, oculto del calendario pero preservado en BD
     ]
 
@@ -158,7 +158,11 @@ def calendario(db: Session = Depends(get_db)):
             color = "red"
         else:
             color = color_map.get(f.evento.tipo, "gray")
-        
+
+        # Bienvenida como temática de disco → color violeta
+        if f.tematica and f.tematica.nombre.strip().lower() == "bienvenida":
+            color = "#a855f7"
+
         if f.es_privado:
             color = "#ede9fe"
             text_color = "#4c1d95"
@@ -801,7 +805,10 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                 color = "red"
             else:
                 color = color_map.get(f.evento.tipo, "gray")
-            text_color = "black" if color in ("yellow", "#e2e8f0", "#e0f2fe", "#f59e0b", "#fcd34d", "#f97316") else "white"
+            # Bienvenida como temática de disco → color violeta
+            if f.tematica and f.tematica.nombre.strip().lower() == "bienvenida":
+                color = "#a855f7"
+            text_color = "black" if color in ("yellow", "#e2e8f0", "#e0f2fe", "#f59e0b", "#fcd34d") else "white"
             if f.es_privado:
                 color = "#ede9fe"
                 text_color = "#4c1d95"
