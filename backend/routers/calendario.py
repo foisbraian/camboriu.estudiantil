@@ -63,6 +63,7 @@ def calendario(db: Session = Depends(get_db)):
         ("ZACARIAS", "Zacarias"),
         ("POOL", "Cascata / Pool"),
         ("MULTIPARQUE", "Multiparque"),
+        ("PARADOR", "Parador"),
         ("HIELO", "Bar de Hielo"),
         ("CENA", "Velas"),
         ("DISCO", "Boliches"),
@@ -72,8 +73,8 @@ def calendario(db: Session = Depends(get_db)):
         ("UNIPRAIAS", "Unipraias"),
         ("BETO", "Beto Carrero"),
         ("BARCO", "Barco Pirata"),
-        ("SUNSET", "Sunset"),
         ("CRISTO", "Cristo Luz"),
+        # SUNSET: deprecated, oculto del calendario pero preservado en BD
     ]
 
     for i, (tipo_id, tipo_nombre) in enumerate(tipos_servicios):
@@ -145,7 +146,8 @@ def calendario(db: Session = Depends(get_db)):
             "BARCO": "#8b5cf6",
             "SUNSET": "#f59e0b",
             "CRISTO": "#fcd34d",
-            "MULTIPARQUE": "#22c55e"
+            "MULTIPARQUE": "#22c55e",
+            "PARADOR": "#f97316",
         }
 
         # Mix (pulsera) → naranja; con alcohol → rojo; sin alcohol → amarillo (default)
@@ -396,9 +398,10 @@ def calendario(db: Session = Depends(get_db)):
                             "UNIPRAIAS": "#10b981",# Verde esmeralda
                             "BETO": "#ec4899",     # Rosa
                             "BARCO": "#8b5cf6",    # Morado
-                            "SUNSET": "#f59e0b",   # Naranja dorado
+                            "SUNSET": "#f59e0b",   # Naranja dorado (deprecated)
                             "CRISTO": "#fcd34d",   # Amarillo/Dorado claro
-                            "MULTIPARQUE": "#22c55e" # Verde brillante
+                            "MULTIPARQUE": "#22c55e", # Verde brillante
+                            "PARADOR": "#f97316",  # Naranja
                         }
                         bg_color_asig = color_map.get(asignacion.fecha_evento.evento.tipo, "gray")
                         text_color_asig = "black" if bg_color_asig in ["#e0f2fe", "#f59e0b", "#fcd34d"] else "white"
@@ -731,7 +734,7 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                 otras_asignaciones = [a for a in asignaciones_dia if a.fecha_evento.evento.tipo != "HIELO"]
 
                 for asignacion in otras_asignaciones:
-                    color_map = {"DISCO": "#000000", "PARQUE": "#16a34a", "CAMPAMENTO": "#16a34a", "ZACARIAS": "#15803d", "BIENVENIDA": "#a855f7", "POOL": "#0ea5e9", "CENA": "#94a3b8", "HIELO": "#e0f2fe", "SURF": "#3b82f6", "UNIPRAIAS": "#10b981", "BETO": "#ec4899", "BARCO": "#8b5cf6", "SUNSET": "#f59e0b", "CRISTO": "#fcd34d", "MULTIPARQUE": "#22c55e"}
+                    color_map = {"DISCO": "#000000", "PARQUE": "#16a34a", "CAMPAMENTO": "#16a34a", "ZACARIAS": "#15803d", "BIENVENIDA": "#a855f7", "POOL": "#0ea5e9", "CENA": "#94a3b8", "HIELO": "#e0f2fe", "SURF": "#3b82f6", "UNIPRAIAS": "#10b981", "BETO": "#ec4899", "BARCO": "#8b5cf6", "SUNSET": "#f59e0b", "CRISTO": "#fcd34d", "MULTIPARQUE": "#22c55e", "PARADOR": "#f97316"}
                     bg_color_asig = color_map.get(asignacion.fecha_evento.evento.tipo, "gray")
                     text_color_asig = "black" if bg_color_asig in ["#e0f2fe", "#f59e0b", "#fcd34d"] else "white"
 
@@ -790,7 +793,7 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
         fechas_globales = db.query(models.FechaEvento).filter(models.FechaEvento.id.in_(fecha_eventos_asignados_ids)).all()
         
         for f in fechas_globales:
-            color_map = {"DISCO": "yellow", "PARQUE": "green", "CAMPAMENTO": "#16a34a", "ZACARIAS": "#15803d", "BIENVENIDA": "#a855f7", "POOL": "skyblue", "CENA": "#e2e8f0", "HIELO": "#e0f2fe", "SURF": "#3b82f6", "UNIPRAIAS": "#10b981", "BETO": "#ec4899", "BARCO": "#8b5cf6", "SUNSET": "#f59e0b", "CRISTO": "#fcd34d", "MULTIPARQUE": "#22c55e"}
+            color_map = {"DISCO": "yellow", "PARQUE": "green", "CAMPAMENTO": "#16a34a", "ZACARIAS": "#15803d", "BIENVENIDA": "#a855f7", "POOL": "skyblue", "CENA": "#e2e8f0", "HIELO": "#e0f2fe", "SURF": "#3b82f6", "UNIPRAIAS": "#10b981", "BETO": "#ec4899", "BARCO": "#8b5cf6", "SUNSET": "#f59e0b", "CRISTO": "#fcd34d", "MULTIPARQUE": "#22c55e", "PARADOR": "#f97316"}
             es_mix = getattr(f, 'es_mix_evento', False)
             if es_mix:
                 color = "#f97316"  # Naranja Mix

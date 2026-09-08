@@ -60,19 +60,21 @@ export default function Eventos() {
 
       <select onChange={(e) => setTipo(e.target.value)}>
         <option value="DISCO">Disco</option>
-        <option value="PARQUE">Parque (deprecated)</option>
-        <option value="CAMPAMENTO">Campamento Americano</option>
         <option value="ZACARIAS">Zacarias</option>
+        <option value="POOL">Cascata / Pool</option>
+        <option value="MULTIPARQUE">Multiparque</option>
+        <option value="PARADOR">Parador</option>
+        <option value="HIELO">Bar de Hielo</option>
+        <option value="CENA">Cena de Velas</option>
+        <option value="CAMPAMENTO">Campamento Americano</option>
         <option value="BIENVENIDA">Bienvenida</option>
-        <option value="POOL">Pool</option>
-        <option value="CENA">Cena de velas</option>
-        <option value="HIELO">Bar de hielo</option>
         <option value="SURF">Surf</option>
         <option value="UNIPRAIAS">Parque Unipraias</option>
         <option value="BETO">Beto Carrero</option>
         <option value="BARCO">Barco Pirata 🏴‍☠️</option>
-        <option value="SUNSET">Sunset</option>
         <option value="CRISTO">Cristo Luz</option>
+        <option value="PARQUE">Parque (deprecated)</option>
+        <option value="SUNSET">Sunset (deprecated)</option>
       </select>
 
       {tipo === "DISCO" && (
