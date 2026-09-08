@@ -8,14 +8,14 @@ def upgrade_db():
         "ALTER TABLE grupos ADD COLUMN multiparque_acceso BOOLEAN DEFAULT FALSE",
         "ALTER TABLE grupos ADD COLUMN parador_acceso BOOLEAN DEFAULT FALSE",
     ]
-    with engine.begin() as conn:
-        for sql in migraciones:
-            try:
+    for sql in migraciones:
+        try:
+            with engine.begin() as conn:
                 conn.execute(text(sql))
-                print(f"OK: {sql}")
-            except Exception as e:
-                # Ignorar si las columnas ya existen
-                print(f"Ignorado o ya existe: {e}")
+            print(f"OK: {sql}")
+        except Exception as e:
+            # Ignorar si las columnas ya existen
+            print(f"Ignorado o ya existe: {sql}")
 
 if __name__ == "__main__":
     upgrade_db()
