@@ -182,8 +182,28 @@ def calendario(db: Session = Depends(get_db)):
                 elif a.grupo:
                     ocupacion += a.grupo.cantidad_pax
         else:
-            # Calcular ocupación (Sumar PAX de los grupos asignados)
+            # Calcular ocupación base (Sumar PAX de las asignaciones explícitas)
             ocupacion = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo)
+            
+            # Sumar ocupación dinámica para servicios basados en flags (cambio deprecado)
+            if f.evento.tipo == "MULTIPARQUE":
+                grupos_dinamicos = db.query(models.Grupo).filter(
+                    models.Grupo.multiparque_acceso == True,
+                    models.Grupo.fecha_entrada <= f.fecha,
+                    models.Grupo.fecha_salida > f.fecha
+                ).all()
+                # Añadir pax de grupos con flag que NO tienen asignación explícita ese día
+                asignados_ids = {a.grupo_id for a in f.asignaciones if a.grupo}
+                ocupacion += sum(g.cantidad_pax for g in grupos_dinamicos if g.id not in asignados_ids)
+                
+            elif f.evento.tipo == "PARADOR":
+                grupos_dinamicos = db.query(models.Grupo).filter(
+                    models.Grupo.parador_acceso == True,
+                    models.Grupo.fecha_entrada <= f.fecha,
+                    models.Grupo.fecha_salida > f.fecha
+                ).all()
+                asignados_ids = {a.grupo_id for a in f.asignaciones if a.grupo}
+                ocupacion += sum(g.cantidad_pax for g in grupos_dinamicos if g.id not in asignados_ids)
 
         # Desglose Comida
         con_comida = 0
@@ -222,7 +242,7 @@ def calendario(db: Session = Depends(get_db)):
 
         events.append({
             "id": f"id-{f.id}",
-            "resourceId": f"servicio-{f.evento.tipo}",
+            "resourceId": f"servicio-{f.evento.tipo.upper()}",
             "start": f.fecha,
             "end": f.fecha + timedelta(days=1),
             "title": titulo + titulo_extra, 
@@ -230,7 +250,7 @@ def calendario(db: Session = Depends(get_db)):
             "textColor": text_color,
             "extendedProps": {
                 "evento_id": f.evento_id,
-                "evento_tipo": f.evento.tipo,
+                "evento_tipo": f.evento.tipo.upper(),
                 "evento_nombre": f.evento.nombre,
                 "con_alcohol": f.con_alcohol,
                 "es_mix_evento": getattr(f, 'es_mix_evento', False),

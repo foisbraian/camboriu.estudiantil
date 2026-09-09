@@ -5,7 +5,7 @@ import interactionPlugin from "@fullcalendar/interaction";
 import api from "../api";
 import "./timeline.css";
 
-export default function TimelineCalendar({ resources, events, readOnly = false, onRegisterRef, onSave }) {
+export default function TimelineCalendar({ resources, events, readOnly = false, onRegisterRef }) {
   const calendarRef = useRef(null);
   const [initialDate] = useState(() => new Date());
 
@@ -191,9 +191,18 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
   // =========================================================
   // REFRESH
   // =========================================================
-  const refresh = async () => {
-    const res = await api.get("/calendario");
-    setLocalEvents(res.data.events);
+  const eventsFetcher = useCallback(async (info, success, failure) => {
+    try {
+      const res = await api.get("/calendario/");
+      setLocalEvents(res.data.events); // mantener localEvents para el modal
+      success(res.data.events);
+    } catch (e) {
+      failure(e);
+    }
+  }, []);
+
+  const refresh = () => {
+    calendarRef.current?.getApi()?.refetchEvents();
   };
 
   // =========================================================
@@ -462,9 +471,6 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
         });
       }
 
-      // Recargar datos del calendario en el padre
-      if (onSave) await onSave();
-
       cerrar();
 
     } catch (error) {
@@ -545,7 +551,6 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
         await api.delete(`/calendario/fecha/${getCleanId(editando.id)}`);
       }
 
-      if (onSave) await onSave();
       cerrar();
     } catch (e) {
       alert("Error al eliminar (o asignación bloqueada)");
@@ -558,9 +563,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
     setGrupoAsignando(null);
     setEsPrivado(false);
     setEmpresaPrivadaId("");
-    // onSave ya fue llamado en guardar/eliminar antes de cerrar
-    // refresh() local como fallback si no hay onSave
-    if (!onSave) refresh();
+    refresh();
   };
 
   return (
@@ -588,7 +591,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           }}
           headerToolbar={false}
           resources={resources}
-          events={localEvents}
+          events={eventsFetcher}
           locale="es"
           resourceOrder="order"
           slotMinWidth={slotWidth}

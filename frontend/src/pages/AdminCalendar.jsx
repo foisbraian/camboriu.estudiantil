@@ -276,7 +276,6 @@ export default function AdminCalendar() {
             resources={filteredResources}
             events={events}
             readOnly={readOnly}
-            onSave={cargar}
           />
         </div>
       )}
