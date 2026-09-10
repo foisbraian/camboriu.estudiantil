@@ -27,6 +27,18 @@ export default function AdminCalendar() {
   const [filtroAlcohol, setFiltroAlcohol] = useState("global");
   const [filtroEmpresa, setFiltroEmpresa] = useState("todas");
   const [showFiltros, setShowFiltros] = useState(true);
+  const aniosDisponibles = Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i);
+
+  const navegarAlMes = (mes, anio) => {
+    setMesSeleccionado(mes);
+    setAnioSeleccionado(anio);
+    calendarApi?.navegarAMes(new Date(anio, mes, 1));
+  };
+
+  const volverAHoy = () => {
+    const hoy = new Date();
+    navegarAlMes(hoy.getMonth(), hoy.getFullYear());
+  };
 
   // Lista de empresas derivada de los resources
   const empresas = useMemo(() => {
@@ -147,6 +159,66 @@ export default function AdminCalendar() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            {/* Navegación rápida por mes */}
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#475569" }}>Ir a:</label>
+              <select
+                value={mesSeleccionado}
+                onChange={(e) => navegarAlMes(Number(e.target.value), anioSeleccionado)}
+                title="Seleccionar mes"
+                style={{
+                  fontSize: "0.82rem",
+                  padding: "4px 8px",
+                  borderRadius: "6px",
+                  border: "1px solid #cbd5e1",
+                  outline: "none",
+                  background: "white",
+                  color: "#334155",
+                }}
+              >
+                {MESES.map((mes, indice) => (
+                  <option key={mes} value={indice}>{mes}</option>
+                ))}
+              </select>
+              <select
+                value={anioSeleccionado}
+                onChange={(e) => navegarAlMes(mesSeleccionado, Number(e.target.value))}
+                title="Seleccionar año"
+                style={{
+                  fontSize: "0.82rem",
+                  padding: "4px 8px",
+                  borderRadius: "6px",
+                  border: "1px solid #cbd5e1",
+                  outline: "none",
+                  background: "white",
+                  color: "#334155",
+                }}
+              >
+                {aniosDisponibles.map((anio) => (
+                  <option key={anio} value={anio}>{anio}</option>
+                ))}
+              </select>
+              <button
+                onClick={volverAHoy}
+                title="Volver al mes actual"
+                style={{
+                  fontSize: "0.8rem",
+                  fontWeight: 600,
+                  color: "#1d4ed8",
+                  background: "#eff6ff",
+                  border: "1px solid #bfdbfe",
+                  borderRadius: "6px",
+                  padding: "4px 8px",
+                  cursor: "pointer",
+                }}
+              >
+                Hoy
+              </button>
+            </div>
+
+            {/* Separador */}
+            <div style={{ width: 1, height: 20, background: "#cbd5e1" }} />
+
             {/* Filtro por empresa */}
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#475569" }}>Empresa:</label>
