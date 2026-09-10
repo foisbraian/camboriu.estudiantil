@@ -528,6 +528,42 @@ def calendario_resumen(db: Session = Depends(get_db)):
 
     resources = []
     events = []
+    servicios_abiertos = defaultdict(dict)
+
+    color_map_servicios = {
+        "DISCO": "yellow",
+        "PARQUE": "green",
+        "CAMPAMENTO": "#16a34a",
+        "ZACARIAS": "#15803d",
+        "BIENVENIDA": "#a855f7",
+        "POOL": "skyblue",
+        "CENA": "#e2e8f0",
+        "HIELO": "#e0f2fe",
+        "SURF": "#3b82f6",
+        "UNIPRAIAS": "#10b981",
+        "BETO": "#ec4899",
+        "BARCO": "#8b5cf6",
+        "SUNSET": "#f59e0b",
+        "CRISTO": "#fcd34d",
+        "MULTIPARQUE": "#22c55e",
+        "PARADOR": "#f97316",
+    }
+
+    # Registrar también los servicios abiertos sin asignaciones.
+    for fecha_evento in db.query(models.FechaEvento).all():
+        tipo_servicio = fecha_evento.evento.tipo.upper()
+        color = color_map_servicios.get(tipo_servicio, "gray")
+        if getattr(fecha_evento, "es_mix_evento", False):
+            color = "#f97316"
+        elif fecha_evento.con_alcohol:
+            color = "red"
+        if fecha_evento.tematica and fecha_evento.tematica.nombre.strip().lower() == "bienvenida":
+            color = "#a855f7"
+        if fecha_evento.es_privado:
+            color = "#ede9fe"
+
+        fecha = str(fecha_evento.fecha)
+        servicios_abiertos[fecha][fecha_evento.evento.nombre] = color
 
     # Agrupamos grupos por (empresa_id, empresa_nombre, tipo_alcohol, fecha_entrada, fecha_salida)
     slot_map: dict = {}
@@ -583,6 +619,7 @@ def calendario_resumen(db: Session = Depends(get_db)):
 
             # servicios_pax: {nombre_servicio: pax_total}
             servicios_pax: dict = {}
+            servicios_colores: dict = {}
 
             for grupo in grupos:
                 pax = grupo.cantidad_pax
@@ -593,6 +630,9 @@ def calendario_resumen(db: Session = Depends(get_db)):
                 for a in asigs_hoy:
                     nombre_ev = a.fecha_evento.evento.nombre
                     servicios_pax[nombre_ev] = servicios_pax.get(nombre_ev, 0) + pax
+                    servicios_colores[nombre_ev] = servicios_abiertos.get(
+                        str(current_date), {}
+                    ).get(nombre_ev, color_map_tipo[tipo]["bg"])
 
             if servicios_pax:
                 colors = color_map_tipo[tipo]
@@ -610,13 +650,21 @@ def calendario_resumen(db: Session = Depends(get_db)):
                     "textColor": colors["text"],
                     "extendedProps": {
                         "serviciosPax": servicios_pax,
+                        "serviciosColores": servicios_colores,
                         "totalPax": sum(servicios_pax.values()),
                     },
                 })
 
             current_date = next_date
 
-    return {"resources": resources, "events": events}
+    return {
+        "resources": resources,
+        "events": events,
+        "serviciosAbiertos": {
+            fecha: dict(servicios)
+            for fecha, servicios in servicios_abiertos.items()
+        },
+    }
 
 
 # =========================================================

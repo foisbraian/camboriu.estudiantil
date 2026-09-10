@@ -9,7 +9,7 @@ const TIPO_META = {
 
 const DIAS = ["D","L","M","X","J","V","S"];
 
-export default function ResumenCalendarView({ resources, events, mes, anio }) {
+export default function ResumenCalendarView({ resources, events, serviciosAbiertos, mes, anio }) {
   
   // 1. Agrupar recursos por (Empresa + Tipo Alcohol) y calcular días en destino
   const groupedResources = useMemo(() => {
@@ -76,14 +76,17 @@ export default function ResumenCalendarView({ resources, events, mes, anio }) {
       const d = typeof ev.start === "string" ? ev.start.slice(0, 10) : String(ev.start);
       
       if (!dateMap.has(d)) {
-        dateMap.set(d, { serviciosPax: {} });
+        dateMap.set(d, { serviciosPax: {}, serviciosColores: {} });
       }
       
       const destPax = dateMap.get(d).serviciosPax;
+      const destColores = dateMap.get(d).serviciosColores;
       const srcPax = ev.extendedProps?.serviciosPax || {};
+      const srcColores = ev.extendedProps?.serviciosColores || {};
       
       for (const [srv, pax] of Object.entries(srcPax)) {
         destPax[srv] = (destPax[srv] || 0) + pax;
+        destColores[srv] = srcColores[srv];
       }
     }
     return map;
@@ -146,7 +149,11 @@ export default function ResumenCalendarView({ resources, events, mes, anio }) {
     return map;
   }, [eventMap, sortedResources]);
 
-  if (!sortedResources.length) {
+  const hayServiciosAbiertos = days.some(({ dateStr }) =>
+    Object.keys(serviciosAbiertos[dateStr] || {}).length > 0
+  );
+
+  if (!sortedResources.length && !hayServiciosAbiertos) {
     return (
       <div style={{ padding: 48, textAlign: "center", color: "#94a3b8", fontSize: "1rem" }}>
         No hay actividad en el mes seleccionado.
@@ -264,6 +271,7 @@ export default function ResumenCalendarView({ resources, events, mes, anio }) {
                   {days.map(({ dateStr, isWeekend, isToday }) => {
                     const ev = rm.get(dateStr);
                     const sp = ev?.serviciosPax || null;
+                    const colores = ev?.serviciosColores || {};
                     const inRange = res.diasPresentes.has(dateStr);
 
                     return (
@@ -290,7 +298,7 @@ export default function ResumenCalendarView({ resources, events, mes, anio }) {
                             }}
                           >
                             {Object.entries(sp).map(([servicio, pax]) => (
-                              <div key={servicio}>
+                              <div key={servicio} style={{ color: colores[servicio] || meta.text }}>
                                 <span style={{fontWeight: 800}}>{servicio.substring(0,3)}</span><br/><span style={{opacity:0.9}}>{pax}</span>
                               </div>
                             ))}
@@ -326,7 +334,12 @@ export default function ResumenCalendarView({ resources, events, mes, anio }) {
               TOTAL PAX
             </td>
             {days.map(({ dateStr, isWeekend, isToday }) => {
-              const tot = totalesDia.get(dateStr);
+              const tot = totalesDia.get(dateStr) || {};
+              const abiertos = serviciosAbiertos[dateStr] || {};
+              const servicios = Array.from(new Set([
+                ...Object.keys(abiertos),
+                ...Object.keys(tot),
+              ]));
               return (
                 <td
                   key={dateStr}
@@ -337,11 +350,11 @@ export default function ResumenCalendarView({ resources, events, mes, anio }) {
                     fontSize: "0.6rem", fontWeight: 700, color: "#0f172a",
                   }}
                 >
-                  {tot && (
+                  {servicios.length > 0 && (
                     <div style={{ lineHeight: 1.2 }}>
-                      {Object.entries(tot).map(([k, v]) => (
-                        <div key={k} title={`${k}: ${v}`}>
-                          <span style={{ opacity: 0.65 }}>{k.substring(0, 3)}</span> {v}
+                      {servicios.map((k) => (
+                        <div key={k} title={`${k}: ${tot[k] || 0} pax`} style={{ color: abiertos[k] || "#0f172a" }}>
+                          <span style={{ opacity: 0.75 }}>{k.substring(0, 3)}</span> {tot[k] || 0}
                         </div>
                       ))}
                     </div>

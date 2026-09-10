@@ -21,6 +21,7 @@ const SEL = {
 export default function CalendarioResumen() {
   const [resources, setResources] = useState([]);
   const [events,    setEvents]    = useState([]);
+  const [serviciosAbiertos, setServiciosAbiertos] = useState({});
   const [loading,   setLoading]   = useState(true);
   const [error,     setError]     = useState(null);
 
@@ -38,6 +39,7 @@ export default function CalendarioResumen() {
       const res = await api.get("/calendario/resumen");
       setResources(res.data.resources);
       setEvents(res.data.events);
+      setServiciosAbiertos(res.data.serviciosAbiertos || {});
     } catch (e) {
       console.error("Error cargando resumen", e);
       setError("Error al cargar datos.");
@@ -151,6 +153,7 @@ export default function CalendarioResumen() {
           <ResumenCalendarView
             resources={resources}
             events={events}
+            serviciosAbiertos={serviciosAbiertos}
             mes={mes}
             anio={anio}
           />
