@@ -271,7 +271,6 @@ export default function ResumenCalendarView({ resources, events, serviciosAbiert
                   {days.map(({ dateStr, isWeekend, isToday }) => {
                     const ev = rm.get(dateStr);
                     const sp = ev?.serviciosPax || null;
-                    const colores = ev?.serviciosColores || {};
                     const inRange = res.diasPresentes.has(dateStr);
 
                     return (
@@ -298,7 +297,7 @@ export default function ResumenCalendarView({ resources, events, serviciosAbiert
                             }}
                           >
                             {Object.entries(sp).map(([servicio, pax]) => (
-                              <div key={servicio} style={{ color: colores[servicio] || meta.text }}>
+                              <div key={servicio}>
                                 <span style={{fontWeight: 800}}>{servicio.substring(0,3)}</span><br/><span style={{opacity:0.9}}>{pax}</span>
                               </div>
                             ))}
