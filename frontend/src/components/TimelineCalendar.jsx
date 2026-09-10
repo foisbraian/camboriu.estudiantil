@@ -402,7 +402,11 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
     const fechaISO = info.dateStr;
 
     // A. CLIC EN FILA DE EVENTOS GLOBAL (No debería pasar mucho si está lleno, pero por si acaso)
-    if (resourceIdStr.startsWith("servicio-") || resourceIdStr === "servicios-parent") {
+    if (
+      resourceIdStr.startsWith("servicio-")
+      || resourceIdStr === "servicios-parent"
+      || resourceIdStr === "eventos"
+    ) {
       abrirNuevoGlobal(info.date);
       return;
     }
