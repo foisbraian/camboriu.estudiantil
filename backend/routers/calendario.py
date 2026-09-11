@@ -993,16 +993,19 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
             
         # NUEVA VALIDACION: Capacidad de compras DISCO
         # Contar cuantas asignaciones de tipo DISCO tiene ya el grupo
-        discos_asignadas_count = db.query(models.Asignacion)\
+        discos_asignadas_count = db.query(func.count(func.distinct(models.Asignacion.id)))\
             .join(models.FechaEvento)\
             .join(models.Evento)\
             .filter(models.Asignacion.grupo_id == grupo_id)\
             .filter(models.Evento.tipo == "DISCO")\
-            .count()
+            .scalar() or 0
 
             
         if discos_asignadas_count >= grupo.discos_compradas:
-             raise HTTPException(400, f"El grupo ya agotó sus {grupo.discos_compradas} discos compradas")
+             raise HTTPException(
+                 400,
+                 f"El grupo ya agotó sus discos: {discos_asignadas_count} asignadas de {grupo.discos_compradas} configuradas"
+             )
 
 
     # Validacion PARQUE
