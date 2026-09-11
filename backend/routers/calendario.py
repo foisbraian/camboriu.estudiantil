@@ -997,6 +997,8 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
             .join(models.FechaEvento)\
             .join(models.Evento)\
             .filter(models.Asignacion.grupo_id == grupo_id)\
+            .filter(models.FechaEvento.fecha >= grupo.fecha_entrada)\
+            .filter(models.FechaEvento.fecha < grupo.fecha_salida)\
             .filter(models.Evento.tipo == "DISCO")\
             .scalar() or 0
 
