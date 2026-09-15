@@ -14,55 +14,8 @@ export default function PortalEmpresa() {
 
     const portalEvents = useMemo(() => {
         const sourceEvents = Array.isArray(data.events) ? data.events : [];
-        const globalEvents = sourceEvents.filter((event) => {
-            const resourceId = String(event?.resourceId || "");
-            return resourceId === "eventos" || resourceId.startsWith("servicio-");
-        });
-
-        if (globalEvents.length > 0) {
-            return sourceEvents.map((event) => {
-                const resourceId = String(event?.resourceId || "");
-                if (!resourceId.startsWith("servicio-")) return event;
-                return { ...event, resourceId: "eventos" };
-            });
-        }
-
-        const resourcesById = new Map(
-            (data.resources || []).map((resource) => [String(resource.id), resource])
-        );
-        const summaryByDay = new Map();
-
-        sourceEvents.forEach((event) => {
-            if (event?.extendedProps?.tipo !== "asignacion" || !event.start) return;
-            const resource = resourcesById.get(String(event.resourceId));
-            const pax = Number(resource?.extendedProps?.pax || 0);
-            const key = `${String(event.start).slice(0, 10)}|${event.title || "Servicio"}`;
-            const current = summaryByDay.get(key);
-            if (current) {
-                current.pax += pax;
-                return;
-            }
-            summaryByDay.set(key, {
-                id: `portal-resumen-${key}`,
-                resourceId: "eventos",
-                start: event.start,
-                end: event.end,
-                title: event.title || "Servicio",
-                backgroundColor: event.backgroundColor,
-                borderColor: event.borderColor || "transparent",
-                textColor: event.textColor,
-                pax,
-            });
-        });
-
-        const summaryEvents = Array.from(summaryByDay.values()).map((event) => ({
-            ...event,
-            title: `${event.title} (${event.pax} PAX)`,
-            extendedProps: { tipo: "global_readonly" },
-        }));
-
-        return [...sourceEvents, ...summaryEvents];
-    }, [data.events, data.resources]);
+        return sourceEvents;
+    }, [data.events]);
 
     const cargar = useCallback(async () => {
         try {
@@ -128,50 +81,7 @@ export default function PortalEmpresa() {
             }}>
                 Portal de Empresa
             </h2>
-            {serviciosGlobales.length > 0 && (
-                <div style={{
-                    flexShrink: 0,
-                    margin: "0 8px 8px",
-                    padding: "8px 12px",
-                    background: "white",
-                    border: "1px solid #cbd5e1",
-                    borderRadius: 4,
-                    color: "#1e293b",
-                }}>
-                    <div style={{
-                        marginBottom: 6,
-                        fontSize: "0.78rem",
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        color: "#475569",
-                    }}>
-                        Servicios asignados
-                    </div>
-                    <div style={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: 6,
-                    }}>
-                        {serviciosGlobales.map((servicio) => (
-                            <div
-                                key={`${servicio.servicio}-${servicio.tematica || "sin-tematica"}`}
-                                style={{
-                                    padding: "5px 9px",
-                                    background: "#f1f5f9",
-                                    borderLeft: "3px solid #2563eb",
-                                    fontSize: "0.82rem",
-                                }}
-                            >
-                                <strong>{servicio.servicio}</strong>{" "}
-                                <span>{servicio.cantidad} PAX</span>
-                                {servicio.tematica && (
-                                    <span style={{ color: "#64748b" }}> · {servicio.tematica}</span>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
+            {/* The global services box has been removed as per user request to only show them in the corresponding calendar days */}
             {isMobile ? (
                 <div style={{ flex: 1, minHeight: 0 }}>
                     <MobileDayView resources={data.resources} events={portalEvents} loading={loading} />

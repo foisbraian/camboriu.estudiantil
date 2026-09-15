@@ -684,12 +684,7 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
     events = []
     servicios_globales = {}
 
-    # Fila superior para servicios/eventos globales (una sola fila, sin divisiones por tipo)
-    resources.append({
-        "id": "eventos",
-        "title": "Servicios",
-        "order": 0,
-    })
+    # Fila superior para servicios/eventos globales removida a pedido del usuario
 
     # Empresa
     resources.append({
@@ -825,18 +820,26 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                     bg_color_asig = color_map.get(asignacion.fecha_evento.evento.tipo, "gray")
                     text_color_asig = "black" if bg_color_asig in ["#e0f2fe", "#f59e0b", "#fcd34d"] else "white"
 
+                    pax_asig = getattr(asignacion, "pax_asignados", None)
+                    pax_val = pax_asig if pax_asig is not None else g.cantidad_pax
+                    tematica_nombre = asignacion.fecha_evento.tematica.nombre if asignacion.fecha_evento.tematica else ""
+                    
+                    titulo_asig = f"{asignacion.fecha_evento.evento.nombre} ({pax_val} PAX)"
+                    if tematica_nombre:
+                        titulo_asig += f"\n{tematica_nombre}"
+
                     events.append({
                         "resourceId": g.id, 
                         "start": current_date,
                         "end": next_date,
-                        "title": asignacion.fecha_evento.evento.nombre,
+                        "title": titulo_asig,
                         "backgroundColor": bg_color_asig,
                         "borderColor": "transparent",
                         "textColor": text_color_asig,
-                        # Sin extendedProps complejas porque es read-only, pero dejamos tipo
                         "extendedProps": {
                             "tipo": "asignacion",
-                            "tooltip": f"Asignado: {asignacion.fecha_evento.evento.nombre}" # Tooltip en asignacion tambien
+                            "tooltip": f"Asignado: {asignacion.fecha_evento.evento.nombre}",
+                            "pax": pax_val
                         } 
                     })
                 if asignaciones_hielo:
@@ -845,7 +848,13 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                     text_color_asig = "black"
                     turnos = len(asignaciones_hielo)
                     nombre_base = asignaciones_hielo[0].fecha_evento.evento.nombre
-                    titulo = f"{nombre_base} {turnos} TURNOS" if turnos > 1 else nombre_base
+                    
+                    pax_total_hielo = 0
+                    for a_hielo in asignaciones_hielo:
+                        pax_asig = getattr(a_hielo, "pax_asignados", None)
+                        pax_total_hielo += pax_asig if pax_asig is not None else g.cantidad_pax
+
+                    titulo = f"{nombre_base} {turnos} TURNOS ({pax_total_hielo} PAX)" if turnos > 1 else f"{nombre_base} ({pax_total_hielo} PAX)"
 
                     events.append({
                         "resourceId": g.id,
@@ -857,7 +866,8 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                         "textColor": text_color_asig,
                         "extendedProps": {
                             "tipo": "asignacion",
-                            "tooltip": f"{nombre_base}: {turnos} TURNOS"
+                            "tooltip": f"{nombre_base}: {turnos} TURNOS",
+                            "pax": pax_total_hielo
                         }
                     })
             else:
@@ -873,75 +883,6 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                 })
 
             current_date = next_date
-
-    # 3. GLOBAL ROW (Solo lo asignado)
-    # Buscamos esas FechaEvento especificamente
-    if fecha_eventos_asignados_ids := list(fechas_eventos_asignados_ids):
-        fechas_globales = db.query(models.FechaEvento).filter(models.FechaEvento.id.in_(fecha_eventos_asignados_ids)).all()
-        
-        for f in fechas_globales:
-            color_map = {"DISCO": "yellow", "PARQUE": "green", "CAMPAMENTO": "#16a34a", "ZACARIAS": "#15803d", "BIENVENIDA": "#a855f7", "POOL": "skyblue", "CENA": "#e2e8f0", "HIELO": "#e0f2fe", "SURF": "#3b82f6", "UNIPRAIAS": "#10b981", "BETO": "#ec4899", "BARCO": "#8b5cf6", "SUNSET": "#f59e0b", "CRISTO": "#fcd34d", "MULTIPARQUE": "#22c55e", "PARADOR": "#f97316"}
-            es_mix = getattr(f, 'es_mix_evento', False)
-            if es_mix:
-                color = "#f97316"  # Naranja Mix
-            elif f.con_alcohol:
-                color = "red"
-            else:
-                color = color_map.get(f.evento.tipo, "gray")
-            # Bienvenida como temática de disco → color violeta
-            if f.tematica and f.tematica.nombre.strip().lower() == "bienvenida":
-                color = "#a855f7"
-            text_color = "black" if color in ("yellow", "#e2e8f0", "#e0f2fe", "#f59e0b", "#fcd34d") else "white"
-            if f.es_privado:
-                color = "#ede9fe"
-                text_color = "#4c1d95"
-
-            # Opcional: Ocultar ocupacion real total? 
-            # El usuario dijo: "vean solo su programación... con el nombre y todo"
-            # No especificó si deben ver la ocupación global o no.
-            # Por simplicidad y privacidad, mostraremos el nombre del evento.
-            
-            # Calcular ocupación solo para esta empresa
-            pax_empresa = 0
-            turnos_empresa = 0
-            if f.evento.tipo == "HIELO":
-                turnos_empresa = sum(1 for a in f.asignaciones if a.grupo and a.grupo.empresa_id == empresa.id)
-                for a in f.asignaciones:
-                    if a.grupo and a.grupo.empresa_id == empresa.id:
-                        if getattr(a, "pax_asignados", None) is not None:
-                            pax_empresa += a.pax_asignados
-                        else:
-                            pax_empresa += a.grupo.cantidad_pax
-                titulo_portal = f"{f.evento.nombre} ({pax_empresa} PAX - {turnos_empresa} Turnos)"
-            else:
-                for a in f.asignaciones:
-                    if a.grupo and a.grupo.empresa_id == empresa.id:
-                        if getattr(a, "pax_asignados", None) is not None:
-                            pax_empresa += a.pax_asignados
-                        else:
-                            pax_empresa += a.grupo.cantidad_pax
-                titulo_portal = f"{f.evento.nombre} ({pax_empresa} PAX)"
-
-            if getattr(f, "horario", None):
-                titulo_portal += f" - {f.horario}"
-
-            if f.tematica:
-                titulo_portal += f"\n{f.tematica.nombre}"
-            
-            titulo_extra = ""
-            if f.es_privado and f.empresa_privada:
-                titulo_extra = f"\nPrivado: {f.empresa_privada.nombre}"
-
-            events.append({
-                "id": f"id-{f.id}",
-                "resourceId": f"servicio-{f.evento.tipo}",
-                "start": f.fecha,
-                "end": f.fecha + timedelta(days=1),
-                "title": titulo_portal + titulo_extra, 
-                "backgroundColor": color,
-                "textColor": text_color,
-                "extendedProps": {"tipo": "global_readonly"}
-            })
 
     return {
         "resources": resources,
