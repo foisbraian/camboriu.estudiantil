@@ -5,6 +5,7 @@ import api, { BASE_URL } from "../api";
 export default function FinanzasDashboard() {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [busqueda, setBusqueda] = useState("");
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -32,6 +33,10 @@ export default function FinanzasDashboard() {
         acc[c].pagado += curr.total_pagado;
         return acc;
     }, {});
+
+    const empresasFiltradas = data.filter((emp) =>
+        emp.nombre.toLowerCase().includes(busqueda.trim().toLowerCase())
+    );
 
     if (loading) return <div style={{ padding: 40 }}>Cargando dashboard...</div>;
 
@@ -115,6 +120,25 @@ export default function FinanzasDashboard() {
                 </div>
             ))}
 
+            <div style={{ marginBottom: 14 }}>
+                <input
+                    type="search"
+                    placeholder="Buscar empresa..."
+                    aria-label="Buscar empresa en finanzas"
+                    value={busqueda}
+                    onChange={(e) => setBusqueda(e.target.value)}
+                    style={{
+                        width: "100%",
+                        boxSizing: "border-box",
+                        padding: "12px 14px",
+                        border: "1px solid #cbd5e1",
+                        borderRadius: 8,
+                        fontSize: "0.95rem",
+                        outline: "none"
+                    }}
+                />
+            </div>
+
             <div style={{ background: "white", borderRadius: 12, boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)", overflow: "hidden" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
                     <thead style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
@@ -127,7 +151,7 @@ export default function FinanzasDashboard() {
                         </tr>
                     </thead>
                     <tbody>
-                        {data.map((emp) => {
+                        {empresasFiltradas.map((emp) => {
                             const perc = emp.porcentaje_pagado;
                             let statusColor = "#ef4444"; // Rojo (Riesgo)
                             let statusText = "Riesgo Alto";
@@ -172,6 +196,11 @@ export default function FinanzasDashboard() {
                         })}
                     </tbody>
                 </table>
+                {empresasFiltradas.length === 0 && (
+                    <p style={{ margin: 0, padding: 20, color: "#64748b" }}>
+                        No se encontraron empresas con esa búsqueda.
+                    </p>
+                )}
             </div>
         </div>
     );
