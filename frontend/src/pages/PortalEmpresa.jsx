@@ -14,6 +14,19 @@ export default function PortalEmpresa() {
 
     const portalEvents = useMemo(() => {
         const sourceEvents = Array.isArray(data.events) ? data.events : [];
+        const globalEvents = sourceEvents.filter((event) => {
+            const resourceId = String(event?.resourceId || "");
+            return resourceId === "eventos" || resourceId.startsWith("servicio-");
+        });
+
+        if (globalEvents.length > 0) {
+            return sourceEvents.map((event) => {
+                const resourceId = String(event?.resourceId || "");
+                if (!resourceId.startsWith("servicio-")) return event;
+                return { ...event, resourceId: "eventos" };
+            });
+        }
+        
         return sourceEvents;
     }, [data.events]);
 
@@ -60,6 +73,9 @@ export default function PortalEmpresa() {
     if (loading) return <div style={{ padding: 20 }}>Cargando portal...</div>;
     if (error) return <div style={{ padding: 20, color: "red" }}>{error}</div>;
 
+    const serviciosGlobales = Array.isArray(data.serviciosGlobales)
+        ? data.serviciosGlobales
+        : [];
 
     return (
         <div style={{
@@ -78,7 +94,7 @@ export default function PortalEmpresa() {
             }}>
                 Portal de Empresa
             </h2>
-            {/* The global services box has been removed as per user request to only show them in the corresponding calendar days */}
+            {/* The global services box has been removed as per user request to only show them in the corresponding calendar days in the header row */}
             {isMobile ? (
                 <div style={{ flex: 1, minHeight: 0 }}>
                     <MobileDayView resources={data.resources} events={portalEvents} loading={loading} />
