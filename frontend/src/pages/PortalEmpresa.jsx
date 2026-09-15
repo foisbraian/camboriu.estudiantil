@@ -60,9 +60,6 @@ export default function PortalEmpresa() {
     if (loading) return <div style={{ padding: 20 }}>Cargando portal...</div>;
     if (error) return <div style={{ padding: 20, color: "red" }}>{error}</div>;
 
-    const serviciosGlobales = Array.isArray(data.serviciosGlobales)
-        ? data.serviciosGlobales
-        : [];
 
     return (
         <div style={{
