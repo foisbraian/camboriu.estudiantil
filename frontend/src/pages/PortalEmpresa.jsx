@@ -107,6 +107,10 @@ export default function PortalEmpresa() {
     if (loading) return <div style={{ padding: 20 }}>Cargando portal...</div>;
     if (error) return <div style={{ padding: 20, color: "red" }}>{error}</div>;
 
+    const serviciosGlobales = Array.isArray(data.serviciosGlobales)
+        ? data.serviciosGlobales
+        : [];
+
     return (
         <div style={{
             minHeight: "100vh",
@@ -124,6 +128,50 @@ export default function PortalEmpresa() {
             }}>
                 Portal de Empresa
             </h2>
+            {serviciosGlobales.length > 0 && (
+                <div style={{
+                    flexShrink: 0,
+                    margin: "0 8px 8px",
+                    padding: "8px 12px",
+                    background: "white",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: 4,
+                    color: "#1e293b",
+                }}>
+                    <div style={{
+                        marginBottom: 6,
+                        fontSize: "0.78rem",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        color: "#475569",
+                    }}>
+                        Servicios asignados
+                    </div>
+                    <div style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 6,
+                    }}>
+                        {serviciosGlobales.map((servicio) => (
+                            <div
+                                key={`${servicio.servicio}-${servicio.tematica || "sin-tematica"}`}
+                                style={{
+                                    padding: "5px 9px",
+                                    background: "#f1f5f9",
+                                    borderLeft: "3px solid #2563eb",
+                                    fontSize: "0.82rem",
+                                }}
+                            >
+                                <strong>{servicio.servicio}</strong>{" "}
+                                <span>{servicio.cantidad} PAX</span>
+                                {servicio.tematica && (
+                                    <span style={{ color: "#64748b" }}> · {servicio.tematica}</span>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
             {isMobile ? (
                 <div style={{ flex: 1, minHeight: 0 }}>
                     <MobileDayView resources={data.resources} events={portalEvents} loading={loading} />

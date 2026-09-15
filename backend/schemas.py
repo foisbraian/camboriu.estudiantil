@@ -148,26 +148,26 @@ class AsignacionCreate(BaseModel):
 class FinanzasEmpresaCreate(BaseModel):
     empresa_id: int
     moneda: str = "ARS"
-    precio_disco_individual: int = 0
-    precio_parque_individual: int = 0
-    precio_parque_con_comida: int = 0
-    precio_parque_sin_comida: int = 0
+    precio_disco_individual: float = 0
+    precio_parque_individual: float = 0
+    precio_parque_con_comida: float = 0
+    precio_parque_sin_comida: float = 0
     
-    precio_campamento_individual: int = 0
-    precio_campamento_con_comida: int = 0
-    precio_campamento_sin_comida: int = 0
+    precio_campamento_individual: float = 0
+    precio_campamento_con_comida: float = 0
+    precio_campamento_sin_comida: float = 0
 
-    precio_zacarias_individual: int = 0
-    precio_zacarias_con_comida: int = 0
-    precio_zacarias_sin_comida: int = 0
+    precio_zacarias_individual: float = 0
+    precio_zacarias_con_comida: float = 0
+    precio_zacarias_sin_comida: float = 0
 
-    precio_pool_individual: int = 0
-    precio_pool_con_comida: int = 0
-    precio_pool_sin_comida: int = 0
-    precio_cena_velas: int = 0
-    precio_bar_hielo: int = 0
+    precio_pool_individual: float = 0
+    precio_pool_con_comida: float = 0
+    precio_pool_sin_comida: float = 0
+    precio_cena_velas: float = 0
+    precio_bar_hielo: float = 0
     es_combo: bool = False
-    precio_combo: int = 0
+    precio_combo: float = 0
     combo_discos: int = 0
     combo_parque: bool = False
     combo_campamento: bool = False
@@ -176,14 +176,14 @@ class FinanzasEmpresaCreate(BaseModel):
     combo_cena_velas: bool = False
     combo_bar_hielo: bool = False
     
-    precio_surf: int = 0
-    precio_unipraias: int = 0
-    precio_beto: int = 0
-    precio_barco: int = 0
-    precio_cristo: int = 0
-    precio_sunset: int = 0
-    precio_quinta_comida: int = 0
-    precio_multiparque: int = 0
+    precio_surf: float = 0
+    precio_unipraias: float = 0
+    precio_beto: float = 0
+    precio_barco: float = 0
+    precio_cristo: float = 0
+    precio_sunset: float = 0
+    precio_quinta_comida: float = 0
+    precio_multiparque: float = 0
 
     combo_surf: bool = False
     combo_unipraias: bool = False
@@ -216,7 +216,7 @@ class FinanzasEmpresaCreate(BaseModel):
 class PrecioServicioMensualCreate(BaseModel):
     servicio: str
     mes: int
-    precio: int
+    precio: float
 
 class PrecioServicioMensualOut(PrecioServicioMensualCreate):
     id: int
@@ -231,7 +231,7 @@ class FinanzasEmpresaOut(FinanzasEmpresaCreate):
 
 class PagoCreate(BaseModel):
     empresa_id: int
-    monto: int
+    monto: float
     fecha: date
     metodo: str
     nota: Union[str, None] = None
@@ -282,11 +282,11 @@ class ReservaHotelCreate(BaseModel):
     cant_cuadruple: int = 0
     cant_quintuple: int = 0
 
-    tarifa_single: int = 0
-    tarifa_doble: int = 0
-    tarifa_triple: int = 0
-    tarifa_cuadruple: int = 0
-    tarifa_quintuple: int = 0
+    tarifa_single: float = 0
+    tarifa_doble: float = 0
+    tarifa_triple: float = 0
+    tarifa_cuadruple: float = 0
+    tarifa_quintuple: float = 0
 
     @model_validator(mode="after")
     def fecha_salida_posterior(self):
@@ -309,7 +309,7 @@ class PagoHotelCreate(BaseModel):
     empresa_id: int
     hotel_id: int
     reserva_id: Union[int, None] = None
-    monto: int
+    monto: float
     fecha: date
     metodo: str
     nota: Union[str, None] = None

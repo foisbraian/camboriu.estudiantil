@@ -682,6 +682,7 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
 
     resources = []
     events = []
+    servicios_globales = {}
 
     # Fila superior para servicios/eventos globales (una sola fila, sin divisiones por tipo)
     resources.append({
@@ -793,6 +794,20 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
         for a in g.asignaciones:
             mapa_asignaciones[a.fecha_evento.fecha].append(a)
             fechas_eventos_asignados_ids.add(a.fecha_evento.id) # Guardar para filtro global
+
+            fecha_evento = a.fecha_evento
+            servicio = fecha_evento.evento.nombre
+            tematica = fecha_evento.tematica.nombre if fecha_evento.tematica else None
+            clave_servicio = (servicio, tematica)
+            if clave_servicio not in servicios_globales:
+                servicios_globales[clave_servicio] = {
+                    "servicio": servicio,
+                    "cantidad": 0,
+                    "tematica": tematica,
+                }
+            servicios_globales[clave_servicio]["cantidad"] += (
+                a.pax_asignados if a.pax_asignados is not None else g.cantidad_pax
+            )
 
         current_date = g.fecha_entrada
         while current_date < g.fecha_salida:
@@ -923,7 +938,11 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                 "extendedProps": {"tipo": "global_readonly"}
             })
 
-    return {"resources": resources, "events": events}
+    return {
+        "resources": resources,
+        "events": events,
+        "serviciosGlobales": list(servicios_globales.values()),
+    }
 
 
 # =========================================================

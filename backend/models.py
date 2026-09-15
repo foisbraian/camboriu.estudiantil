@@ -205,38 +205,38 @@ class FinanzasEmpresa(Base):
     empresa_id = Column(Integer, ForeignKey("empresas.id"), unique=True)
     moneda = Column(String, default="ARS")
 
-    precio_disco_individual = Column(Integer, default=0)
-    precio_parque_individual = Column(Integer, default=0)
-    precio_parque_con_comida = Column(Integer, default=0)
-    precio_parque_sin_comida = Column(Integer, default=0)
+    precio_disco_individual = Column(Float, default=0)
+    precio_parque_individual = Column(Float, default=0)
+    precio_parque_con_comida = Column(Float, default=0)
+    precio_parque_sin_comida = Column(Float, default=0)
     
     # Campamento Americano
-    precio_campamento_individual = Column(Integer, default=0)
-    precio_campamento_con_comida = Column(Integer, default=0)
-    precio_campamento_sin_comida = Column(Integer, default=0)
+    precio_campamento_individual = Column(Float, default=0)
+    precio_campamento_con_comida = Column(Float, default=0)
+    precio_campamento_sin_comida = Column(Float, default=0)
 
     # Zacarias
-    precio_zacarias_individual = Column(Integer, default=0)
-    precio_zacarias_con_comida = Column(Integer, default=0)
-    precio_zacarias_sin_comida = Column(Integer, default=0)
+    precio_zacarias_individual = Column(Float, default=0)
+    precio_zacarias_con_comida = Column(Float, default=0)
+    precio_zacarias_sin_comida = Column(Float, default=0)
 
-    precio_pool_individual = Column(Integer, default=0)
-    precio_pool_con_comida = Column(Integer, default=0)
-    precio_pool_sin_comida = Column(Integer, default=0)
-    precio_cena_velas = Column(Integer, default=0)
-    precio_bar_hielo = Column(Integer, default=0)
+    precio_pool_individual = Column(Float, default=0)
+    precio_pool_con_comida = Column(Float, default=0)
+    precio_pool_sin_comida = Column(Float, default=0)
+    precio_cena_velas = Column(Float, default=0)
+    precio_bar_hielo = Column(Float, default=0)
 
-    precio_surf = Column(Integer, default=0)
-    precio_unipraias = Column(Integer, default=0)
-    precio_beto = Column(Integer, default=0)
-    precio_barco = Column(Integer, default=0)
-    precio_cristo = Column(Integer, default=0)
-    precio_sunset = Column(Integer, default=0)
-    precio_quinta_comida = Column(Integer, default=0)
-    precio_multiparque = Column(Integer, default=0)
+    precio_surf = Column(Float, default=0)
+    precio_unipraias = Column(Float, default=0)
+    precio_beto = Column(Float, default=0)
+    precio_barco = Column(Float, default=0)
+    precio_cristo = Column(Float, default=0)
+    precio_sunset = Column(Float, default=0)
+    precio_quinta_comida = Column(Float, default=0)
+    precio_multiparque = Column(Float, default=0)
 
     es_combo = Column(Boolean, default=False)
-    precio_combo = Column(Integer, default=0)
+    precio_combo = Column(Float, default=0)
     combo_discos = Column(Integer, default=0)
     combo_parque = Column(Boolean, default=False)
     combo_campamento = Column(Boolean, default=False)
@@ -290,7 +290,7 @@ class PrecioServicioMensual(Base):
     finanzas_empresa_id = Column(Integer, ForeignKey("finanzas_empresa.id", ondelete="CASCADE"))
     servicio = Column(String)  # ej: "parque_con_comida", "parque_sin_comida", "disco", "pool_con_comida", etc.
     mes = Column(Integer)  # 1 a 12
-    precio = Column(Integer, default=0)
+    precio = Column(Float, default=0)
 
     finanzas_empresa = relationship("FinanzasEmpresa", back_populates="precios_mensuales")
 
@@ -305,7 +305,7 @@ class Pago(Base):
     id = Column(Integer, primary_key=True)
     empresa_id = Column(Integer, ForeignKey("empresas.id"))
 
-    monto = Column(Integer)
+    monto = Column(Float)
     fecha = Column(Date)
     metodo = Column(String)  # Transferencia, Efectivo, etc.
     nota = Column(String, nullable=True)
@@ -367,11 +367,11 @@ class ReservaHotel(Base):
     cant_quintuple = Column(Integer, default=0)
 
     # Tarifas (por noche)
-    tarifa_single = Column(Integer, default=0)
-    tarifa_doble = Column(Integer, default=0)
-    tarifa_triple = Column(Integer, default=0)
-    tarifa_cuadruple = Column(Integer, default=0)
-    tarifa_quintuple = Column(Integer, default=0)
+    tarifa_single = Column(Float, default=0)
+    tarifa_doble = Column(Float, default=0)
+    tarifa_triple = Column(Float, default=0)
+    tarifa_cuadruple = Column(Float, default=0)
+    tarifa_quintuple = Column(Float, default=0)
 
     empresa = relationship("Empresa", back_populates="reservas_hotel")
     hotel = relationship("Hotel", back_populates="reservas")
@@ -386,7 +386,7 @@ class PagoHotel(Base):
     hotel_id = Column(Integer, ForeignKey("hoteles.id", ondelete="CASCADE"))
     reserva_id = Column(Integer, ForeignKey("reservas_hotel.id", ondelete="SET NULL"), nullable=True)
 
-    monto = Column(Integer)
+    monto = Column(Float)
     fecha = Column(Date)
     metodo = Column(String)  # Transferencia, Efectivo, Cheque, etc.
     nota = Column(String, nullable=True)

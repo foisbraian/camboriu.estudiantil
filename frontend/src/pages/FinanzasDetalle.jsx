@@ -125,7 +125,7 @@ export default function FinanzasDetalle() {
                 <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                     <span style={{ fontSize: "0.75rem" }}>Ratio:</span>
                     <input
-                        type="number"
+                        type="number" step="any"
                         placeholder="Ratio"
                         value={configForm[`${prefix}_liberados_ratio`]}
                         onChange={e => setConfigForm({ ...configForm, [`${prefix}_liberados_ratio`]: Number(e.target.value) })}
@@ -321,7 +321,7 @@ export default function FinanzasDetalle() {
                                 <div>
                                     <p style={{ margin: "0 0 4px 0", fontSize: "0.8rem", color: "#64748b" }}>Precio Discoteca (Indiv.)</p>
                                     <input
-                                        type="number"
+                                        type="number" step="any"
                                         value={configForm.precio_disco_individual}
                                         onChange={e => setConfigForm({ ...configForm, precio_disco_individual: Number(e.target.value) })}
                                         style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
@@ -332,7 +332,7 @@ export default function FinanzasDetalle() {
                                     <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                                     <p style={{ margin: "0 0 4px 0", fontSize: "0.8rem", color: "#64748b" }}>Precio Parque</p>
                                     <input
-                                        type="number"
+                                        type="number" step="any"
                                         value={configForm.precio_parque_individual}
                                         onChange={e => setConfigForm({ ...configForm, precio_parque_individual: Number(e.target.value) })}
                                         style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
@@ -341,7 +341,7 @@ export default function FinanzasDetalle() {
                                         <div>
                                             <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Con comida</p>
                                             <input
-                                                type="number"
+                                                type="number" step="any"
                                                 value={configForm.precio_parque_con_comida}
                                                 onChange={e => setConfigForm({ ...configForm, precio_parque_con_comida: Number(e.target.value) })}
                                                 style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
@@ -350,7 +350,7 @@ export default function FinanzasDetalle() {
                                         <div>
                                             <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Sin comida</p>
                                             <input
-                                                type="number"
+                                                type="number" step="any"
                                                 value={configForm.precio_parque_sin_comida}
                                                 onChange={e => setConfigForm({ ...configForm, precio_parque_sin_comida: Number(e.target.value) })}
                                                 style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
@@ -363,7 +363,7 @@ export default function FinanzasDetalle() {
                                     <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                                     <p style={{ margin: "0 0 4px 0", fontSize: "0.8rem", color: "#64748b" }}>Precio Campamento Americano</p>
                                     <input
-                                        type="number"
+                                        type="number" step="any"
                                         value={configForm.precio_campamento_individual || 0}
                                         onChange={e => setConfigForm({ ...configForm, precio_campamento_individual: Number(e.target.value) })}
                                         style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
@@ -372,7 +372,7 @@ export default function FinanzasDetalle() {
                                         <div>
                                             <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Con comida</p>
                                             <input
-                                                type="number"
+                                                type="number" step="any"
                                                 value={configForm.precio_campamento_con_comida || 0}
                                                 onChange={e => setConfigForm({ ...configForm, precio_campamento_con_comida: Number(e.target.value) })}
                                                 style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
@@ -381,7 +381,7 @@ export default function FinanzasDetalle() {
                                         <div>
                                             <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Sin comida</p>
                                             <input
-                                                type="number"
+                                                type="number" step="any"
                                                 value={configForm.precio_campamento_sin_comida || 0}
                                                 onChange={e => setConfigForm({ ...configForm, precio_campamento_sin_comida: Number(e.target.value) })}
                                                 style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
@@ -394,7 +394,7 @@ export default function FinanzasDetalle() {
                                     <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                                     <p style={{ margin: "0 0 4px 0", fontSize: "0.8rem", color: "#64748b" }}>Precio Zacarias</p>
                                     <input
-                                        type="number"
+                                        type="number" step="any"
                                         value={configForm.precio_zacarias_individual || 0}
                                         onChange={e => setConfigForm({ ...configForm, precio_zacarias_individual: Number(e.target.value) })}
                                         style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
@@ -403,7 +403,7 @@ export default function FinanzasDetalle() {
                                         <div>
                                             <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Con comida</p>
                                             <input
-                                                type="number"
+                                                type="number" step="any"
                                                 value={configForm.precio_zacarias_con_comida || 0}
                                                 onChange={e => setConfigForm({ ...configForm, precio_zacarias_con_comida: Number(e.target.value) })}
                                                 style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
@@ -412,7 +412,7 @@ export default function FinanzasDetalle() {
                                         <div>
                                             <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Sin comida</p>
                                             <input
-                                                type="number"
+                                                type="number" step="any"
                                                 value={configForm.precio_zacarias_sin_comida || 0}
                                                 onChange={e => setConfigForm({ ...configForm, precio_zacarias_sin_comida: Number(e.target.value) })}
                                                 style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
@@ -425,7 +425,7 @@ export default function FinanzasDetalle() {
                                     <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                                         <p style={{ margin: "0 0 4px 0", fontSize: "0.8rem", color: "#64748b" }}>Precio Pool</p>
                                         <input
-                                            type="number"
+                                            type="number" step="any"
                                             value={configForm.precio_pool_individual}
                                             onChange={e => setConfigForm({ ...configForm, precio_pool_individual: Number(e.target.value) })}
                                             style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
@@ -434,7 +434,7 @@ export default function FinanzasDetalle() {
                                             <div>
                                                 <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Con comida</p>
                                                 <input
-                                                    type="number"
+                                                    type="number" step="any"
                                                     value={configForm.precio_pool_con_comida}
                                                     onChange={e => setConfigForm({ ...configForm, precio_pool_con_comida: Number(e.target.value) })}
                                                     style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
@@ -443,7 +443,7 @@ export default function FinanzasDetalle() {
                                             <div>
                                                 <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Sin comida</p>
                                                 <input
-                                                    type="number"
+                                                    type="number" step="any"
                                                     value={configForm.precio_pool_sin_comida}
                                                     onChange={e => setConfigForm({ ...configForm, precio_pool_sin_comida: Number(e.target.value) })}
                                                     style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
@@ -456,7 +456,7 @@ export default function FinanzasDetalle() {
                                 <div style={{ padding: 15, background: "#fefce8", borderRadius: 8 }}>
                                     <p style={{ margin: "0 0 6px 0", fontSize: "0.8rem", color: "#92400e" }}>Cena de velas</p>
                                     <input
-                                        type="number"
+                                        type="number" step="any"
                                         value={configForm.precio_cena_velas}
                                         onChange={e => setConfigForm({ ...configForm, precio_cena_velas: Number(e.target.value) })}
                                         style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #fcd34d" }}
@@ -465,7 +465,7 @@ export default function FinanzasDetalle() {
                                 <div style={{ padding: 15, background: "#eff6ff", borderRadius: 8 }}>
                                     <p style={{ margin: "0 0 6px 0", fontSize: "0.8rem", color: "#1d4ed8" }}>Bar de hielo</p>
                                     <input
-                                        type="number"
+                                        type="number" step="any"
                                         value={configForm.precio_bar_hielo}
                                         onChange={e => setConfigForm({ ...configForm, precio_bar_hielo: Number(e.target.value) })}
                                         style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #bfdbfe" }}
@@ -487,7 +487,7 @@ export default function FinanzasDetalle() {
                                             <div key={key}>
                                                 <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>{label}</p>
                                                 <input
-                                                    type="number"
+                                                    type="number" step="any"
                                                     value={configForm[key]}
                                                     onChange={e => setConfigForm({ ...configForm, [key]: Number(e.target.value) })}
                                                     style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #bbf7d0" }}
@@ -502,7 +502,7 @@ export default function FinanzasDetalle() {
                                 <div>
                                     <p style={{ margin: "0 0 8px 0", fontSize: "0.85rem", color: "#166534" }}>Precio Total del Combo</p>
                                     <input
-                                        type="number"
+                                        type="number" step="any"
                                         value={configForm.precio_combo}
                                         onChange={e => setConfigForm({ ...configForm, precio_combo: Number(e.target.value) })}
                                         style={{ width: "100%", padding: 10, borderRadius: 6, border: "1px solid #bbf7d0" }}
@@ -510,7 +510,7 @@ export default function FinanzasDetalle() {
                                 </div>
                                 <div style={{ display: "flex", gap: 15, fontSize: "0.85rem", flexWrap: "wrap" }}>
                                     <input
-                                        type="number"
+                                        type="number" step="any"
                                         placeholder="Cant. Discos"
                                         value={configForm.combo_discos}
                                         onChange={e => setConfigForm({ ...configForm, combo_discos: Number(e.target.value) })}
@@ -604,7 +604,7 @@ export default function FinanzasDetalle() {
                         <div style={{ display: "flex", flexDirection: "column", gap: 5, width: 120 }}>
                             <span style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>Precio</span>
                             <input 
-                                type="number"
+                                type="number" step="any"
                                 min="0"
                                 value={nuevoMensualForm.precio || ""}
                                 onChange={e => setNuevoMensualForm({ ...nuevoMensualForm, precio: Number(e.target.value) })}
@@ -627,7 +627,7 @@ export default function FinanzasDetalle() {
                     <h3 style={{ marginTop: 0, marginBottom: 20 }}>💸 Registrar Pago</h3>
                     <form onSubmit={registrarPago} style={{ display: "flex", flexDirection: "column", gap: 15 }}>
                         <input
-                            type="number"
+                            type="number" step="any"
                             placeholder="Monto $"
                             value={pagoForm.monto || ""}
                             onChange={e => setPagoForm({ ...pagoForm, monto: Number(e.target.value) })}
@@ -744,7 +744,7 @@ export default function FinanzasDetalle() {
                                                     <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.75rem", color: "#475569" }}>
                                                         Pagantes finales:
                                                         <input
-                                                            type="number"
+                                                            type="number" step="any"
                                                             min="0"
                                                             value={pagantesFinalesForm[g.id]?.[s.servicio_key] ?? ""}
                                                             onChange={(e) => {
