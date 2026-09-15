@@ -908,13 +908,18 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                 turnos_empresa = sum(1 for a in f.asignaciones if a.grupo and a.grupo.empresa_id == empresa.id)
                 for a in f.asignaciones:
                     if a.grupo and a.grupo.empresa_id == empresa.id:
-                        if a.pax_asignados is not None:
+                        if getattr(a, "pax_asignados", None) is not None:
                             pax_empresa += a.pax_asignados
                         else:
                             pax_empresa += a.grupo.cantidad_pax
                 titulo_portal = f"{f.evento.nombre} ({pax_empresa} PAX - {turnos_empresa} Turnos)"
             else:
-                pax_empresa = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo and a.grupo.empresa_id == empresa.id)
+                for a in f.asignaciones:
+                    if a.grupo and a.grupo.empresa_id == empresa.id:
+                        if getattr(a, "pax_asignados", None) is not None:
+                            pax_empresa += a.pax_asignados
+                        else:
+                            pax_empresa += a.grupo.cantidad_pax
                 titulo_portal = f"{f.evento.nombre} ({pax_empresa} PAX)"
 
             if getattr(f, "horario", None):
