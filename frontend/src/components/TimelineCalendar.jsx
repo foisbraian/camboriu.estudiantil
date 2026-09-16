@@ -595,7 +595,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           }}
           headerToolbar={false}
           resources={resources}
-          events={eventsFetcher}
+          events={readOnly ? localEvents : eventsFetcher}
           locale="es"
           resourceOrder="order"
           slotMinWidth={slotWidth}
