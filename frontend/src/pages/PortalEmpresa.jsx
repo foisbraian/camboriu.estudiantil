@@ -12,6 +12,27 @@ export default function PortalEmpresa() {
     const [isMobile, setIsMobile] = useState(false);
     const [calendarApi, setCalendarApi] = useState(null);
 
+    // Navegacion rapida por mes (solo desktop)
+    const MESES_NAV = [
+        "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+        "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+    ];
+    const nowNav = new Date();
+    const [mesSeleccionado, setMesSeleccionado] = useState(nowNav.getMonth());
+    const [anioSeleccionado, setAnioSeleccionado] = useState(nowNav.getFullYear());
+    const aniosDisponibles = Array.from({ length: 5 }, (_, i) => nowNav.getFullYear() - 2 + i);
+
+    const navegarAlMes = useCallback((mes, anio) => {
+        setMesSeleccionado(mes);
+        setAnioSeleccionado(anio);
+        calendarApi?.navegarAMes(new Date(anio, mes, 1));
+    }, [calendarApi]);
+
+    const volverAHoy = useCallback(() => {
+        const hoy = new Date();
+        navegarAlMes(hoy.getMonth(), hoy.getFullYear());
+    }, [navegarAlMes]);
+
     const portalEvents = useMemo(() => {
         const sourceEvents = Array.isArray(data.events) ? data.events : [];
         const globalEvents = sourceEvents.filter((event) => {
@@ -92,6 +113,56 @@ export default function PortalEmpresa() {
                 Portal de Empresa
             </h2>
             {/* The global services box has been removed as per user request to only show them in the corresponding calendar days in the header row */}
+            {/* Barra de navegacion rapida -- solo visible en desktop */}
+            {!isMobile && (
+                <div style={{
+                    display: "flex", alignItems: "center", gap: "8px",
+                    padding: "6px 16px",
+                    background: "#f1f5f9",
+                    borderBottom: "1px solid #e2e8f0",
+                    flexShrink: 0,
+                }}>
+                    <span style={{ fontSize: "0.82rem", fontWeight: 600, color: "#475569" }}>
+                        Ir al mes:
+                    </span>
+                    <select
+                        value={mesSeleccionado}
+                        onChange={(e) => navegarAlMes(Number(e.target.value), anioSeleccionado)}
+                        style={{
+                            fontSize: "0.82rem", padding: "4px 8px", borderRadius: "6px",
+                            border: "1px solid #cbd5e1", outline: "none",
+                            background: "white", color: "#334155", cursor: "pointer",
+                        }}
+                    >
+                        {MESES_NAV.map((mes, i) => (
+                            <option key={mes} value={i}>{mes}</option>
+                        ))}
+                    </select>
+                    <select
+                        value={anioSeleccionado}
+                        onChange={(e) => navegarAlMes(mesSeleccionado, Number(e.target.value))}
+                        style={{
+                            fontSize: "0.82rem", padding: "4px 8px", borderRadius: "6px",
+                            border: "1px solid #cbd5e1", outline: "none",
+                            background: "white", color: "#334155", cursor: "pointer",
+                        }}
+                    >
+                        {aniosDisponibles.map((anio) => (
+                            <option key={anio} value={anio}>{anio}</option>
+                        ))}
+                    </select>
+                    <button
+                        onClick={volverAHoy}
+                        style={{
+                            fontSize: "0.8rem", fontWeight: 600, color: "#1d4ed8",
+                            background: "#eff6ff", border: "1px solid #bfdbfe",
+                            borderRadius: "6px", padding: "4px 10px", cursor: "pointer",
+                        }}
+                    >
+                        Hoy
+                    </button>
+                </div>
+            )}
             {isMobile ? (
                 <div style={{ flex: 1, minHeight: 0 }}>
                     <MobileDayView resources={data.resources} events={portalEvents} loading={loading} />
