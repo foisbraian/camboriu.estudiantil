@@ -26,6 +26,9 @@ class Empresa(Base):
     # acceso simple sin login
     codigo_acceso = Column(String, default=generar_codigo, unique=True)
 
+    # para marcar años informados (ej: "2024,2025,2026")
+    anios_informados = Column(String, default="")
+
     grupos = relationship("Grupo", back_populates="empresa")
     reservas_hotel = relationship("ReservaHotel", back_populates="empresa")
     pagos_hotel = relationship("PagoHotel", back_populates="empresa")

@@ -32,7 +32,7 @@ def crear_empresa(data: schemas.EmpresaCreate, db: Session = Depends(get_db)):
 
     empresa = models.Empresa(
         nombre=nombre_normalizado,
-        numero_contacto=data.numero_contacto
+        numero_contacto=data.numero_contacto, anios_informados=data.anios_informados or ''
     )
 
     db.add(empresa)
@@ -123,6 +123,8 @@ def editar_empresa(
 
     empresa.nombre = nuevo_nombre
     empresa.numero_contacto = data.numero_contacto
+    if data.anios_informados is not None:
+        empresa.anios_informados = data.anios_informados
 
     db.commit()
     db.refresh(empresa)

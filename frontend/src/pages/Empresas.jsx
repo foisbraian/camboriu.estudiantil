@@ -8,6 +8,7 @@ export default function Empresas() {
   const [numeroContacto, setNumeroContacto] = useState("");
   const [busqueda, setBusqueda] = useState("");
   const [error, setError] = useState("");
+  const [anioInformado, setAnioInformado] = useState(new Date().getFullYear().toString());
 
   const navigate = useNavigate();
 
@@ -23,6 +24,28 @@ export default function Empresas() {
   // =========================
   // crear empresa
   // =========================
+  
+  async function toggleInformado(empresa, anio) {
+    let anios = empresa.anios_informados ? empresa.anios_informados.split(",") : [];
+    if (anios.includes(anio)) {
+      anios = anios.filter(a => a !== anio);
+    } else {
+      anios.push(anio);
+    }
+    const nuevoAnios = anios.filter(Boolean).join(",");
+    
+    try {
+      await api.put(`/empresas/${empresa.id}`, {
+        nombre: empresa.nombre,
+        numero_contacto: empresa.numero_contacto,
+        anios_informados: nuevoAnios
+      });
+      cargar();
+    } catch (err) {
+      alert("Error al actualizar");
+    }
+  }
+
   async function crear(e) {
     e.preventDefault();
     setError("");
@@ -48,12 +71,26 @@ export default function Empresas() {
 
   return (
     <div style={{ padding: "40px 20px", maxWidth: "800px" }}>
+      
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h2>Empresas</h2>
-        <a href={`${BASE_URL}/excel/exportar`} target="_blank" rel="noreferrer">
-          <button style={{ background: "green", color: "white" }}>Descargar Excel</button>
-        </a>
+        <div style={{display: "flex", gap: "10px", alignItems: "center"}}>
+          <input 
+            type="number" 
+            value={anioInformado} 
+            onChange={(e) => setAnioInformado(e.target.value)} 
+            style={{ width: "80px", padding: "4px" }}
+            title="Año para gestionar informados"
+          />
+          <a href={`${BASE_URL}/excel/empresas-informadas?anio=${anioInformado}`} target="_blank" rel="noreferrer">
+            <button style={{ background: "blue", color: "white" }}>Excel Informadas {anioInformado}</button>
+          </a>
+          <a href={`${BASE_URL}/excel/exportar`} target="_blank" rel="noreferrer">
+            <button style={{ background: "green", color: "white" }}>Descargar Excel</button>
+          </a>
+        </div>
       </div>
+
 
       {/* ================= FORM CREAR ================= */}
       <form onSubmit={crear} style={{ marginBottom: 20, display: "flex", gap: 10 }}>
@@ -111,7 +148,17 @@ export default function Empresas() {
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              
+              <label style={{ display: "flex", alignItems: "center", gap: "4px", marginRight: "10px", fontSize: "0.9rem", cursor: "pointer" }} onClick={(ev) => ev.stopPropagation()}>
+                <input 
+                  type="checkbox" 
+                  checked={e.anios_informados ? e.anios_informados.split(",").includes(anioInformado) : false}
+                  onChange={() => toggleInformado(e, anioInformado)}
+                />
+                Informado {anioInformado}
+              </label>
               <span style={{
+
                 fontFamily: "monospace",
                 background: "#eee",
                 padding: "2px 6px",

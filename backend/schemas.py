@@ -8,6 +8,7 @@ from typing import Union
 class EmpresaCreate(BaseModel):
     nombre: str
     numero_contacto: str | None = None
+    anios_informados: str | None = ""
 
 
 class EmpresaOut(BaseModel):
@@ -15,6 +16,7 @@ class EmpresaOut(BaseModel):
     nombre: str
     codigo_acceso: str
     numero_contacto: str | None = None
+    anios_informados: str | None = ""
 
     class Config:
         from_attributes = True
