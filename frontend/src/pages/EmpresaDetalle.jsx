@@ -647,6 +647,52 @@ export default function EmpresaDetalle() {
             <div>
               <h2 style={{ margin: 0 }}>{empresa.nombre}</h2>
               {empresa.numero_contacto && <p style={{ margin: "4px 0 0 0", color: "#666" }}>📞 {empresa.numero_contacto}</p>}
+              
+              {empresa.codigo_acceso && (
+                <div style={{ marginTop: 12, display: "flex", gap: 12, flexWrap: "wrap" }}>
+                  <div style={{ padding: "8px 12px", background: "#f0f9ff", borderRadius: 8, border: "1px solid #bae6fd", display: "inline-block" }}>
+                    <p style={{ margin: 0, fontSize: "0.85rem", color: "#0369a1", fontWeight: 600, marginBottom: 4 }}>🔗 Link público de Vouchers</p>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <a 
+                        href={`/vouchers/${empresa.codigo_acceso}`} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        style={{ color: "#0284c7", fontSize: "0.9rem", textDecoration: "none" }}
+                      >
+                        {window.location.origin}/vouchers/{empresa.codigo_acceso}
+                      </a>
+                      <button 
+                        type="button"
+                        onClick={() => navigator.clipboard.writeText(`${window.location.origin}/vouchers/${empresa.codigo_acceso}`).then(() => alert("¡Link de vouchers copiado!"))}
+                        style={{ background: "#0ea5e9", color: "white", border: "none", padding: "4px 8px", borderRadius: 4, cursor: "pointer", fontSize: "0.8rem", fontWeight: "bold" }}
+                      >
+                        Copiar
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ padding: "8px 12px", background: "#f0fdf4", borderRadius: 8, border: "1px solid #bbf7d0", display: "inline-block" }}>
+                    <p style={{ margin: 0, fontSize: "0.85rem", color: "#166534", fontWeight: 600, marginBottom: 4 }}>🏢 Portal de la Empresa</p>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <a 
+                        href={`/portal/${empresa.codigo_acceso}`} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        style={{ color: "#15803d", fontSize: "0.9rem", textDecoration: "none" }}
+                      >
+                        {window.location.origin}/portal/{empresa.codigo_acceso}
+                      </a>
+                      <button 
+                        type="button"
+                        onClick={() => navigator.clipboard.writeText(`${window.location.origin}/portal/${empresa.codigo_acceso}`).then(() => alert("¡Link del portal copiado!"))}
+                        style={{ background: "#22c55e", color: "white", border: "none", padding: "4px 8px", borderRadius: 4, cursor: "pointer", fontSize: "0.8rem", fontWeight: "bold" }}
+                      >
+                        Copiar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <form onSubmit={guardarEmpresa} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
