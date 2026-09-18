@@ -101,10 +101,12 @@ export default function SelectorInicio() {
         }
     };
 
-    const cards = [
+    const isEquipo = localStorage.getItem("equipo_auth") === "true" || localStorage.getItem("auth_role") === "equipo";
+
+    const allCards = [
         {
             title: "📅 Gestión de Calendario",
-            desc: "Administrar eventos, empresas y disponibilidad en el calendario global.",
+            desc: isEquipo ? "Ver disponibilidad en el calendario global." : "Administrar eventos, empresas y disponibilidad en el calendario global.",
             path: "/calendario",
             color: "#2563eb",
         },
@@ -133,6 +135,10 @@ export default function SelectorInicio() {
             color: "#f97316",
         },
     ];
+
+    const cards = isEquipo 
+        ? allCards.filter(c => c.path === "/calendario" || c.path === "/panel/validar")
+        : allCards;
 
     return (
         <div
@@ -187,97 +193,99 @@ export default function SelectorInicio() {
                 ))}
             </div>
 
-            <div
-                style={{
-                    marginTop: 50,
-                    width: "100%",
-                    maxWidth: 700,
-                    background: "white",
-                    padding: 28,
-                    borderRadius: 18,
-                    boxShadow: "0 15px 35px rgba(15,23,42,0.08)",
-                    border: "1px solid #e2e8f0"
-                }}
-            >
-                <h2 style={{ marginTop: 0, color: "#0f172a" }}>Copia de seguridad manual</h2>
-                <p style={{ color: "#475569", lineHeight: 1.6 }}>
-                    Genera y descarga un volcado completo de la base de datos alojada en Render. Úsalo como respaldo diario y
-                    guárdalo en un espacio seguro fuera de la nube.
-                </p>
-                <button
-                    onClick={handleBackupDownload}
-                    disabled={isDownloadingBackup}
+            {!isEquipo && (
+                <div
                     style={{
-                        marginTop: 12,
-                        padding: "12px 22px",
-                        borderRadius: 10,
-                        border: "none",
-                        background: isDownloadingBackup ? "#94a3b8" : "#0ea5e9",
-                        color: "white",
-                        fontWeight: 600,
-                        cursor: isDownloadingBackup ? "not-allowed" : "pointer",
-                        transition: "background 0.2s"
+                        marginTop: 50,
+                        width: "100%",
+                        maxWidth: 700,
+                        background: "white",
+                        padding: 28,
+                        borderRadius: 18,
+                        boxShadow: "0 15px 35px rgba(15,23,42,0.08)",
+                        border: "1px solid #e2e8f0"
                     }}
                 >
-                    {isDownloadingBackup ? "Generando backup..." : "Descargar base de datos"}
-                </button>
-                {backupFeedback && (
-                    <p
+                    <h2 style={{ marginTop: 0, color: "#0f172a" }}>Copia de seguridad manual</h2>
+                    <p style={{ color: "#475569", lineHeight: 1.6 }}>
+                        Genera y descarga un volcado completo de la base de datos alojada en Render. Úsalo como respaldo diario y
+                        guárdalo en un espacio seguro fuera de la nube.
+                    </p>
+                    <button
+                        onClick={handleBackupDownload}
+                        disabled={isDownloadingBackup}
                         style={{
                             marginTop: 12,
-                            color: backupFeedback.type === "error" ? "#dc2626" : "#059669",
-                            fontWeight: 500
-                        }}
-                    >
-                        {backupFeedback.text}
-                    </p>
-                )}
-
-                <div style={{ marginTop: 32 }}>
-                    <h3 style={{ marginBottom: 10, color: "#0f172a" }}>Restaurar base existente</h3>
-                    <p style={{ color: "#475569", fontSize: "0.95rem", marginBottom: 12 }}>
-                        Esta acción reemplaza todos los datos actuales con el backup subido. Úsalo solo cuando necesites
-                        recuperar información y asegúrate de que nadie esté usando el sistema durante la restauración.
-                    </p>
-                    <input
-                        type="file"
-                        accept=".sql,.db"
-                        key={fileInputKey}
-                        onChange={(e) => {
-                            setRestoreFile(e.target.files?.[0] || null);
-                            setRestoreFeedback(null);
-                        }}
-                        style={{ marginBottom: 12 }}
-                    />
-                    <button
-                        onClick={handleRestore}
-                        disabled={isRestoring}
-                        style={{
-                            padding: "10px 20px",
+                            padding: "12px 22px",
                             borderRadius: 10,
                             border: "none",
-                            background: isRestoring ? "#94a3b8" : "#dc2626",
+                            background: isDownloadingBackup ? "#94a3b8" : "#0ea5e9",
                             color: "white",
                             fontWeight: 600,
-                            cursor: isRestoring ? "not-allowed" : "pointer",
+                            cursor: isDownloadingBackup ? "not-allowed" : "pointer",
                             transition: "background 0.2s"
                         }}
                     >
-                        {isRestoring ? "Restaurando..." : "Restaurar base de datos"}
+                        {isDownloadingBackup ? "Generando backup..." : "Descargar base de datos"}
                     </button>
-                    {restoreFeedback && (
+                    {backupFeedback && (
                         <p
                             style={{
-                                marginTop: 10,
-                                color: restoreFeedback.type === "error" ? "#dc2626" : "#059669",
+                                marginTop: 12,
+                                color: backupFeedback.type === "error" ? "#dc2626" : "#059669",
                                 fontWeight: 500
                             }}
                         >
-                            {restoreFeedback.text}
+                            {backupFeedback.text}
                         </p>
                     )}
+
+                    <div style={{ marginTop: 32 }}>
+                        <h3 style={{ marginBottom: 10, color: "#0f172a" }}>Restaurar base existente</h3>
+                        <p style={{ color: "#475569", fontSize: "0.95rem", marginBottom: 12 }}>
+                            Esta acción reemplaza todos los datos actuales con el backup subido. Úsalo solo cuando necesites
+                            recuperar información y asegúrate de que nadie esté usando el sistema durante la restauración.
+                        </p>
+                        <input
+                            type="file"
+                            accept=".sql,.db"
+                            key={fileInputKey}
+                            onChange={(e) => {
+                                setRestoreFile(e.target.files?.[0] || null);
+                                setRestoreFeedback(null);
+                            }}
+                            style={{ marginBottom: 12 }}
+                        />
+                        <button
+                            onClick={handleRestore}
+                            disabled={isRestoring}
+                            style={{
+                                padding: "10px 20px",
+                                borderRadius: 10,
+                                border: "none",
+                                background: isRestoring ? "#94a3b8" : "#dc2626",
+                                color: "white",
+                                fontWeight: 600,
+                                cursor: isRestoring ? "not-allowed" : "pointer",
+                                transition: "background 0.2s"
+                            }}
+                        >
+                            {isRestoring ? "Restaurando..." : "Restaurar base de datos"}
+                        </button>
+                        {restoreFeedback && (
+                            <p
+                                style={{
+                                    marginTop: 10,
+                                    color: restoreFeedback.type === "error" ? "#dc2626" : "#059669",
+                                    fontWeight: 500
+                                }}
+                            >
+                                {restoreFeedback.text}
+                            </p>
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
 
             <button
                 onClick={() => {

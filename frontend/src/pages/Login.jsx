@@ -41,7 +41,7 @@ export default function Login() {
                     localStorage.removeItem("admin_auth");
                     localStorage.removeItem("validator_auth");
                     localStorage.removeItem("calendar_auth");
-                    navigate("/validar");
+                    navigate("/inicio");
                 }
             }
         } catch (error) {

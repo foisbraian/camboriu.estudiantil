@@ -62,13 +62,13 @@ export default function App() {
           path="/"
           element={
             <Protected allow={["admin", "calendar", "equipo", "validator"]}>
-              <Navigate to={hasStoredRole("admin") ? "/inicio" : hasStoredRole("validator") ? "/validar" : "/calendario"} replace />
+              <Navigate to={(hasStoredRole("admin") || hasStoredRole("equipo")) ? "/inicio" : hasStoredRole("validator") ? "/validar" : "/calendario"} replace />
             </Protected>
           }
         />
 
         {/* Pantalla de Selección post-login */}
-        <Route path="/inicio" element={<Protected><SelectorInicio /></Protected>} />
+        <Route path="/inicio" element={<Protected allow={["admin", "equipo"]}><SelectorInicio /></Protected>} />
 
         {/* Ruta abierta solo para validadores, equipo o admins */}
         <Route
