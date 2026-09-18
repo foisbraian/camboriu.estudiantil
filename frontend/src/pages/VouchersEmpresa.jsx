@@ -47,14 +47,14 @@ function InfoPill({ label, value, fullWidth }) {
     <div style={{
       background: "rgba(255,255,255,0.04)",
       border: "1px solid rgba(255,255,255,0.08)",
-      borderRadius: 12,
-      padding: "10px 12px",
+      borderRadius: 10,
+      padding: "6px 10px",
       gridColumn: fullWidth ? "1 / -1" : undefined,
     }}>
-      <div style={{ color: "#64748b", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 3 }}>
+      <div style={{ color: "#64748b", fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>
         {label}
       </div>
-      <div style={{ color: "white", fontWeight: 600, fontSize: "0.88rem", lineHeight: 1.3 }}>
+      <div style={{ color: "white", fontWeight: 600, fontSize: "0.82rem", lineHeight: 1.2 }}>
         {value}
       </div>
     </div>
@@ -101,33 +101,35 @@ function QRModal({ voucher, onClose }) {
       <div onClick={(e) => e.stopPropagation()} style={{
         background: "linear-gradient(160deg, #0f172a 0%, #1e293b 100%)",
         border: "1px solid " + meta.color + "40",
-        borderRadius: 28,
-        padding: "28px 24px",
+        borderRadius: 24,
+        padding: "20px 16px",
         width: "100%",
-        maxWidth: 400,
+        maxWidth: 380,
         boxShadow: "0 0 60px " + meta.color + "30, 0 32px 64px rgba(0,0,0,0.6)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: 20,
+        gap: 12,
+        maxHeight: "95vh",
+        overflowY: "auto"
       }}>
         {/* Badge + title */}
         <div style={{ textAlign: "center", width: "100%" }}>
           <div style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
+            display: "inline-flex", alignItems: "center", gap: 6,
             background: meta.bg, border: "1px solid " + meta.color + "50",
-            borderRadius: 999, padding: "6px 16px", marginBottom: 10,
+            borderRadius: 999, padding: "4px 12px", marginBottom: 6,
           }}>
-            <span style={{ fontSize: "1.1rem" }}>{meta.emoji}</span>
-            <span style={{ color: meta.color, fontWeight: 700, fontSize: "0.85rem", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+            <span style={{ fontSize: "1rem" }}>{meta.emoji}</span>
+            <span style={{ color: meta.color, fontWeight: 700, fontSize: "0.8rem", letterSpacing: "0.05em", textTransform: "uppercase" }}>
               {voucher.tipo}
             </span>
           </div>
-          <h2 style={{ margin: 0, color: "white", fontSize: "1.4rem", fontWeight: 800, lineHeight: 1.2 }}>
+          <h2 style={{ margin: 0, color: "white", fontSize: "1.25rem", fontWeight: 800, lineHeight: 1.1 }}>
             {voucher.evento}
           </h2>
           {voucher.tematica && (
-            <p style={{ margin: "4px 0 0", color: "#94a3b8", fontSize: "0.85rem" }}>
+            <p style={{ margin: "2px 0 0", color: "#94a3b8", fontSize: "0.8rem" }}>
               {voucher.tematica}
             </p>
           )}
@@ -135,9 +137,10 @@ function QRModal({ voucher, onClose }) {
 
         {/* QR */}
         <div style={{
-          background: "white", borderRadius: 20, padding: 12,
-          width: "100%", maxWidth: 320,
+          background: "white", borderRadius: 16, padding: 8,
+          width: "100%", maxWidth: 220,
           boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+          flexShrink: 0
         }}>
           {voucher.usado ? (
             <div style={{
@@ -159,7 +162,7 @@ function QRModal({ voucher, onClose }) {
         </div>
 
         {/* Info grid */}
-        <div style={{ width: "100%", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div style={{ width: "100%", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           <InfoPill label="Fecha" value={formatFecha(voucher.fecha)} fullWidth />
           <InfoPill label="Grupo" value={voucher.grupo} />
           <InfoPill label="PAX" value={voucher.pax + " personas"} />
@@ -174,12 +177,12 @@ function QRModal({ voucher, onClose }) {
           <div style={{
             background: "rgba(250,204,21,0.08)",
             border: "1px solid rgba(250,204,21,0.25)",
-            borderRadius: 12, padding: "10px 14px",
-            display: "flex", alignItems: "center", gap: 10, width: "100%",
+            borderRadius: 10, padding: "8px 12px",
+            display: "flex", alignItems: "center", gap: 8, width: "100%",
           }}>
-            <span style={{ fontSize: "1.1rem" }}>&#128248;</span>
-            <span style={{ color: "#fde68a", fontSize: "0.8rem", lineHeight: 1.4 }}>
-              Guard&#225; una captura de pantalla como respaldo para el d&#237;a del evento.
+            <span style={{ fontSize: "1rem" }}>&#128248;</span>
+            <span style={{ color: "#fde68a", fontSize: "0.75rem", lineHeight: 1.3 }}>
+              Guard&#225; captura de pantalla como respaldo.
             </span>
           </div>
         )}
@@ -189,8 +192,9 @@ function QRModal({ voucher, onClose }) {
           background: "rgba(255,255,255,0.06)",
           border: "1px solid rgba(255,255,255,0.12)",
           borderRadius: 999, color: "#94a3b8",
-          padding: "12px 32px", fontSize: "0.9rem", fontWeight: 600,
+          padding: "10px 32px", fontSize: "0.85rem", fontWeight: 600,
           cursor: "pointer", width: "100%", letterSpacing: "0.02em",
+          marginTop: 4
         }}>
           Cerrar
         </button>
