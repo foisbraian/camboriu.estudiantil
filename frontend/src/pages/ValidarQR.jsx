@@ -210,11 +210,16 @@ export default function ValidarQR() {
                     </div>
                     <div style={HEADER_ACTIONS}>
                         {isAdmin && (
-                            <button onClick={handleGoBack} style={GHOST_BUTTON}>
+                            <button onClick={() => navigate("/inicio", { replace: true })} style={GHOST_BUTTON}>
                                 ← Panel principal
                             </button>
                         )}
-                        {(isAdmin || isValidator) && (
+                        {role === "equipo" && (
+                            <button onClick={() => navigate("/calendario", { replace: true })} style={GHOST_BUTTON}>
+                                ← Ver Calendario
+                            </button>
+                        )}
+                        {(isAdmin || isValidator || role === "equipo") && (
                             <button onClick={handleLogout} style={GHOST_BUTTON}>
                                 Cerrar sesión
                             </button>

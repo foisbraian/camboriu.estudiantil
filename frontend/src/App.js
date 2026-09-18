@@ -61,8 +61,8 @@ export default function App() {
         <Route
           path="/"
           element={
-            <Protected allow={["admin", "calendar", "equipo"]}>
-              <Navigate to={hasStoredRole("admin") ? "/inicio" : hasStoredRole("equipo") ? "/validar" : "/calendario"} replace />
+            <Protected allow={["admin", "calendar", "equipo", "validator"]}>
+              <Navigate to={hasStoredRole("admin") ? "/inicio" : hasStoredRole("validator") ? "/validar" : "/calendario"} replace />
             </Protected>
           }
         />

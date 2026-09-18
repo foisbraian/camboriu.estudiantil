@@ -27,9 +27,13 @@ export default function Layout() {
         { label: "📲 Validar QR", path: "/panel/validar" },
     ];
     const role = localStorage.getItem("auth_role");
-    const navItems = role === "calendar"
-        ? NAV_ITEMS.filter((item) => item.path === "/calendario" || item.path === "/calendario-resumen")
-        : NAV_ITEMS;
+    let navItems = NAV_ITEMS;
+    if (role === "calendar") {
+        navItems = NAV_ITEMS.filter((item) => item.path === "/calendario" || item.path === "/calendario-resumen");
+    } else if (role === "equipo") {
+        navItems = NAV_ITEMS.filter((item) => ["/calendario", "/calendario-resumen"].includes(item.path));
+        navItems.push({ label: "📲 Validar QR", path: "/validar" });
+    }
 
     function salir() {
         localStorage.removeItem("admin_auth");
