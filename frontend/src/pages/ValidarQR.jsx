@@ -188,9 +188,6 @@ export default function ValidarQR() {
         navigate("/login");
     };
 
-    const handleGoBack = () => {
-        navigate("/inicio", { replace: true });
-    };
 
     const toggleReferenceDay = (offsetDays) => {
         setReferenceISO(buildRelativeISO(offsetDays));
