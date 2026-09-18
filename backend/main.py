@@ -1,3 +1,5 @@
+from dotenv import load_dotenv
+load_dotenv()
 import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -76,7 +78,7 @@ def login(body: LoginBody):
     admin_pass = os.getenv("ADMIN_PASSWORD", "Graciasburgos2026").strip()
     validator_pass = os.getenv("VALIDATOR_PASSWORD", "CamboriuValidator2026").strip()
     calendar_pass = os.getenv("CALENDAR_PASSWORD", "CamboriuCalendar2026").strip()
-    equipo_pass = os.getenv("EQUIPO_PASSWORD", "").strip()
+    equipo_pass = os.getenv("EQUIPO_PASSWORD", "esteban").strip()
 
     requested_role = (body.role or "").strip().lower()
 
