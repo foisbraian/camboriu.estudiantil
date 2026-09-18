@@ -36,6 +36,9 @@ const hasStoredRole = (role) => {
   if (role === "calendar") {
     return localStorage.getItem("calendar_auth") === "true";
   }
+  if (role === "esteban") {
+    return localStorage.getItem("esteban_auth") === "true";
+  }
   return false;
 };
 
@@ -57,8 +60,8 @@ export default function App() {
         <Route
           path="/"
           element={
-            <Protected allow={["admin", "calendar"]}>
-              <Navigate to={hasStoredRole("admin") ? "/inicio" : "/calendario"} replace />
+            <Protected allow={["admin", "calendar", "esteban"]}>
+              <Navigate to={hasStoredRole("admin") ? "/inicio" : hasStoredRole("esteban") ? "/validar" : "/calendario"} replace />
             </Protected>
           }
         />
@@ -66,18 +69,18 @@ export default function App() {
         {/* Pantalla de Selección post-login */}
         <Route path="/inicio" element={<Protected><SelectorInicio /></Protected>} />
 
-        {/* Ruta abierta solo para validadores o admins */}
+        {/* Ruta abierta solo para validadores, esteban o admins */}
         <Route
           path="/validar"
           element={
-            <Protected allow={["admin", "validator"]}>
+            <Protected allow={["admin", "validator", "esteban"]}>
               <ValidarQR />
             </Protected>
           }
         />
 
-        {/* Calendario compartido entre admin y rol solo lectura */}
-        <Route element={<Protected allow={["admin", "calendar"]}><Layout /></Protected>}>
+        {/* Calendario compartido entre admin, calendar y esteban (solo lectura) */}
+        <Route element={<Protected allow={["admin", "calendar", "esteban"]}><Layout /></Protected>}>
           <Route path="/calendario" element={<AdminCalendar />} />
           <Route path="/calendario-resumen" element={<CalendarioResumen />} />
         </Route>

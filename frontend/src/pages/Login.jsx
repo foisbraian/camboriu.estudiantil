@@ -22,17 +22,26 @@ export default function Login() {
                     localStorage.setItem("admin_auth", "true");
                     localStorage.removeItem("validator_auth");
                     localStorage.removeItem("calendar_auth");
+                    localStorage.removeItem("esteban_auth");
                     navigate("/inicio");
                 } else if (loggedRole === "validator") {
                     localStorage.setItem("validator_auth", "true");
                     localStorage.removeItem("admin_auth");
                     localStorage.removeItem("calendar_auth");
+                    localStorage.removeItem("esteban_auth");
                     navigate("/validar");
                 } else if (loggedRole === "calendar") {
                     localStorage.setItem("calendar_auth", "true");
                     localStorage.removeItem("admin_auth");
                     localStorage.removeItem("validator_auth");
+                    localStorage.removeItem("esteban_auth");
                     navigate("/calendario");
+                } else if (loggedRole === "esteban") {
+                    localStorage.setItem("esteban_auth", "true");
+                    localStorage.removeItem("admin_auth");
+                    localStorage.removeItem("validator_auth");
+                    localStorage.removeItem("calendar_auth");
+                    navigate("/validar");
                 }
             }
         } catch (error) {
