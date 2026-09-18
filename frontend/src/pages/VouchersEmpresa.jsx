@@ -77,7 +77,7 @@ function SectionLabel({ text, count, color }) {
 
 function QRModal({ voucher, onClose }) {
   const meta = getMeta(voucher.tipo);
-  const qrUrl = BASE_URL + "/vouchers/generate/" + voucher.asignacion_id;
+  const qrUrl = BASE_URL + "/vouchers/qr/" + voucher.asignacion_id;
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
