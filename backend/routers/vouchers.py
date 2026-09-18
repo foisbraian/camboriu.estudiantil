@@ -100,6 +100,88 @@ def listar_eventos_para_validacion(
 def generate_unique_token():
     return secrets.token_urlsafe(16)
 
+# =========================================================
+# GET VOUCHERS POR EMPRESA (portal publico por codigo)
+# =========================================================
+@router.get("/empresa/{codigo_acceso}")
+def vouchers_por_empresa(codigo_acceso: str, db: Session = Depends(get_db)):
+    from .finanzas import get_asignaciones_pagadas
+    from sqlalchemy import func as sqlfunc
+
+    codigo_norm = codigo_acceso.strip().lower()
+    empresa = db.query(models.Empresa).filter(
+        sqlfunc.lower(models.Empresa.codigo_acceso) == codigo_norm
+    ).first()
+    if not empresa:
+        raise HTTPException(404, "Codigo de acceso invalido")
+
+    try:
+        habilitados = get_asignaciones_pagadas(empresa.id, db)
+    except Exception:
+        habilitados = {}
+
+    resultado = []
+    for grupo in empresa.grupos:
+        for asig in grupo.asignaciones:
+            if not asig.fecha_evento:
+                continue
+            if not habilitados.get(asig.id, False):
+                continue
+
+            fecha_evento = asig.fecha_evento
+            evento = fecha_evento.evento
+            fecha = fecha_evento.fecha
+
+            voucher = (
+                db.query(models.Voucher)
+                .filter(models.Voucher.asignacion_id == asig.id)
+                .order_by(models.Voucher.id.desc())
+                .first()
+            )
+            if not voucher:
+                token = generate_unique_token()
+                voucher = models.Voucher(token=token, asignacion_id=asig.id)
+                db.add(voucher)
+                db.commit()
+                db.refresh(voucher)
+
+            tipo_upper = (evento.tipo or "").upper()
+            nombre_lower = (evento.nombre or "").lower()
+            comida_label = None
+            if tipo_upper == "PARQUE":
+                comida_label = "Con comida" if grupo.parque_con_comida else "Sin comida"
+            elif tipo_upper == "CAMPAMENTO":
+                comida_label = "Con comida" if getattr(grupo, "campamento_con_comida", False) else "Sin comida"
+            elif tipo_upper == "ZACARIAS":
+                comida_label = "Con comida" if getattr(grupo, "zacarias_con_comida", False) else "Sin comida"
+            elif tipo_upper in {"POOL", "CASCATA"} or "cascata" in nombre_lower:
+                comida_label = "Con comida" if grupo.pool_con_comida else "Sin comida"
+
+            resultado.append({
+                "asignacion_id": asig.id,
+                "token": voucher.token,
+                "voucher_id": voucher.id,
+                "usado": voucher.usado,
+                "fecha_uso": voucher.fecha_uso if voucher.usado else None,
+                "evento": evento.nombre,
+                "tipo": evento.tipo,
+                "fecha": str(fecha),
+                "tematica": fecha_evento.tematica.nombre if fecha_evento.tematica else None,
+                "con_alcohol": fecha_evento.con_alcohol,
+                "grupo": grupo.nombre,
+                "pax": grupo.cantidad_pax,
+                "comida": comida_label,
+            })
+
+    resultado.sort(key=lambda x: x["fecha"])
+
+    return {
+        "empresa": empresa.nombre,
+        "codigo": empresa.codigo_acceso,
+        "vouchers": resultado,
+    }
+
+
 @router.get("/generate/{asignacion_id}")
 def generate_voucher(asignacion_id: int, db: Session = Depends(get_db)):
     from .finanzas import get_asignaciones_pagadas

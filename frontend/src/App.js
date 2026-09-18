@@ -20,6 +20,7 @@ import Proveedores from "./pages/Proveedores";
 import ProveedorDetalle from "./pages/ProveedorDetalle";
 import VouchersPlanilla from "./pages/VouchersPlanilla";
 import Hoteleria from "./pages/Hoteleria";
+import VouchersEmpresa from "./pages/VouchersEmpresa";
 
 const hasStoredRole = (role) => {
   const storedRole = localStorage.getItem("auth_role");
@@ -104,6 +105,7 @@ export default function App() {
 
         {/* Rutas Públicas */}
         <Route path="/portal/:codigo" element={<PortalEmpresa />} />
+        <Route path="/vouchers/:codigo" element={<VouchersEmpresa />} />
 
         {/* Catch-all to root */}
         <Route path="*" element={<Navigate to="/" replace />} />
