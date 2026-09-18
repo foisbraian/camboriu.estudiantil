@@ -15,7 +15,7 @@ export default function AdminCalendar() {
   const [isMobile, setIsMobile] = useState(false);
   const [calendarApi, setCalendarApi] = useState(null);
   const role = localStorage.getItem("auth_role");
-  const readOnly = role === "calendar";
+  const readOnly = role === "calendar" || role === "equipo";
 
   const handleRegisterRef = useCallback((api) => {
     setCalendarApi(api);
