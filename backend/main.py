@@ -76,7 +76,7 @@ def login(body: LoginBody):
     admin_pass = os.getenv("ADMIN_PASSWORD", "Graciasburgos2026").strip()
     validator_pass = os.getenv("VALIDATOR_PASSWORD", "CamboriuValidator2026").strip()
     calendar_pass = os.getenv("CALENDAR_PASSWORD", "CamboriuCalendar2026").strip()
-    esteban_pass = os.getenv("ESTEBAN_PASSWORD", "").strip()
+    equipo_pass = os.getenv("EQUIPO_PASSWORD", "").strip()
 
     requested_role = (body.role or "").strip().lower()
 
@@ -87,13 +87,13 @@ def login(body: LoginBody):
         resolved_role = "validator"
     elif body.password == calendar_pass:
         resolved_role = "calendar"
-    elif esteban_pass and body.password == esteban_pass:
-        resolved_role = "esteban"
+    elif equipo_pass and body.password == equipo_pass:
+        resolved_role = "equipo"
 
     if not resolved_role:
         raise HTTPException(status_code=401, detail="Contraseña incorrecta")
 
-    if requested_role and requested_role not in {"admin", "validator", "calendar", "esteban"}:
+    if requested_role and requested_role not in {"admin", "validator", "calendar", "equipo"}:
         raise HTTPException(status_code=400, detail="Rol no soportado")
 
     if requested_role and requested_role != resolved_role:
@@ -105,7 +105,7 @@ def login(body: LoginBody):
         "admin": "admin_granted",
         "validator": "validator_access",
         "calendar": "calendar_view",
-        "esteban": "esteban_access",
+        "equipo": "equipo_access",
     }
     token = token_map.get(resolved_role, "admin_granted")
     return {"auth": True, "token": token, "role": resolved_role}

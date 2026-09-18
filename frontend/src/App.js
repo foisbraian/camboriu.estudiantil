@@ -37,8 +37,8 @@ const hasStoredRole = (role) => {
   if (role === "calendar") {
     return localStorage.getItem("calendar_auth") === "true";
   }
-  if (role === "esteban") {
-    return localStorage.getItem("esteban_auth") === "true";
+  if (role === "equipo") {
+    return localStorage.getItem("equipo_auth") === "true";
   }
   return false;
 };
@@ -61,8 +61,8 @@ export default function App() {
         <Route
           path="/"
           element={
-            <Protected allow={["admin", "calendar", "esteban"]}>
-              <Navigate to={hasStoredRole("admin") ? "/inicio" : hasStoredRole("esteban") ? "/validar" : "/calendario"} replace />
+            <Protected allow={["admin", "calendar", "equipo"]}>
+              <Navigate to={hasStoredRole("admin") ? "/inicio" : hasStoredRole("equipo") ? "/validar" : "/calendario"} replace />
             </Protected>
           }
         />
@@ -70,18 +70,18 @@ export default function App() {
         {/* Pantalla de Selección post-login */}
         <Route path="/inicio" element={<Protected><SelectorInicio /></Protected>} />
 
-        {/* Ruta abierta solo para validadores, esteban o admins */}
+        {/* Ruta abierta solo para validadores, equipo o admins */}
         <Route
           path="/validar"
           element={
-            <Protected allow={["admin", "validator", "esteban"]}>
+            <Protected allow={["admin", "validator", "equipo"]}>
               <ValidarQR />
             </Protected>
           }
         />
 
-        {/* Calendario compartido entre admin, calendar y esteban (solo lectura) */}
-        <Route element={<Protected allow={["admin", "calendar", "esteban"]}><Layout /></Protected>}>
+        {/* Calendario compartido entre admin, calendar y equipo (solo lectura) */}
+        <Route element={<Protected allow={["admin", "calendar", "equipo"]}><Layout /></Protected>}>
           <Route path="/calendario" element={<AdminCalendar />} />
           <Route path="/calendario-resumen" element={<CalendarioResumen />} />
         </Route>
