@@ -196,8 +196,9 @@ def generate_voucher(asignacion_id: int, db: Session = Depends(get_db)):
         raise HTTPException(403, "Voucher bloqueado por falta de pago")
     
     grupo = asignacion.grupo
-    evento = asignacion.fecha_evento.evento
-    fecha = asignacion.fecha_evento.fecha
+    fecha_evento = asignacion.fecha_evento
+    evento = fecha_evento.evento
+    fecha = fecha_evento.fecha
     empresa = grupo.empresa
 
     # Buscar si ya existe un voucher no usado
