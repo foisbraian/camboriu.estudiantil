@@ -28,6 +28,7 @@ export default function MobileDayView({ resources, events, loading }) {
       map.set(res.id, {
         group: res.extendedProps?.grupoNombre || res.title,
         company: res.extendedProps?.empresaNombre,
+        pax: res.extendedProps?.pax,
       });
     });
     return map;
@@ -96,6 +97,7 @@ export default function MobileDayView({ resources, events, loading }) {
           id: uniqueKey,
           company: info.company || "Empresa",
           group: info.group || "Grupo",
+          pax: info.pax,
           label: evt.title,
           tipo: evt.extendedProps?.tipo,
           color: evt.backgroundColor,
@@ -290,13 +292,32 @@ export default function MobileDayView({ resources, events, loading }) {
                       background: "white",
                       borderLeft: `5px solid ${entry.tipo === "asignacion" ? entry.color || "#0ea5e9" : "#e2e8f0"}`,
                       boxShadow: "0 6px 16px rgba(15,23,42,0.08)",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
                     }}
                   >
-                    <div style={{ color: "#475569", fontSize: "0.85rem", marginBottom: 2 }}>{entry.company}</div>
-                    <div style={{ fontWeight: 600, fontSize: "0.95rem", color: "#0f172a", lineHeight: 1.25 }}>{entry.group}</div>
-                    <div style={{ marginTop: 4, fontSize: "0.85rem", color: entry.tipo === "asignacion" ? "#0f172a" : "#94a3b8" }}>
-                      {entry.tipo === "asignacion" ? `Evento: ${entry.label}` : "Sin actividad programada"}
+                    <div>
+                      <div style={{ color: "#475569", fontSize: "0.85rem", marginBottom: 2 }}>{entry.company}</div>
+                      <div style={{ fontWeight: 600, fontSize: "0.95rem", color: "#0f172a", lineHeight: 1.25 }}>{entry.group}</div>
+                      <div style={{ marginTop: 4, fontSize: "0.85rem", color: entry.tipo === "asignacion" ? "#0f172a" : "#94a3b8" }}>
+                        {entry.tipo === "asignacion" ? `Evento: ${entry.label}` : "Sin actividad programada"}
+                      </div>
                     </div>
+                    {entry.pax != null && (
+                      <div style={{
+                        background: "#f1f5f9",
+                        color: "#475569",
+                        fontWeight: 700,
+                        fontSize: "0.85rem",
+                        padding: "6px 10px",
+                        borderRadius: 12,
+                        minWidth: "60px",
+                        textAlign: "center"
+                      }}>
+                        {entry.pax} <span style={{ opacity: 0.7, fontSize: "0.75rem" }}>PAX</span>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
