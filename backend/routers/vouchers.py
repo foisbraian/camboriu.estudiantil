@@ -120,7 +120,7 @@ def vouchers_por_empresa(codigo_acceso: str, db: Session = Depends(get_db)):
     except Exception:
         habilitados = {}
 
-    hoy = datetime.now(BALNEARIO_TZ).date()
+    ayer = datetime.now(BALNEARIO_TZ).date() - timedelta(days=1)
     resultado = []
     for grupo in empresa.grupos:
         for asig in grupo.asignaciones:
@@ -132,7 +132,7 @@ def vouchers_por_empresa(codigo_acceso: str, db: Session = Depends(get_db)):
             fecha_evento = asig.fecha_evento
             fecha = fecha_evento.fecha
 
-            if fecha and fecha < hoy:
+            if fecha and fecha < ayer:
                 continue
 
             evento = fecha_evento.evento

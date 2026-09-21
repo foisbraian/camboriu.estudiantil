@@ -31,7 +31,7 @@ export default function Layout() {
     if (role === "calendar") {
         navItems = NAV_ITEMS.filter((item) => item.path === "/calendario" || item.path === "/calendario-resumen");
     } else if (role === "equipo") {
-        navItems = NAV_ITEMS.filter((item) => ["/calendario", "/calendario-resumen"].includes(item.path));
+        navItems = NAV_ITEMS.filter((item) => ["/calendario", "/calendario-resumen", "/vouchers/planilla"].includes(item.path));
         navItems.push({ label: "📲 Validar QR", path: "/validar" });
     }
 

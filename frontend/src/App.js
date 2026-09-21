@@ -86,6 +86,11 @@ export default function App() {
           <Route path="/calendario-resumen" element={<CalendarioResumen />} />
         </Route>
 
+        {/* Rutas compartidas entre admin y equipo */}
+        <Route element={<Protected allow={["admin", "equipo"]}><Layout /></Protected>}>
+          <Route path="/vouchers/planilla" element={<VouchersPlanilla />} />
+        </Route>
+
         {/* Resto de rutas solo para admin */}
         <Route element={<Protected allow={["admin"]}><Layout /></Protected>}>
           <Route path="/empresas" element={<Empresas />} />
@@ -99,7 +104,6 @@ export default function App() {
           <Route path="/imprimir-vouchers-grupo/:grupoId" element={<ImprimirTodosVouchers />} />
           <Route path="/proveedores" element={<Proveedores />} />
           <Route path="/proveedores/:id" element={<ProveedorDetalle />} />
-          <Route path="/vouchers/planilla" element={<VouchersPlanilla />} />
           <Route path="/hoteleria" element={<Hoteleria />} />
         </Route>
 

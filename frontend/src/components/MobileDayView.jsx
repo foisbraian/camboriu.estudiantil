@@ -25,7 +25,7 @@ export default function MobileDayView({ resources, events, loading }) {
   const resourceInfo = useMemo(() => {
     const map = new Map();
     resources.forEach((res) => {
-      map.set(res.id, {
+      map.set(String(res.id), {
         group: res.extendedProps?.grupoNombre || res.title,
         company: res.extendedProps?.empresaNombre,
         pax: res.extendedProps?.pax,
@@ -90,7 +90,7 @@ export default function MobileDayView({ resources, events, loading }) {
         );
       })
       .map((evt) => {
-        const info = resourceInfo.get(evt.resourceId) || {};
+        const info = resourceInfo.get(String(evt.resourceId)) || {};
         const rawKey = evt.extendedProps?.asignacion_id ?? evt.id ?? `${evt.resourceId}-${evt.start}-${evt.extendedProps?.tipo}`;
         const uniqueKey = String(rawKey);
         return {
