@@ -146,6 +146,18 @@ export default function VouchersPlanilla() {
                 </div>
                 <div style={filtersGridStyle}>
                     <label style={filterFieldStyle}>
+                        <span>Día Único (atajo)</span>
+                        <input 
+                            type="date" 
+                            value={filters.desde === filters.hasta ? filters.desde : ""}
+                            onChange={(e) => {
+                                updateFilter("desde", e.target.value);
+                                updateFilter("hasta", e.target.value);
+                            }} 
+                            style={fieldInputStyle} 
+                        />
+                    </label>
+                    <label style={filterFieldStyle}>
                         <span>Desde</span>
                         <input type="date" value={filters.desde} onChange={(e) => updateFilter("desde", e.target.value)} style={fieldInputStyle} />
                     </label>

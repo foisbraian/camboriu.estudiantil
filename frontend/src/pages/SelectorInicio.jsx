@@ -134,10 +134,16 @@ export default function SelectorInicio() {
             path: "/panel/validar",
             color: "#f97316",
         },
+        {
+            title: "🧾 Planilla Vouchers",
+            desc: "Ver la planilla de vouchers escaneados y filtrarlos.",
+            path: "/vouchers/planilla",
+            color: "#ec4899",
+        },
     ];
 
     const cards = isEquipo 
-        ? allCards.filter(c => c.path === "/calendario" || c.path === "/panel/validar")
+        ? allCards.filter(c => c.path === "/calendario" || c.path === "/panel/validar" || c.path === "/vouchers/planilla")
         : allCards;
 
     return (
