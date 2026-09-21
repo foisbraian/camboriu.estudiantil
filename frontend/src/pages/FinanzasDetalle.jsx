@@ -112,7 +112,7 @@ export default function FinanzasDetalle() {
 
     const [pagoForm, setPagoForm] = useState({
         monto: 0,
-        fecha: new Date().toISOString().split("T")[0],
+        fecha: new Date().toLocaleDateString('en-CA'),
         metodo: "Transferencia",
         nota: "",
     });
@@ -221,7 +221,7 @@ export default function FinanzasDetalle() {
     async function registrarPago(e) {
         e.preventDefault();
         await api.post("/finanzas/pagos", { ...pagoForm, empresa_id: Number(id) });
-        setPagoForm({ monto: 0, fecha: new Date().toISOString().split("T")[0], metodo: "Transferencia", nota: "" });
+        setPagoForm({ monto: 0, fecha: new Date().toLocaleDateString('en-CA'), metodo: "Transferencia", nota: "" });
         alert("Pago registrado");
         cargarTodo();
     }

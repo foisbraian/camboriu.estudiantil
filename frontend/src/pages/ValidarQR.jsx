@@ -608,6 +608,6 @@ function buildRelativeISO(offset) {
 
 function formatDate(dateStr) {
     if (!dateStr) return "";
-    const date = new Date(dateStr + "T00:00:00");
+    const date = new Date(dateStr + "T12:00:00");
     return date.toLocaleDateString("es-AR", { weekday: "short", day: "numeric", month: "short" });
 }

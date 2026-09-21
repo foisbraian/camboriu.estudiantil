@@ -3,13 +3,24 @@ import api from "../api";
 
 const buildDefaultFilters = () => {
     const today = new Date();
-    const iso = today.toISOString().split("T")[0];
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    const iso = `${year}-${month}-${day}`;
     return { desde: iso, hasta: iso, eventoId: "", empresaId: "" };
 };
 
 const formatDate = (value) => {
     if (!value) return "—";
-    const d = new Date(value);
+    
+    let d;
+    if (typeof value === "string" && value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        const [y, m, day] = value.split("-");
+        d = new Date(y, m - 1, day);
+    } else {
+        d = new Date(value);
+    }
+
     if (Number.isNaN(d.getTime())) {
         return value;
     }

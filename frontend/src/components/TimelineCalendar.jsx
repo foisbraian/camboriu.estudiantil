@@ -37,7 +37,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
   const centerToday = useCallback(() => {
     const rootEl = calendarRef.current?.el;
     if (!rootEl) return false;
-    const todayISO = new Date().toISOString().slice(0, 10);
+    const todayISO = new Date().toLocaleDateString('en-CA');
     const slot =
       rootEl.querySelector(`.fc-timeline-slot[data-date="${todayISO}"]`)
       || rootEl.querySelector(`.fc-col-header-cell[data-date="${todayISO}"]`);
