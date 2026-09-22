@@ -676,6 +676,12 @@ export default function FinanzasDetalle() {
                         >
                             📄 Excel
                         </button>
+                        <button
+                            onClick={() => window.open(`/imprimir-vouchers-empresa/${id}`, "_blank")}
+                            style={{ padding: "8px 15px", background: "#334155", color: "white", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.85rem", fontWeight: 600 }}
+                        >
+                            🖨️ Vouchers (Toda la Empresa)
+                        </button>
                     </div>
                 </div>
 

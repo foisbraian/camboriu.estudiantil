@@ -16,6 +16,7 @@ import FinanzasDetalle from "./pages/FinanzasDetalle";
 import ValidarQR from "./pages/ValidarQR";
 import ImprimirVoucher from "./pages/ImprimirVoucher";
 import ImprimirTodosVouchers from "./pages/ImprimirTodosVouchers";
+import ImprimirTodosVouchersEmpresa from "./pages/ImprimirTodosVouchersEmpresa";
 import Proveedores from "./pages/Proveedores";
 import ProveedorDetalle from "./pages/ProveedorDetalle";
 import VouchersPlanilla from "./pages/VouchersPlanilla";
@@ -102,6 +103,7 @@ export default function App() {
           <Route path="/panel/validar" element={<ValidarQR />} />
           <Route path="/imprimir-voucher/:id" element={<ImprimirVoucher />} />
           <Route path="/imprimir-vouchers-grupo/:grupoId" element={<ImprimirTodosVouchers />} />
+          <Route path="/imprimir-vouchers-empresa/:empresaId" element={<ImprimirTodosVouchersEmpresa />} />
           <Route path="/proveedores" element={<Proveedores />} />
           <Route path="/proveedores/:id" element={<ProveedorDetalle />} />
           <Route path="/hoteleria" element={<Hoteleria />} />

@@ -744,6 +744,44 @@ def get_asignaciones_grupo(grupo_id: int, db: Session = Depends(get_db)):
         "voucher_fecha_uso": db.query(models.Voucher).filter(models.Voucher.asignacion_id == a.id).first().fecha_uso if db.query(models.Voucher).filter(models.Voucher.asignacion_id == a.id).first() else None
     } for a in asignaciones]
 
+@router.get("/asignaciones-empresa/{empresa_id}")
+def get_asignaciones_empresa(empresa_id: int, db: Session = Depends(get_db)):
+    """
+    Devuelve todas las asignaciones de todos los grupos de una empresa,
+    con su estado habilitado (igual estructura que /asignaciones/{grupo_id}).
+    """
+    empresa = db.query(models.Empresa).filter(models.Empresa.id == empresa_id).first()
+    if not empresa:
+        raise HTTPException(404, "Empresa no encontrada")
+
+    grupos = db.query(models.Grupo).filter(models.Grupo.empresa_id == empresa_id).all()
+    habilitados = get_asignaciones_pagadas(empresa_id, db)
+
+    result = []
+    for grupo in grupos:
+        asignaciones = db.query(models.Asignacion).filter(models.Asignacion.grupo_id == grupo.id).all()
+        for a in asignaciones:
+            if not a.fecha_evento:
+                continue
+            v = db.query(models.Voucher).filter(models.Voucher.asignacion_id == a.id).first()
+            result.append({
+                "id": a.id,
+                "grupo_id": grupo.id,
+                "grupo_nombre": grupo.nombre,
+                "fecha": str(a.fecha_evento.fecha) if a.fecha_evento else "Sin fecha",
+                "servicio": a.fecha_evento.evento.nombre if a.fecha_evento and a.fecha_evento.evento else "Sin servicio",
+                "tipo": a.fecha_evento.evento.tipo if a.fecha_evento and a.fecha_evento.evento else "N/A",
+                "pax": a.pax_asignados if a.pax_asignados is not None else (grupo.cantidad_pax or 0),
+                "habilitado": habilitados.get(a.id, False),
+                "voucher_usado": v.usado if v else False,
+                "voucher_fecha_uso": v.fecha_uso if v else None,
+            })
+
+    # Ordenar por fecha ascendente
+    result.sort(key=lambda x: x["fecha"])
+    return result
+
+
 @router.get("/dashboard")
 def get_dashboard(db: Session = Depends(get_db)):
     empresas = db.query(models.Empresa).join(models.Grupo).distinct().all()
