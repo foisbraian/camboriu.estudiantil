@@ -90,6 +90,7 @@ export default function App() {
         {/* Rutas compartidas entre admin y equipo */}
         <Route element={<Protected allow={["admin", "equipo"]}><Layout /></Protected>}>
           <Route path="/vouchers/planilla" element={<VouchersPlanilla />} />
+          <Route path="/panel/validar" element={<ValidarQR />} />
         </Route>
 
         {/* Resto de rutas solo para admin */}
@@ -100,7 +101,6 @@ export default function App() {
           <Route path="/tematicas" element={<Tematicas />} />
           <Route path="/finanzas" element={<FinanzasDashboard />} />
           <Route path="/finanzas/:id" element={<FinanzasDetalle />} />
-          <Route path="/panel/validar" element={<ValidarQR />} />
           <Route path="/imprimir-voucher/:id" element={<ImprimirVoucher />} />
           <Route path="/imprimir-vouchers-grupo/:grupoId" element={<ImprimirTodosVouchers />} />
           <Route path="/imprimir-vouchers-empresa/:empresaId" element={<ImprimirTodosVouchersEmpresa />} />
