@@ -397,3 +397,22 @@ class PagoHotel(Base):
     empresa = relationship("Empresa", back_populates="pagos_hotel")
     hotel = relationship("Hotel", back_populates="pagos")
     reserva = relationship("ReservaHotel", back_populates="pagos")
+
+
+# =============================
+# HORARIO INDIVIDUAL POR EMPRESA
+# Para asignar un horario personalizado a una empresa en un servicio específico
+# (ej: Zacarias le toca a las 10:00hs solo a empresa X en esa fecha)
+# =============================
+
+class HorarioEmpresa(Base):
+    __tablename__ = "horarios_empresa"
+
+    id = Column(Integer, primary_key=True)
+    empresa_id = Column(Integer, ForeignKey("empresas.id", ondelete="CASCADE"), nullable=False)
+    fecha_evento_id = Column(Integer, ForeignKey("fechas_evento.id", ondelete="CASCADE"), nullable=False)
+    horario = Column(String, nullable=False)  # ej: "10:00hs", "14:30", etc.
+    nota = Column(String, nullable=True)       # texto opcional adicional
+
+    empresa = relationship("Empresa")
+    fecha_evento = relationship("FechaEvento")

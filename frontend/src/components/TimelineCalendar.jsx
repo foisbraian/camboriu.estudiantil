@@ -99,6 +99,11 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
   const [editando, setEditando] = useState(null);
   const [grupoAsignando, setGrupoAsignando] = useState(null);
 
+  // Horarios individuales por empresa (para eventos globales)
+  const [horariosEmpresa, setHorariosEmpresa] = useState([]); // lista de { empresa_id, empresa_nombre, horario, nota, id? }
+  const [cargandoHorarios, setCargandoHorarios] = useState(false);
+  const [fechaEventoIdActual, setFechaEventoIdActual] = useState(null);
+
   // =========================================================
   // SYNC BACKEND
   // =========================================================
@@ -130,6 +135,46 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
       console.error("Error cargando temáticas:", e);
     }
   };
+
+  // Carga los horarios personalizados por empresa para un fecha_evento dado
+  const cargarHorariosEmpresa = async (fechaEventoId) => {
+    if (!fechaEventoId) return;
+    setCargandoHorarios(true);
+    try {
+      const res = await api.get(`/calendario/fecha/${fechaEventoId}/horarios-empresa`);
+      setHorariosEmpresa(res.data || []);
+    } catch (e) {
+      console.error("Error cargando horarios empresa:", e);
+      setHorariosEmpresa([]);
+    } finally {
+      setCargandoHorarios(false);
+    }
+  };
+
+  const guardarHorarioEmpresa = async (fechaEventoId, empresaId, horarioVal, notaVal) => {
+    if (!horarioVal.trim()) return;
+    try {
+      await api.post(`/calendario/fecha/${fechaEventoId}/horarios-empresa`, {
+        empresa_id: empresaId,
+        horario: horarioVal.trim(),
+        nota: notaVal?.trim() || null,
+      });
+      await cargarHorariosEmpresa(fechaEventoId);
+    } catch (e) {
+      alert("Error al guardar horario");
+    }
+  };
+
+  const eliminarHorarioEmpresa = async (horarioId, fechaEventoId) => {
+    if (!window.confirm("¿Eliminar este horario?")) return;
+    try {
+      await api.delete(`/calendario/horario-empresa/${horarioId}`);
+      await cargarHorariosEmpresa(fechaEventoId);
+    } catch (e) {
+      alert("Error al eliminar horario");
+    }
+  };
+
 
   // =========================================================
   // ZOOM CTRL + SCROLL
@@ -356,6 +401,8 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
 
       // CRITICAL FIX: Do NOT spread info.event directly. It's a complex object.
       // Extract what we need.
+      const cleanFid = getCleanId(info.event.id);
+      setFechaEventoIdActual(cleanFid);
       setEditando({
         id: info.event.id,
         title: info.event.title,
@@ -363,6 +410,9 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
         tipo: "global"
       });
       setGrupoAsignando(null);
+
+      // Cargar horarios personalizados por empresa para esta fecha de evento
+      await cargarHorariosEmpresa(cleanFid);
 
       setModalOpen(true);
       return;
@@ -567,6 +617,8 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
     setGrupoAsignando(null);
     setEsPrivado(false);
     setEmpresaPrivadaId("");
+    setHorariosEmpresa([]);
+    setFechaEventoIdActual(null);
     refresh();
   };
 
@@ -891,6 +943,20 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
               </>
             )}
 
+            {/* ===============================================================
+                SECCIÓN HORARIOS POR EMPRESA (solo al editar evento global)
+                =============================================================== */}
+            {editando?.tipo === "global" && fechaEventoIdActual && (
+              <HorariosEmpresaPanel
+                fechaEventoId={fechaEventoIdActual}
+                horariosEmpresa={horariosEmpresa}
+                cargandoHorarios={cargandoHorarios}
+                empresas={empresas}
+                onGuardar={guardarHorarioEmpresa}
+                onEliminar={eliminarHorarioEmpresa}
+              />
+            )}
+
             <div style={{ marginTop: 15 }}>
               {editando?.tipo !== "asignacion" && (
                 <button className="primary" onClick={guardar}>
@@ -914,5 +980,134 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
         </div>
       )}
     </>
+  );
+}
+
+// =========================================================
+// SUB-COMPONENTE: Panel de horarios individuales por empresa
+// =========================================================
+function HorariosEmpresaPanel({ fechaEventoId, horariosEmpresa, cargandoHorarios, empresas, onGuardar, onEliminar }) {
+  const [empresaSeleccionada, setEmpresaSeleccionada] = useState("");
+  const [horarioInput, setHorarioInput] = useState("");
+  const [notaInput, setNotaInput] = useState("");
+
+  // Pre-fill when selecting a company that already has a schedule
+  const handleEmpresaChange = (e) => {
+    const eid = e.target.value;
+    setEmpresaSeleccionada(eid);
+    const existente = horariosEmpresa.find(h => String(h.empresa_id) === String(eid));
+    setHorarioInput(existente?.horario || "");
+    setNotaInput(existente?.nota || "");
+  };
+
+  const handleGuardar = async () => {
+    if (!empresaSeleccionada || !horarioInput.trim()) {
+      alert("Seleccioná una empresa e ingresá el horario");
+      return;
+    }
+    await onGuardar(fechaEventoId, Number(empresaSeleccionada), horarioInput, notaInput);
+    setHorarioInput("");
+    setNotaInput("");
+    setEmpresaSeleccionada("");
+  };
+
+  return (
+    <div style={{
+      marginTop: 16,
+      borderTop: "2px solid #e2e8f0",
+      paddingTop: 12,
+    }}>
+      <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "#0f172a", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+        🕐 Horarios individuales por empresa
+        <span style={{ fontWeight: 400, fontSize: "0.78rem", color: "#64748b" }}>
+          (visible solo en el portal de cada empresa)
+        </span>
+      </div>
+
+      {cargandoHorarios && <p style={{ fontSize: "0.85rem", color: "#94a3b8" }}>Cargando...</p>}
+
+      {/* Lista de horarios ya asignados */}
+      {horariosEmpresa.length > 0 && (
+        <div style={{ marginBottom: 10, display: "flex", flexDirection: "column", gap: 4 }}>
+          {horariosEmpresa.map(h => (
+            <div key={h.id} style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              background: "#f0fdf4",
+              border: "1px solid #bbf7d0",
+              borderRadius: 6,
+              padding: "4px 8px",
+              fontSize: "0.85rem"
+            }}>
+              <span style={{ fontWeight: 600, color: "#166534", minWidth: 80 }}>{h.empresa_nombre}</span>
+              <span style={{ color: "#0f172a" }}>⏰ {h.horario}</span>
+              {h.nota && <span style={{ color: "#64748b", fontStyle: "italic" }}>({h.nota})</span>}
+              <button
+                onClick={() => onEliminar(h.id, fechaEventoId)}
+                style={{
+                  marginLeft: "auto",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "#ef4444",
+                  fontWeight: 700,
+                  fontSize: "0.9rem",
+                  padding: "0 4px"
+                }}
+                title="Eliminar horario"
+              >✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Formulario para agregar/editar */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: 10 }}>
+        <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#475569" }}>Agregar / editar horario:</label>
+        <select
+          value={empresaSeleccionada}
+          onChange={handleEmpresaChange}
+          style={{ padding: "5px 8px", borderRadius: 5, border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+        >
+          <option value="">— Seleccionar empresa —</option>
+          {empresas.map(emp => (
+            <option key={emp.id} value={emp.id}>
+              {emp.nombre}
+              {horariosEmpresa.find(h => h.empresa_id === emp.id) ? " ✓" : ""}
+            </option>
+          ))}
+        </select>
+        <div style={{ display: "flex", gap: 6 }}>
+          <input
+            type="text"
+            placeholder="Horario (ej: 10:00hs)"
+            value={horarioInput}
+            onChange={e => setHorarioInput(e.target.value)}
+            style={{ flex: 1, padding: "5px 8px", borderRadius: 5, border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+          />
+          <input
+            type="text"
+            placeholder="Nota (opcional)"
+            value={notaInput}
+            onChange={e => setNotaInput(e.target.value)}
+            style={{ flex: 1, padding: "5px 8px", borderRadius: 5, border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+          />
+          <button
+            onClick={handleGuardar}
+            style={{
+              background: "#16a34a",
+              color: "white",
+              border: "none",
+              borderRadius: 5,
+              padding: "5px 12px",
+              cursor: "pointer",
+              fontWeight: 700,
+              fontSize: "0.85rem"
+            }}
+          >Guardar</button>
+        </div>
+      </div>
+    </div>
   );
 }

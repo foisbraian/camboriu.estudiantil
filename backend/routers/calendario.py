@@ -931,7 +931,17 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                             pax_empresa += a.grupo.cantidad_pax
                 titulo_portal = f"{f.evento.nombre} ({pax_empresa} PAX)"
 
-            if getattr(f, "horario", None):
+            # Horario: primero el horario personalizado de la empresa, si no el global
+            horario_personalizado = db.query(models.HorarioEmpresa).filter(
+                models.HorarioEmpresa.fecha_evento_id == f.id,
+                models.HorarioEmpresa.empresa_id == empresa.id
+            ).first()
+
+            if horario_personalizado:
+                titulo_portal += f" - {horario_personalizado.horario}"
+                if horario_personalizado.nota:
+                    titulo_portal += f" ({horario_personalizado.nota})"
+            elif getattr(f, "horario", None):
                 titulo_portal += f" - {f.horario}"
 
             if f.tematica:
@@ -940,6 +950,7 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
             titulo_extra = ""
             if f.es_privado and f.empresa_privada:
                 titulo_extra = f"\nPrivado: {f.empresa_privada.nombre}"
+
 
             events.append({
                 "id": f"id-{f.id}",
@@ -1255,3 +1266,108 @@ def eliminar_fecha_evento_global(fecha_evento_id: int, db: Session = Depends(get
     db.commit()
 
     return {"ok": True}
+
+
+# =========================================================
+# HORARIOS INDIVIDUALES POR EMPRESA
+# El admin puede asignar un horario específico a una empresa
+# para que lo vea solo en su portal.
+# =========================================================
+
+class HorarioEmpresaBody(BaseModel):
+    empresa_id: int
+    horario: str
+    nota: Optional[str] = None
+
+
+@router.get("/fecha/{fecha_evento_id}/horarios-empresa")
+def listar_horarios_empresa(fecha_evento_id: int, db: Session = Depends(get_db)):
+    """Lista los horarios personalizados de todas las empresas para una fecha de evento."""
+    f = db.get(models.FechaEvento, fecha_evento_id)
+    if not f:
+        raise HTTPException(404, "FechaEvento no encontrada")
+
+    horarios = db.query(models.HorarioEmpresa).filter(
+        models.HorarioEmpresa.fecha_evento_id == fecha_evento_id
+    ).all()
+
+    return [
+        {
+            "id": h.id,
+            "empresa_id": h.empresa_id,
+            "empresa_nombre": h.empresa.nombre if h.empresa else "",
+            "fecha_evento_id": h.fecha_evento_id,
+            "horario": h.horario,
+            "nota": h.nota,
+        }
+        for h in horarios
+    ]
+
+
+@router.post("/fecha/{fecha_evento_id}/horarios-empresa")
+def crear_horario_empresa(fecha_evento_id: int, body: HorarioEmpresaBody, db: Session = Depends(get_db)):
+    """Crea o actualiza el horario de una empresa para una fecha de evento."""
+    f = db.get(models.FechaEvento, fecha_evento_id)
+    if not f:
+        raise HTTPException(404, "FechaEvento no encontrada")
+
+    empresa = db.get(models.Empresa, body.empresa_id)
+    if not empresa:
+        raise HTTPException(404, "Empresa no encontrada")
+
+    # Buscar si ya existe
+    existente = db.query(models.HorarioEmpresa).filter(
+        models.HorarioEmpresa.fecha_evento_id == fecha_evento_id,
+        models.HorarioEmpresa.empresa_id == body.empresa_id
+    ).first()
+
+    if existente:
+        existente.horario = body.horario
+        existente.nota = body.nota
+    else:
+        nuevo = models.HorarioEmpresa(
+            empresa_id=body.empresa_id,
+            fecha_evento_id=fecha_evento_id,
+            horario=body.horario,
+            nota=body.nota,
+        )
+        db.add(nuevo)
+
+    db.commit()
+    return {"ok": True}
+
+
+@router.delete("/horario-empresa/{horario_id}")
+def eliminar_horario_empresa(horario_id: int, db: Session = Depends(get_db)):
+    """Elimina un horario individual de empresa."""
+    h = db.get(models.HorarioEmpresa, horario_id)
+    if not h:
+        raise HTTPException(404, "Horario no encontrado")
+    db.delete(h)
+    db.commit()
+    return {"ok": True}
+
+
+@router.get("/empresa/{empresa_id}/horarios")
+def listar_horarios_de_empresa(empresa_id: int, db: Session = Depends(get_db)):
+    """Lista todos los horarios personalizados de una empresa (para el panel de detalle)."""
+    empresa = db.get(models.Empresa, empresa_id)
+    if not empresa:
+        raise HTTPException(404, "Empresa no encontrada")
+
+    horarios = db.query(models.HorarioEmpresa).filter(
+        models.HorarioEmpresa.empresa_id == empresa_id
+    ).all()
+
+    return [
+        {
+            "id": h.id,
+            "fecha_evento_id": h.fecha_evento_id,
+            "servicio_nombre": h.fecha_evento.evento.nombre if h.fecha_evento else "",
+            "servicio_tipo": h.fecha_evento.evento.tipo if h.fecha_evento else "",
+            "fecha": str(h.fecha_evento.fecha) if h.fecha_evento else "",
+            "horario": h.horario,
+            "nota": h.nota,
+        }
+        for h in horarios
+    ]

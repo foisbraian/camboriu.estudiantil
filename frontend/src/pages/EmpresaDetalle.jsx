@@ -303,6 +303,8 @@ export default function EmpresaDetalle() {
   const [empresaNumeroContacto, setEmpresaNumeroContacto] = useState("");
   const [editandoEmpresa, setEditandoEmpresa] = useState(false);
   const [empresaError, setEmpresaError] = useState("");
+  const [horariosPersonalizados, setHorariosPersonalizados] = useState([]);
+
 
   const [form, setForm] = useState({
     nombre: "",
@@ -377,6 +379,13 @@ export default function EmpresaDetalle() {
     setEmpresaNumeroContacto(e.data.numero_contacto || "");
     const g = await api.get(`/grupos/empresa/${id}`);
     setGrupos(g.data);
+    // Cargar horarios personalizados de esta empresa
+    try {
+      const h = await api.get(`/calendario/empresa/${id}/horarios`);
+      setHorariosPersonalizados(h.data || []);
+    } catch (_) {
+      setHorariosPersonalizados([]);
+    }
   }, [id]);
 
   useEffect(() => {
@@ -1142,6 +1151,40 @@ export default function EmpresaDetalle() {
           </div>
         </div>
       )}
+
+      {/* Modal Edición de Grupo */}
+      {/* ... (código existente del modal se mantiene intacto) */}
+
+      <div className="card mt-4">
+        <h2>Horarios Personalizados en Servicios</h2>
+        <p style={{ color: "#666", fontSize: "0.9rem" }}>
+          Estos son los horarios que la empresa ve en su portal para cada día. Se configuran desde el Calendario.
+        </p>
+        {horariosPersonalizados.length === 0 ? (
+          <p>No hay horarios personalizados asignados a esta empresa.</p>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Servicio</th>
+                <th>Fecha</th>
+                <th>Horario en Portal</th>
+                <th>Nota</th>
+              </tr>
+            </thead>
+            <tbody>
+              {horariosPersonalizados.map(h => (
+                <tr key={h.id}>
+                  <td><b>{h.servicio_nombre}</b> ({h.servicio_tipo})</td>
+                  <td>{h.fecha}</td>
+                  <td><span style={{ background: "#e0f2fe", color: "#0369a1", padding: "2px 6px", borderRadius: 4, fontWeight: "bold" }}>{h.horario}</span></td>
+                  <td>{h.nota || "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
 
     </div>
   );
