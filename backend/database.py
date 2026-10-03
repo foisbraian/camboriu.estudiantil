@@ -10,8 +10,11 @@ if not DATABASE_URL or not DATABASE_URL.strip():
     DATABASE_URL = "sqlite:///./app.db"
 
 # ⭐ FIX para Render: SQLAlchemy requiere 'postgresql://' en lugar de 'postgres://'
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+if DATABASE_URL.startswith("postgres://") or DATABASE_URL.startswith("postgresql://"):
+    # Forzar el uso del driver moderno psycopg3 si no está especificado
+    if "psycopg" not in DATABASE_URL:
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg://", 1)
+        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
 
 # Si es SQLite, necesitamos check_same_thread=False
 is_sqlite = DATABASE_URL.startswith("sqlite")
