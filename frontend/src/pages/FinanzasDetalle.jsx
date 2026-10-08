@@ -682,6 +682,12 @@ export default function FinanzasDetalle() {
                         >
                             🖨️ Vouchers (Toda la Empresa)
                         </button>
+                        <button
+                            onClick={() => window.open(`/declaracion-jurada/${id}`, "_blank")}
+                            style={{ padding: "8px 15px", background: "#7c3aed", color: "white", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.85rem", fontWeight: 600 }}
+                        >
+                            📄 Declaración Jurada
+                        </button>
                     </div>
                 </div>
 
