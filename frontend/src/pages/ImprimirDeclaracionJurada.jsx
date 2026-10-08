@@ -80,7 +80,7 @@ export default function ImprimirDeclaracionJurada() {
   const empresaNombre = resumen?.empresa || "";
   const grupos = resumen?.grupos || [];
   const totalVouchers = grupos.reduce((sum, g) =>
-    sum + (g.servicios || []).reduce((ss, s) => ss + s.pax_original * (s.cantidad || 1), 0)
+    sum + (g.servicios || []).reduce((ss, s) => ss + (s.cantidad || 1), 0)
   , 0);
   const fechaHoy = hoyFormateado();
 
@@ -215,7 +215,7 @@ export default function ImprimirDeclaracionJurada() {
                       <td style={{ padding: "6px 12px", textAlign: "center" }}>{s.cantidad}</td>
                       <td style={{ padding: "6px 12px", textAlign: "center" }}>{s.pax_original}</td>
                       <td style={{ padding: "6px 12px", textAlign: "center", fontWeight: 700 }}>
-                        {s.pax_original * (s.cantidad || 1)}
+                        {s.cantidad || 1}
                       </td>
                     </tr>
                   ))}
