@@ -22,13 +22,6 @@ const SERVICIO_ICONS = {
   "Combo": "🎟️",
 };
 
-function formatFecha(isoDate) {
-  if (!isoDate) return "-";
-  const [y, m, d] = isoDate.split("-").map(Number);
-  const meses = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
-  return `${d} de ${meses[m - 1]} de ${y}`;
-}
-
 function formatFechaCorta(isoDate) {
   if (!isoDate) return "-";
   const [y, m, d] = isoDate.split("-");
