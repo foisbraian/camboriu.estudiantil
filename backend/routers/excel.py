@@ -281,6 +281,30 @@ def exportar_excel(background_tasks: BackgroundTasks, db: Session = Depends(get_
         ])
 
     # =================================================
+    # HOJA 7 → QUINTA COMIDA (POR GRUPO)
+    # =================================================
+
+    ws7 = wb.create_sheet("Quinta Comida")
+    ws7.append([
+        "Empresa", "Grupo", "Check-in", "Check-out",
+        "Estudiantes", "Padres", "Guias", "Total Pax"
+    ])
+
+    for g in grupos:
+        if not g.quinta_comida_acceso:
+            continue
+        ws7.append([
+            g.empresa.nombre if g.empresa else "",
+            g.nombre,
+            g.fecha_entrada,
+            g.fecha_salida,
+            g.cantidad_estudiantes,
+            g.cantidad_padres,
+            g.cantidad_guias,
+            g.cantidad_pax
+        ])
+
+    # =================================================
     # GUARDAR
     # =================================================
 
