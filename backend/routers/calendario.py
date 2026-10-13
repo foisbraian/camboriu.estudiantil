@@ -183,27 +183,10 @@ def calendario(db: Session = Depends(get_db)):
                     ocupacion += a.grupo.cantidad_pax
         else:
             # Calcular ocupación base (Sumar PAX de las asignaciones explícitas)
-            ocupacion = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo)
-            
-            # Sumar ocupación dinámica para servicios basados en flags (cambio deprecado)
-            if f.evento.tipo == "MULTIPARQUE":
-                grupos_dinamicos = db.query(models.Grupo).filter(
-                    models.Grupo.multiparque_acceso == True,
-                    models.Grupo.fecha_entrada <= f.fecha,
-                    models.Grupo.fecha_salida > f.fecha
-                ).all()
-                # Añadir pax de grupos con flag que NO tienen asignación explícita ese día
-                asignados_ids = {a.grupo_id for a in f.asignaciones if a.grupo}
-                ocupacion += sum(g.cantidad_pax for g in grupos_dinamicos if g.id not in asignados_ids)
-                
-            elif f.evento.tipo == "PARADOR":
-                grupos_dinamicos = db.query(models.Grupo).filter(
-                    models.Grupo.parador_acceso == True,
-                    models.Grupo.fecha_entrada <= f.fecha,
-                    models.Grupo.fecha_salida > f.fecha
-                ).all()
-                asignados_ids = {a.grupo_id for a in f.asignaciones if a.grupo}
-                ocupacion += sum(g.cantidad_pax for g in grupos_dinamicos if g.id not in asignados_ids)
+            ocupacion = sum(
+                (a.pax_asignados if getattr(a, "pax_asignados", None) is not None else a.grupo.cantidad_pax)
+                for a in f.asignaciones if a.grupo
+            )
 
         # Desglose Comida
         con_comida = 0
@@ -374,8 +357,8 @@ def calendario(db: Session = Depends(get_db)):
                 f"Beto Carrero: {'SI' if getattr(g, 'beto_acceso', False) else 'NO'}\n"
                 f"Barco Pirata: {'SI' if getattr(g, 'barco_acceso', False) else 'NO'}\n"
                 f"Cristo Luz: {'SI' if getattr(g, 'cristo_acceso', False) else 'NO'}\n"
-                f"Sunset: {'SI' if getattr(g, 'sunset_acceso', False) else 'NO'}\n"
-                f"Multiparque: {'SI' if getattr(g, 'multiparque_acceso', False) else 'NO'}"
+                f"Multiparque: {'SI' if getattr(g, 'multiparque_acceso', False) else 'NO'}\n"
+                f"Parador: {'SI' if getattr(g, 'parador_acceso', False) else 'NO'}"
             )
 
             # Color del grupo según tipo de alcohol
@@ -774,8 +757,8 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
             f"Beto Carrero: {'SI' if getattr(g, 'beto_acceso', False) else 'NO'}\n"
             f"Barco Pirata: {'SI' if getattr(g, 'barco_acceso', False) else 'NO'}\n"
             f"Cristo Luz: {'SI' if getattr(g, 'cristo_acceso', False) else 'NO'}\n"
-            f"Sunset: {'SI' if getattr(g, 'sunset_acceso', False) else 'NO'}\n"
-            f"Multiparque: {'SI' if getattr(g, 'multiparque_acceso', False) else 'NO'}"
+            f"Multiparque: {'SI' if getattr(g, 'multiparque_acceso', False) else 'NO'}\n"
+            f"Parador: {'SI' if getattr(g, 'parador_acceso', False) else 'NO'}"
         )
 
         # Color del grupo según tipo de alcohol

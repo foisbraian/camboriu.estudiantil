@@ -8,7 +8,9 @@ router = APIRouter(prefix="/grupos", tags=["Grupos"])
 
 @router.post("/")
 def crear_grupo(data: schemas.GrupoCreate, db: Session = Depends(get_db)):
-    g = models.Grupo(**data.dict())
+    data_dict = data.dict()
+    data_dict["sunset_acceso"] = False
+    g = models.Grupo(**data_dict)
     db.add(g)
     db.commit()
     return g
@@ -72,9 +74,10 @@ def editar_grupo(grupo_id: int, data: schemas.GrupoUpdate, db: Session = Depends
     grupo.beto_acceso = data.beto_acceso
     grupo.barco_acceso = data.barco_acceso
     grupo.cristo_acceso = data.cristo_acceso
-    grupo.sunset_acceso = data.sunset_acceso
+    grupo.sunset_acceso = False
     grupo.quinta_comida_acceso = data.quinta_comida_acceso
     grupo.multiparque_acceso = data.multiparque_acceso
+    grupo.parador_acceso = data.parador_acceso
 
     grupo.pagantes_finales_surf = data.pagantes_finales_surf
     grupo.pagantes_finales_unipraias = data.pagantes_finales_unipraias
