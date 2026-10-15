@@ -23,6 +23,7 @@ import models
 from database import engine
 import alter_db
 from routers import upload
+from mcp_conector import montar_conector
 
 app = FastAPI()
 
@@ -125,3 +126,6 @@ app.include_router(backup.router)
 app.include_router(hoteleria.router)
 app.include_router(maintenance.router)
 app.include_router(upload.router)
+
+# Conector de Claude (solo lectura). Se activa con la variable de entorno MCP_TOKEN.
+montar_conector(app)
