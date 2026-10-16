@@ -117,6 +117,12 @@ export default function SelectorInicio() {
             color: "#059669",
         },
         {
+            title: "💸 Gastos de Empresa",
+            desc: "Control de contratos de locales, sueldos, oficina y gastos operativos.",
+            path: "/gastos",
+            color: "#e11d48",
+        },
+        {
             title: "🤝 Gestión de Proveedores",
             desc: "Administrar proveedores y planillas de gastos personalizadas tipo Excel.",
             path: "/proveedores",

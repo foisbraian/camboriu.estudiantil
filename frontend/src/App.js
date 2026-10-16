@@ -23,6 +23,7 @@ import ProveedorDetalle from "./pages/ProveedorDetalle";
 import VouchersPlanilla from "./pages/VouchersPlanilla";
 import Hoteleria from "./pages/Hoteleria";
 import VouchersEmpresa from "./pages/VouchersEmpresa";
+import GastosDashboard from "./pages/GastosDashboard";
 
 const hasStoredRole = (role) => {
   const storedRole = localStorage.getItem("auth_role");
@@ -109,6 +110,7 @@ export default function App() {
           <Route path="/proveedores" element={<Proveedores />} />
           <Route path="/proveedores/:id" element={<ProveedorDetalle />} />
           <Route path="/hoteleria" element={<Hoteleria />} />
+          <Route path="/gastos" element={<GastosDashboard />} />
         </Route>
 
         {/* Rutas Públicas */}
