@@ -38,11 +38,13 @@ Modelo de datos principal:
   Ocupación de una fecha = SUM(pax_asignados) (si es NULL usar el pax del grupo); capacidad libre = capacidad_maxima - ocupación.
 - finanzas_empresa / precios_servicios_mensuales / pagos: precios por empresa y pagos recibidos.
 - hoteles / reservas_hotel / pagos_hotel: hotelería por empresa.
+- gastos_empresa: gastos operativos de la empresa (fecha, concepto, categoria, total_reales, total_dolares, origen_usd, observaciones). Para agregar un gasto cuando te lo pidan por chat, usá la herramienta `registrar_gasto`. Para consultar totales usá `consultar_sql` o las consultas habituales.
 
 Cómo responder:
 - Para preguntas por una empresa, usá primero `resumen_empresa` (busca por nombre parcial, sin importar mayúsculas).
 - Para el resto, `consultar_sql` con SELECT (PostgreSQL). Comparar nombres con ILIKE '%texto%'.
 - Si dudás de una columna, usá `esquema`.
+- Para registrar un nuevo gasto cuando el usuario lo indique en el chat, usá `registrar_gasto`.
 - Respondé en español, con el dato concreto primero y breve detalle después.
 - No muestres codigo_acceso de empresas ni token de vouchers: son credenciales."""
 
@@ -149,6 +151,43 @@ def _resumen_empresa(nombre, anio):
     return {"resumen": r["filas"], "grupos": _ejecutar(grupos, params, limite=200)["filas"]}
 
 
+def _registrar_gasto(concepto: str, categoria: str | None = None, fecha: str | None = None, total_reales: float | None = None, total_dolares: float | None = None, origen_usd: str | None = None, observaciones: str | None = None):
+    from database import SessionLocal
+    import models
+
+    fecha_obj = None
+    if fecha:
+        try:
+            fecha_obj = datetime.strptime(fecha.strip(), "%Y-%m-%d").date()
+        except Exception:
+            pass
+
+    with SessionLocal() as db:
+        gasto = models.GastoEmpresa(
+            fecha=fecha_obj,
+            concepto=concepto.strip().upper(),
+            categoria=categoria.strip().upper() if categoria else None,
+            total_reales=total_reales,
+            total_dolares=total_dolares,
+            origen_usd=origen_usd or "CLAUDE CHAT",
+            observaciones=observaciones,
+        )
+        db.add(gasto)
+        db.commit()
+        db.refresh(gasto)
+        return {
+            "mensaje": "Gasto registrado exitosamente",
+            "id": gasto.id,
+            "fecha": str(gasto.fecha) if gasto.fecha else None,
+            "concepto": gasto.concepto,
+            "categoria": gasto.categoria,
+            "total_reales": gasto.total_reales,
+            "total_dolares": gasto.total_dolares,
+            "origen_usd": gasto.origen_usd,
+            "observaciones": gasto.observaciones,
+        }
+
+
 _PERMITIDAS = ("select", "with", "table", "values", "explain")
 
 
@@ -171,6 +210,28 @@ def crear_conector():
         `nombre` puede ser parcial y no distingue mayúsculas (ej. 'panam').
         `anio` opcional filtra por el año de fecha_entrada de los grupos (temporada)."""
         return await anyio.to_thread.run_sync(_resumen_empresa, nombre, anio)
+
+    @mcp.tool()
+    async def registrar_gasto(
+        concepto: str,
+        categoria: str | None = None,
+        fecha: str | None = None,
+        total_reales: float | None = None,
+        total_dolares: float | None = None,
+        origen_usd: str | None = "CLAUDE CHAT",
+        observaciones: str | None = None,
+    ) -> dict:
+        """Registra un nuevo gasto operativo en la base de datos de la empresa.
+        - concepto: Por ejemplo 'OFICINA', 'GREENVALLEY', 'MUSIC PARK', 'OPERATIVO', etc.
+        - categoria: Detalle del gasto, ej. 'ALQUILER', 'SUELDO BRIAN', 'INTERNET', 'CONTADOR', etc.
+        - fecha: Formato 'YYYY-MM-DD' (opcional si aún no tiene fecha).
+        - total_reales: Monto en reales (BRL) si aplica.
+        - total_dolares: Monto en dólares (USD) si aplica.
+        - origen_usd: 'PLANILLA', 'CALCULADO 5.1', etc. (por defecto 'CLAUDE CHAT').
+        - observaciones: Notas adicionales (opcional)."""
+        return await anyio.to_thread.run_sync(
+            _registrar_gasto, concepto, categoria, fecha, total_reales, total_dolares, origen_usd, observaciones
+        )
 
     @mcp.tool()
     async def esquema() -> dict:
