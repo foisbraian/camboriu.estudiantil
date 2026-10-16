@@ -18,6 +18,7 @@ from routers import (
     backup,
     hoteleria,
     maintenance,
+    gastos,
 )
 import models
 from database import engine
@@ -126,6 +127,7 @@ app.include_router(backup.router)
 app.include_router(hoteleria.router)
 app.include_router(maintenance.router)
 app.include_router(upload.router)
+app.include_router(gastos.router)
 
 # Conector de Claude (solo lectura). Se activa con la variable de entorno MCP_TOKEN.
 montar_conector(app)

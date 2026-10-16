@@ -321,3 +321,43 @@ class PagoHotelOut(PagoHotelCreate):
 
     class Config:
         from_attributes = True
+
+
+# ========= GASTOS EMPRESA =========
+
+class GastoCreate(BaseModel):
+    fecha: date | None = None
+    concepto: str
+    categoria: str | None = None
+    total_reales: float | None = None
+    total_dolares: float | None = None
+    origen_usd: str | None = None
+    observaciones: str | None = None
+
+
+class GastoUpdate(BaseModel):
+    fecha: date | None = None
+    concepto: str | None = None
+    categoria: str | None = None
+    total_reales: float | None = None
+    total_dolares: float | None = None
+    origen_usd: str | None = None
+    observaciones: str | None = None
+
+
+class GastoOut(BaseModel):
+    id: int
+    fecha: date | None = None
+    concepto: str
+    categoria: str | None = None
+    total_reales: float | None = None
+    total_dolares: float | None = None
+    origen_usd: str | None = None
+    observaciones: str | None = None
+
+    class Config:
+        from_attributes = True
+
+
+class GastoBulkCreate(BaseModel):
+    gastos: list[GastoCreate]

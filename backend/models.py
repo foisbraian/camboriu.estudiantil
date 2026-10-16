@@ -416,3 +416,20 @@ class HorarioEmpresa(Base):
 
     empresa = relationship("Empresa")
     fecha_evento = relationship("FechaEvento")
+
+
+# =============================
+# GASTOS DE LA EMPRESA
+# =============================
+
+class GastoEmpresa(Base):
+    __tablename__ = "gastos_empresa"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    fecha = Column(Date, nullable=True)
+    concepto = Column(String, nullable=False)        # ej: OFICINA, GREENVALLEY, OPERATIVO
+    categoria = Column(String, nullable=True)        # ej: ALQUILER, SUELDO BRIAN, CONTADOR
+    total_reales = Column(Float, nullable=True)
+    total_dolares = Column(Float, nullable=True)
+    origen_usd = Column(String, nullable=True)       # PLANILLA / CALCULADO 5.1 / etc.
+    observaciones = Column(String, nullable=True)
