@@ -18,5 +18,18 @@ def upgrade_db():
             # Ignorar si las columnas ya existen
             print(f"Ignorado o ya existe: {sql}")
 
+    # Ajustes puntuales de datos
+    datos_updates = [
+        "UPDATE gastos_empresa SET concepto = 'OPERATIVO' WHERE id IN (47, 112)",
+        "UPDATE gastos_empresa SET categoria = 'LUISINHO' WHERE id = 47",
+    ]
+    for sql in datos_updates:
+        try:
+            with engine.begin() as conn:
+                res = conn.execute(text(sql))
+                print(f"OK ({res.rowcount} filas afectadas): {sql}")
+        except Exception as e:
+            print(f"Aviso en update ({sql}): {e}")
+
 if __name__ == "__main__":
     upgrade_db()

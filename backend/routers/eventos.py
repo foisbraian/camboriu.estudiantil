@@ -63,13 +63,19 @@ def eliminar_fecha_evento(fecha_evento_id: int, db: Session = Depends(get_db)):
     return {"ok": True}
 
 # =====================================
-# ELIMINAR EVENTO (Definición)
+# EDITAR EVENTO (Definición)
 # =====================================
 @router.put("/{evento_id}")
 def editar_evento(evento_id: int, data: schemas.EventoUpdate, db: Session = Depends(get_db)):
     e = db.get(models.Evento, evento_id)
     if not e:
         raise HTTPException(404, "Evento no encontrado")
+
+    if data.nombre is not None:
+        nombre_limpio = data.nombre.strip()
+        if not nombre_limpio:
+            raise HTTPException(400, "El nombre no puede estar vacío")
+        e.nombre = nombre_limpio
 
     e.capacidad_maxima = data.capacidad_maxima
     e.complejo = data.complejo

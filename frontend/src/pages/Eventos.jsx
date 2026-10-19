@@ -8,6 +8,7 @@ export default function Eventos() {
   const [complejo, setComplejo] = useState("");
   const [lista, setLista] = useState([]);
   const [editId, setEditId] = useState(null);
+  const [editNombre, setEditNombre] = useState("");
   const [editCapacidad, setEditCapacidad] = useState(0);
   const [editComplejo, setEditComplejo] = useState("");
 
@@ -41,24 +42,38 @@ export default function Eventos() {
     }
   }
 
-  async function guardarCapacidad(id) {
-    await api.put(`/eventos/${id}`, {
-      capacidad_maxima: Number(editCapacidad),
-      complejo: editComplejo.trim() || null,
-    });
-    setEditId(null);
-    setEditCapacidad(0);
-    setEditComplejo("");
-    cargar();
+  async function guardarEdicion(id) {
+    if (!editNombre.trim()) {
+      alert("El nombre no puede estar vacío");
+      return;
+    }
+    try {
+      await api.put(`/eventos/${id}`, {
+        nombre: editNombre.trim(),
+        capacidad_maxima: Number(editCapacidad),
+        complejo: editComplejo.trim() || null,
+      });
+      setEditId(null);
+      setEditNombre("");
+      setEditCapacidad(0);
+      setEditComplejo("");
+      cargar();
+    } catch (e) {
+      alert("Error al actualizar evento");
+    }
   }
 
   return (
     <div style={{ padding: "40px 20px", maxWidth: "800px" }}>
       <h2>Crear Evento</h2>
 
-      <input placeholder="Nombre" onChange={(e) => setNombre(e.target.value)} />
+      <input
+        placeholder="Nombre"
+        value={nombre}
+        onChange={(e) => setNombre(e.target.value)}
+      />
 
-      <select onChange={(e) => setTipo(e.target.value)}>
+      <select value={tipo} onChange={(e) => setTipo(e.target.value)}>
         <option value="DISCO">Disco</option>
         <option value="ZACARIAS">Zacarias</option>
         <option value="POOL">Cascata / Pool</option>
@@ -88,6 +103,7 @@ export default function Eventos() {
       <input
         type="number"
         placeholder="Capacidad"
+        value={capacidad || ""}
         onChange={(e) => setCapacidad(e.target.value)}
       />
 
@@ -110,27 +126,44 @@ export default function Eventos() {
             {lista.map((ev) => (
               <tr key={ev.id}>
                 <td>{ev.id}</td>
-                <td>{ev.nombre}</td>
-                <td>{ev.tipo}</td>
-                <td>{ev.complejo || ""}</td>
                 <td>
                   {editId === ev.id ? (
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <input
+                      type="text"
+                      value={editNombre}
+                      onChange={(e) => setEditNombre(e.target.value)}
+                      style={{ width: "100%", minWidth: 120, boxSizing: "border-box" }}
+                      placeholder="Nombre del evento"
+                    />
+                  ) : (
+                    ev.nombre
+                  )}
+                </td>
+                <td>{ev.tipo}</td>
+                <td>
+                  {editId === ev.id ? (
+                    ev.tipo === "DISCO" ? (
                       <input
-                        type="number"
-                        value={editCapacidad}
-                        onChange={(e) => setEditCapacidad(e.target.value)}
-                        style={{ width: 90 }}
+                        placeholder="Complejo"
+                        value={editComplejo}
+                        onChange={(e) => setEditComplejo(e.target.value)}
+                        style={{ width: "100%", minWidth: 140, boxSizing: "border-box" }}
                       />
-                      {ev.tipo === "DISCO" && (
-                        <input
-                          placeholder="Complejo"
-                          value={editComplejo}
-                          onChange={(e) => setEditComplejo(e.target.value)}
-                          style={{ width: 180 }}
-                        />
-                      )}
-                    </div>
+                    ) : (
+                      ev.complejo || ""
+                    )
+                  ) : (
+                    ev.complejo || ""
+                  )}
+                </td>
+                <td>
+                  {editId === ev.id ? (
+                    <input
+                      type="number"
+                      value={editCapacidad}
+                      onChange={(e) => setEditCapacidad(e.target.value)}
+                      style={{ width: 90 }}
+                    />
                   ) : (
                     ev.capacidad_maxima
                   )}
@@ -138,10 +171,11 @@ export default function Eventos() {
                 <td>
                   {editId === ev.id ? (
                     <>
-                      <button onClick={() => guardarCapacidad(ev.id)}>Guardar</button>
+                      <button onClick={() => guardarEdicion(ev.id)}>Guardar</button>
                       <button
                         onClick={() => {
                           setEditId(null);
+                          setEditNombre("");
                           setEditCapacidad(0);
                           setEditComplejo("");
                         }}
@@ -154,14 +188,15 @@ export default function Eventos() {
                     <button
                       onClick={() => {
                         setEditId(ev.id);
+                        setEditNombre(ev.nombre || "");
                         setEditCapacidad(ev.capacidad_maxima);
                         setEditComplejo(ev.complejo || "");
                       }}
                     >
-                      Editar capacidad
+                      Editar
                     </button>
                   )}
-                  <button style={{ background: "red", color: "white" }} onClick={() => eliminar(ev.id)}>
+                  <button style={{ background: "red", color: "white", marginLeft: 6 }} onClick={() => eliminar(ev.id)}>
                     Eliminar
                   </button>
                 </td>
