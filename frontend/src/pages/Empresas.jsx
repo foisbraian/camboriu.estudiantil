@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api, { BASE_URL } from "../api";
+import ModalLinksPersonalizados from "../components/ModalLinksPersonalizados";
 
 export default function Empresas() {
   const [empresas, setEmpresas] = useState([]);
@@ -9,6 +10,8 @@ export default function Empresas() {
   const [busqueda, setBusqueda] = useState("");
   const [error, setError] = useState("");
   const [anioInformado, setAnioInformado] = useState(new Date().getFullYear().toString());
+  const [modalLinksOpen, setModalLinksOpen] = useState(false);
+  const [empresaSeleccionadaLinks, setEmpresaSeleccionadaLinks] = useState(null);
 
   const navigate = useNavigate();
 
@@ -88,6 +91,14 @@ export default function Empresas() {
           <a href={`${BASE_URL}/excel/exportar`} target="_blank" rel="noreferrer">
             <button style={{ background: "green", color: "white" }}>Descargar Excel</button>
           </a>
+          <button 
+            type="button" 
+            onClick={() => { setEmpresaSeleccionadaLinks(null); setModalLinksOpen(true); }}
+            style={{ background: "#7e22ce", color: "white", padding: "8px 12px", borderRadius: "6px", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px", fontWeight: "bold" }}
+            title="Administrar o crear links que agrupan a múltiples empresas o a todas"
+          >
+            🔗 Links para Terceros
+          </button>
         </div>
       </div>
 
@@ -170,13 +181,40 @@ export default function Empresas() {
               <button
                 onClick={(event) => {
                   event.stopPropagation();
-                  const link = `https://camboriu-estudiantil-front.vercel.app/portal/${e.codigo_acceso}`;
+                  const origin = window.location.origin.includes("localhost")
+                    ? "https://camboriu-estudiantil-front.vercel.app"
+                    : window.location.origin;
+                  const link = `${origin}/portal/${e.codigo_acceso}`;
                   navigator.clipboard.writeText(link);
-                  alert(`Link copiado: ${link}`);
+                  alert(`Link común copiado: ${link}`);
                 }}
-                style={{ padding: "4px 8px", fontSize: "0.8rem", background: "#f0f0f0", border: "1px solid #ccc" }}
+                style={{ padding: "4px 8px", fontSize: "0.8rem", background: "#f0f0f0", border: "1px solid #ccc", cursor: "pointer", borderRadius: 4 }}
+                title="Copiar link común del portal (acceso completo)"
               >
                 Copiar link
+              </button>
+              <button
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setEmpresaSeleccionadaLinks(e);
+                  setModalLinksOpen(true);
+                }}
+                style={{
+                  padding: "4px 10px",
+                  fontSize: "0.8rem",
+                  background: "#f3e8ff",
+                  color: "#7e22ce",
+                  border: "1px solid #d8b4fe",
+                  borderRadius: 4,
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                }}
+                title="Crear y administrar links personalizados con servicios restringidos"
+              >
+                🔒 Links Personalizados
               </button>
             </div>
           </div>
@@ -184,6 +222,15 @@ export default function Empresas() {
       </div>
 
       {filtradas.length === 0 && <p>No hay empresas</p>}
+
+      <ModalLinksPersonalizados
+        empresa={empresaSeleccionadaLinks}
+        isOpen={modalLinksOpen}
+        onClose={() => {
+          setModalLinksOpen(false);
+          setEmpresaSeleccionadaLinks(null);
+        }}
+      />
     </div>
   );
 }

@@ -660,217 +660,298 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
     empresa = db.query(models.Empresa).filter(
         func.lower(models.Empresa.codigo_acceso) == codigo_normalizado
     ).first()
-    if not empresa:
+
+    link_personalizado = None
+    empresas = []
+
+    if empresa:
+        empresas = [empresa]
+    else:
+        link_personalizado = db.query(models.LinkPersonalizado).filter(
+            func.lower(models.LinkPersonalizado.token) == codigo_normalizado,
+            models.LinkPersonalizado.activo == True
+        ).first()
+        if link_personalizado:
+            if link_personalizado.empresas_ids:
+                if link_personalizado.empresas_ids.strip() == "*":
+                    empresas = db.query(models.Empresa).order_by(models.Empresa.nombre.asc()).all()
+                else:
+                    emp_ids = [int(x.strip()) for x in link_personalizado.empresas_ids.split(",") if x.strip().isdigit()]
+                    if emp_ids:
+                        empresas = db.query(models.Empresa).filter(models.Empresa.id.in_(emp_ids)).order_by(models.Empresa.nombre.asc()).all()
+            if not empresas and link_personalizado.empresa_id:
+                emp = db.get(models.Empresa, link_personalizado.empresa_id)
+                if emp:
+                    empresas = [emp]
+
+    if not empresas:
         raise HTTPException(404, "Código de acceso inválido")
+
+    # Extraer filtros si es un link personalizado
+    servicios_permitidos = None
+    eventos_permitidos_ids = None
+    grupos_permitidos_ids = None
+
+    if link_personalizado:
+        if link_personalizado.servicios_permitidos:
+            servicios_permitidos = set(s.strip().upper() for s in link_personalizado.servicios_permitidos.split(",") if s.strip())
+        if link_personalizado.eventos_permitidos:
+            eventos_permitidos_ids = set(int(x.strip()) for x in link_personalizado.eventos_permitidos.split(",") if x.strip().isdigit())
+        if link_personalizado.grupos_permitidos:
+            grupos_permitidos_ids = set(int(x.strip()) for x in link_personalizado.grupos_permitidos.split(",") if x.strip().isdigit())
 
     resources = []
     events = []
     servicios_globales = {}
 
-    # Fila superior para servicios/eventos globales (una sola fila, sin divisiones por tipo)
+    # Fila superior para servicios/eventos globales
     resources.append({
         "id": "eventos",
         "title": "Servicios",
         "order": 0,
     })
 
-    # Empresa
-    resources.append({
-        "id": f"empresa-{empresa.id}",
-        "title": empresa.nombre,
-        "order": 1,
-        "extendedProps": {
-            "empresaNombre": empresa.nombre,
-            "empresaId": empresa.id,
-            "esEmpresa": True
-        }
-    })
-
-    # Grupos
-    order_counter = 2
-    for g in empresa.grupos:
+    order_counter = 1
+    for emp in empresas:
+        empresa_resource_id = f"empresa-{emp.id}"
         resources.append({
-            "id": g.id,
-            "parentId": f"empresa-{empresa.id}",
-            "title": g.nombre,
+            "id": empresa_resource_id,
+            "title": emp.nombre,
             "order": order_counter,
             "extendedProps": {
-                "empresaNombre": empresa.nombre,
-                "empresaId": empresa.id,
-                "grupoNombre": g.nombre,
-                "pax": g.cantidad_pax,
-                "fechaEntrada": g.fecha_entrada,
-                "fechaSalida": g.fecha_salida,
-                "permite_alcohol": g.permite_alcohol,
-                "es_mix_grupo": getattr(g, 'es_mix_grupo', False),
+                "empresaNombre": emp.nombre,
+                "empresaId": emp.id,
+                "esEmpresa": True
             }
         })
         order_counter += 1
 
-    # 2. EVENTS
-    
-    # Recolectar ID de fechas de evento donde esta empresa tiene asignación
-    # para filtrar la fila global.
-    fechas_eventos_asignados_ids = set()
+        grupos_a_mostrar = emp.grupos
+        if grupos_permitidos_ids:
+            grupos_a_mostrar = [g for g in grupos_a_mostrar if g.id in grupos_permitidos_ids]
 
+        for g in grupos_a_mostrar:
+            resources.append({
+                "id": g.id,
+                "parentId": empresa_resource_id,
+                "title": g.nombre,
+                "order": order_counter,
+                "extendedProps": {
+                    "empresaNombre": emp.nombre,
+                    "empresaId": emp.id,
+                    "grupoNombre": g.nombre,
+                    "pax": g.cantidad_pax,
+                    "fechaEntrada": g.fecha_entrada,
+                    "fechaSalida": g.fecha_salida,
+                    "permite_alcohol": g.permite_alcohol,
+                    "es_mix_grupo": getattr(g, 'es_mix_grupo', False),
+                }
+            })
+            order_counter += 1
+
+    # 2. EVENTS
+    fechas_eventos_asignados_ids = set()
     from collections import defaultdict
 
-    for g in empresa.grupos:
-        # --- RENDERIZAR GRUPO (Background) y ASIGNACIONES ---
-        
-        alcohol_txt = "MIX (pulsera)" if getattr(g, 'es_mix_grupo', False) else ("SI" if g.permite_alcohol else "NO")
-        
-        # Campamento Logic
-        if getattr(g, 'campamento_acceso', False):
-            campamento_txt = "SI (Con Comida)" if getattr(g, 'campamento_con_comida', False) else "SI (Sin Comida)"
-        else:
-            campamento_txt = "NO"
+    for emp in empresas:
+        grupos_a_mostrar = emp.grupos
+        if grupos_permitidos_ids:
+            grupos_a_mostrar = [g for g in grupos_a_mostrar if g.id in grupos_permitidos_ids]
 
-        # Zacarias Logic
-        if getattr(g, 'zacarias_acceso', False):
-            zacarias_txt = "SI (Con Comida)" if getattr(g, 'zacarias_con_comida', False) else "SI (Sin Comida)"
-        else:
-            zacarias_txt = "NO"
-
-        # Pool Logic
-        if g.pool_acceso:
-            pool_txt = "SI (Con Comida)" if g.pool_con_comida else "SI (Sin Comida)"
-        else:
-            pool_txt = "NO"
-
-        tooltip = (
-            f"Empresa: {empresa.nombre}\n"
-            f"Grupo: {g.nombre}\n"
-            f"PAX: {g.cantidad_pax}\n"
-            f"Entrada: {g.fecha_entrada}\n"
-            f"Salida: {g.fecha_salida}\n"
-            f"Discos Compradas: {g.discos_compradas}\n"
-            f"----------------\n"
-            f"Alcohol: {alcohol_txt}\n"
-            f"Campamento: {campamento_txt}\n"
-            f"Zacarias: {zacarias_txt}\n"
-            f"Pool: {pool_txt}\n"
-            f"Cena de Velas: {'SI' if getattr(g, 'cena_velas', False) else 'NO'}\n"
-            f"Bar de hielo: {'SI' if g.bar_hielo else 'NO'}\n"
-            f"Surf: {'SI' if getattr(g, 'surf_acceso', False) else 'NO'}\n"
-            f"Unipraias: {'SI' if getattr(g, 'unipraias_acceso', False) else 'NO'}\n"
-            f"Beto Carrero: {'SI' if getattr(g, 'beto_acceso', False) else 'NO'}\n"
-            f"Barco Pirata: {'SI' if getattr(g, 'barco_acceso', False) else 'NO'}\n"
-            f"Cristo Luz: {'SI' if getattr(g, 'cristo_acceso', False) else 'NO'}\n"
-            f"Multiparque: {'SI' if getattr(g, 'multiparque_acceso', False) else 'NO'}\n"
-            f"Parador: {'SI' if getattr(g, 'parador_acceso', False) else 'NO'}"
-        )
-
-        # Color del grupo según tipo de alcohol
-        es_mix_g = getattr(g, 'es_mix_grupo', False)
-        if es_mix_g:
-            bg_color_grupo = "#f97316"  # Naranja Mix
-            text_color_grupo = "white"
-        elif g.permite_alcohol:
-            bg_color_grupo = "#ef4444"  # Rojo Con Alcohol
-            text_color_grupo = "white"
-        else:
-            bg_color_grupo = "#FFFF00"  # Amarillo Sin Alcohol
-            text_color_grupo = "black"
-
-        mapa_asignaciones = defaultdict(list)
-        for a in g.asignaciones:
-            mapa_asignaciones[a.fecha_evento.fecha].append(a)
-            fechas_eventos_asignados_ids.add(a.fecha_evento.id) # Guardar para filtro global
-
-            fecha_evento = a.fecha_evento
-            servicio = fecha_evento.evento.nombre
-            tematica = fecha_evento.tematica.nombre if fecha_evento.tematica else None
-            clave_servicio = (servicio, tematica)
-            if clave_servicio not in servicios_globales:
-                servicios_globales[clave_servicio] = {
-                    "servicio": servicio,
-                    "cantidad": 0,
-                    "tematica": tematica,
-                }
-            servicios_globales[clave_servicio]["cantidad"] += (
-                a.pax_asignados if a.pax_asignados is not None else g.cantidad_pax
-            )
-
-        current_date = g.fecha_entrada
-        while current_date < g.fecha_salida:
-            next_date = current_date + timedelta(days=1)
+        for g in grupos_a_mostrar:
+            alcohol_txt = "MIX (pulsera)" if getattr(g, 'es_mix_grupo', False) else ("SI" if g.permite_alcohol else "NO")
             
-            asignaciones_dia = mapa_asignaciones.get(current_date, [])
+            if getattr(g, 'campamento_acceso', False):
+                campamento_txt = "SI (Con Comida)" if getattr(g, 'campamento_con_comida', False) else "SI (Sin Comida)"
+            else:
+                campamento_txt = "NO"
 
+            if getattr(g, 'zacarias_acceso', False):
+                zacarias_txt = "SI (Con Comida)" if getattr(g, 'zacarias_con_comida', False) else "SI (Sin Comida)"
+            else:
+                zacarias_txt = "NO"
 
-            if asignaciones_dia:
-                asignaciones_hielo = [a for a in asignaciones_dia if a.fecha_evento.evento.tipo == "HIELO"]
-                otras_asignaciones = [a for a in asignaciones_dia if a.fecha_evento.evento.tipo != "HIELO"]
+            if g.pool_acceso:
+                pool_txt = "SI (Con Comida)" if g.pool_con_comida else "SI (Sin Comida)"
+            else:
+                pool_txt = "NO"
 
-                for asignacion in otras_asignaciones:
-                    color_map = {"DISCO": "#000000", "PARQUE": "#16a34a", "CAMPAMENTO": "#16a34a", "ZACARIAS": "#15803d", "BIENVENIDA": "#a855f7", "POOL": "#0ea5e9", "CENA": "#94a3b8", "HIELO": "#e0f2fe", "SURF": "#3b82f6", "UNIPRAIAS": "#10b981", "BETO": "#ec4899", "BARCO": "#8b5cf6", "SUNSET": "#f59e0b", "CRISTO": "#fcd34d", "MULTIPARQUE": "#22c55e", "PARADOR": "#f97316"}
-                    bg_color_asig = color_map.get(asignacion.fecha_evento.evento.tipo, "gray")
-                    text_color_asig = "black" if bg_color_asig in ["#e0f2fe", "#f59e0b", "#fcd34d"] else "white"
+            if servicios_permitidos is not None:
+                t_lines = [
+                    f"Empresa: {emp.nombre}",
+                    f"Grupo: {g.nombre}",
+                    f"PAX: {g.cantidad_pax}",
+                    f"Entrada: {g.fecha_entrada}",
+                    f"Salida: {g.fecha_salida}",
+                ]
+                if "DISCO" in servicios_permitidos:
+                    t_lines.append(f"Discos Compradas: {g.discos_compradas}")
+                    t_lines.append(f"Alcohol: {alcohol_txt}")
+                if "CAMPAMENTO" in servicios_permitidos:
+                    t_lines.append(f"Campamento: {campamento_txt}")
+                if "ZACARIAS" in servicios_permitidos:
+                    t_lines.append(f"Zacarias: {zacarias_txt}")
+                if "POOL" in servicios_permitidos:
+                    t_lines.append(f"Pool: {pool_txt}")
+                if "CENA" in servicios_permitidos:
+                    t_lines.append(f"Cena de Velas: {'SI' if getattr(g, 'cena_velas', False) else 'NO'}")
+                if "HIELO" in servicios_permitidos:
+                    t_lines.append(f"Bar de hielo: {'SI' if g.bar_hielo else 'NO'}")
+                if "SURF" in servicios_permitidos:
+                    t_lines.append(f"Surf: {'SI' if getattr(g, 'surf_acceso', False) else 'NO'}")
+                if "UNIPRAIAS" in servicios_permitidos:
+                    t_lines.append(f"Unipraias: {'SI' if getattr(g, 'unipraias_acceso', False) else 'NO'}")
+                if "BETO" in servicios_permitidos:
+                    t_lines.append(f"Beto Carrero: {'SI' if getattr(g, 'beto_acceso', False) else 'NO'}")
+                if "BARCO" in servicios_permitidos:
+                    t_lines.append(f"Barco Pirata: {'SI' if getattr(g, 'barco_acceso', False) else 'NO'}")
+                if "CRISTO" in servicios_permitidos:
+                    t_lines.append(f"Cristo Luz: {'SI' if getattr(g, 'cristo_acceso', False) else 'NO'}")
+                if "MULTIPARQUE" in servicios_permitidos:
+                    t_lines.append(f"Multiparque: {'SI' if getattr(g, 'multiparque_acceso', False) else 'NO'}")
+                if "PARADOR" in servicios_permitidos:
+                    t_lines.append(f"Parador: {'SI' if getattr(g, 'parador_acceso', False) else 'NO'}")
+                tooltip = "\n".join(t_lines)
+            else:
+                tooltip = (
+                    f"Empresa: {emp.nombre}\n"
+                    f"Grupo: {g.nombre}\n"
+                    f"PAX: {g.cantidad_pax}\n"
+                    f"Entrada: {g.fecha_entrada}\n"
+                    f"Salida: {g.fecha_salida}\n"
+                    f"Discos Compradas: {g.discos_compradas}\n"
+                    f"----------------\n"
+                    f"Alcohol: {alcohol_txt}\n"
+                    f"Campamento: {campamento_txt}\n"
+                    f"Zacarias: {zacarias_txt}\n"
+                    f"Pool: {pool_txt}\n"
+                    f"Cena de Velas: {'SI' if getattr(g, 'cena_velas', False) else 'NO'}\n"
+                    f"Bar de hielo: {'SI' if g.bar_hielo else 'NO'}\n"
+                    f"Surf: {'SI' if getattr(g, 'surf_acceso', False) else 'NO'}\n"
+                    f"Unipraias: {'SI' if getattr(g, 'unipraias_acceso', False) else 'NO'}\n"
+                    f"Beto Carrero: {'SI' if getattr(g, 'beto_acceso', False) else 'NO'}\n"
+                    f"Barco Pirata: {'SI' if getattr(g, 'barco_acceso', False) else 'NO'}\n"
+                    f"Cristo Luz: {'SI' if getattr(g, 'cristo_acceso', False) else 'NO'}\n"
+                    f"Multiparque: {'SI' if getattr(g, 'multiparque_acceso', False) else 'NO'}\n"
+                    f"Parador: {'SI' if getattr(g, 'parador_acceso', False) else 'NO'}"
+                )
 
-                    pax_asig = getattr(asignacion, "pax_asignados", None)
-                    pax_val = pax_asig if pax_asig is not None else g.cantidad_pax
-                    tematica_nombre = asignacion.fecha_evento.tematica.nombre if asignacion.fecha_evento.tematica else ""
-                    
-                    titulo_asig = f"{asignacion.fecha_evento.evento.nombre} ({pax_val} PAX)"
-                    if tematica_nombre:
-                        titulo_asig += f"\n{tematica_nombre}"
+            es_mix_g = getattr(g, 'es_mix_grupo', False)
+            if es_mix_g:
+                bg_color_grupo = "#f97316"
+                text_color_grupo = "white"
+            elif g.permite_alcohol:
+                bg_color_grupo = "#ef4444"
+                text_color_grupo = "white"
+            else:
+                bg_color_grupo = "#FFFF00"
+                text_color_grupo = "black"
 
-                    events.append({
-                        "resourceId": g.id, 
-                        "start": current_date,
-                        "end": next_date,
-                        "title": titulo_asig,
-                        "backgroundColor": bg_color_asig,
-                        "borderColor": "transparent",
-                        "textColor": text_color_asig,
-                        "extendedProps": {
-                            "tipo": "asignacion",
-                            "tooltip": f"Asignado: {asignacion.fecha_evento.evento.nombre}",
-                            "pax": pax_val
-                        } 
-                    })
-                if asignaciones_hielo:
-                    color_map = {"HIELO": "#e0f2fe"}
-                    bg_color_asig = color_map.get("HIELO", "gray")
-                    text_color_asig = "black"
-                    turnos = len(asignaciones_hielo)
-                    nombre_base = asignaciones_hielo[0].fecha_evento.evento.nombre
-                    
-                    pax_total_hielo = 0
-                    for a_hielo in asignaciones_hielo:
-                        pax_asig = getattr(a_hielo, "pax_asignados", None)
-                        pax_total_hielo += pax_asig if pax_asig is not None else g.cantidad_pax
+            mapa_asignaciones = defaultdict(list)
+            for a in g.asignaciones:
+                if not a.fecha_evento or not a.fecha_evento.evento:
+                    continue
 
-                    titulo = f"{nombre_base} {turnos} TURNOS ({pax_total_hielo} PAX)" if turnos > 1 else f"{nombre_base} ({pax_total_hielo} PAX)"
+                tipo_ev = (a.fecha_evento.evento.tipo or "").upper()
+                if servicios_permitidos is not None and tipo_ev not in servicios_permitidos:
+                    continue
+                if eventos_permitidos_ids is not None and a.fecha_evento.evento_id not in eventos_permitidos_ids:
+                    continue
 
+                mapa_asignaciones[a.fecha_evento.fecha].append(a)
+                fechas_eventos_asignados_ids.add(a.fecha_evento.id)
+
+                fecha_evento = a.fecha_evento
+                servicio = fecha_evento.evento.nombre
+                tematica = fecha_evento.tematica.nombre if fecha_evento.tematica else None
+                clave_servicio = (servicio, tematica)
+                if clave_servicio not in servicios_globales:
+                    servicios_globales[clave_servicio] = {
+                        "servicio": servicio,
+                        "cantidad": 0,
+                        "tematica": tematica,
+                    }
+                servicios_globales[clave_servicio]["cantidad"] += (
+                    a.pax_asignados if a.pax_asignados is not None else g.cantidad_pax
+                )
+
+            current_date = g.fecha_entrada
+            while current_date < g.fecha_salida:
+                next_date = current_date + timedelta(days=1)
+                asignaciones_dia = mapa_asignaciones.get(current_date, [])
+
+                if asignaciones_dia:
+                    asignaciones_hielo = [a for a in asignaciones_dia if a.fecha_evento.evento.tipo == "HIELO"]
+                    otras_asignaciones = [a for a in asignaciones_dia if a.fecha_evento.evento.tipo != "HIELO"]
+
+                    for asignacion in otras_asignaciones:
+                        color_map = {"DISCO": "#000000", "PARQUE": "#16a34a", "CAMPAMENTO": "#16a34a", "ZACARIAS": "#15803d", "BIENVENIDA": "#a855f7", "POOL": "#0ea5e9", "CENA": "#94a3b8", "HIELO": "#e0f2fe", "SURF": "#3b82f6", "UNIPRAIAS": "#10b981", "BETO": "#ec4899", "BARCO": "#8b5cf6", "SUNSET": "#f59e0b", "CRISTO": "#fcd34d", "MULTIPARQUE": "#22c55e", "PARADOR": "#f97316"}
+                        bg_color_asig = color_map.get(asignacion.fecha_evento.evento.tipo, "gray")
+                        text_color_asig = "black" if bg_color_asig in ["#e0f2fe", "#f59e0b", "#fcd34d"] else "white"
+
+                        pax_asig = getattr(asignacion, "pax_asignados", None)
+                        pax_val = pax_asig if pax_asig is not None else g.cantidad_pax
+                        tematica_nombre = asignacion.fecha_evento.tematica.nombre if asignacion.fecha_evento.tematica else ""
+                        
+                        titulo_asig = f"{asignacion.fecha_evento.evento.nombre} ({pax_val} PAX)"
+                        if tematica_nombre:
+                            titulo_asig += f"\n{tematica_nombre}"
+
+                        events.append({
+                            "resourceId": g.id, 
+                            "start": current_date,
+                            "end": next_date,
+                            "title": titulo_asig,
+                            "backgroundColor": bg_color_asig,
+                            "borderColor": "transparent",
+                            "textColor": text_color_asig,
+                            "extendedProps": {
+                                "tipo": "asignacion",
+                                "tooltip": f"{emp.nombre} - Asignado: {asignacion.fecha_evento.evento.nombre}",
+                                "pax": pax_val
+                            } 
+                        })
+                    if asignaciones_hielo:
+                        color_map = {"HIELO": "#e0f2fe"}
+                        bg_color_asig = color_map.get("HIELO", "gray")
+                        text_color_asig = "black"
+                        turnos = len(asignaciones_hielo)
+                        nombre_base = asignaciones_hielo[0].fecha_evento.evento.nombre
+                        
+                        pax_total_hielo = 0
+                        for a_hielo in asignaciones_hielo:
+                            pax_asig = getattr(a_hielo, "pax_asignados", None)
+                            pax_total_hielo += pax_asig if pax_asig is not None else g.cantidad_pax
+
+                        titulo = f"{nombre_base} {turnos} TURNOS ({pax_total_hielo} PAX)" if turnos > 1 else f"{nombre_base} ({pax_total_hielo} PAX)"
+
+                        events.append({
+                            "resourceId": g.id,
+                            "start": current_date,
+                            "end": next_date,
+                            "title": titulo,
+                            "backgroundColor": bg_color_asig,
+                            "borderColor": "transparent",
+                            "textColor": text_color_asig,
+                            "extendedProps": {
+                                "tipo": "asignacion",
+                                "tooltip": f"{emp.nombre} - {nombre_base}: {turnos} TURNOS",
+                                "pax": pax_total_hielo
+                            }
+                        })
+                else:
                     events.append({
                         "resourceId": g.id,
                         "start": current_date,
                         "end": next_date,
-                        "title": titulo,
-                        "backgroundColor": bg_color_asig,
-                        "borderColor": "transparent",
-                        "textColor": text_color_asig,
-                        "extendedProps": {
-                            "tipo": "asignacion",
-                            "tooltip": f"{nombre_base}: {turnos} TURNOS",
-                            "pax": pax_total_hielo
-                        }
+                        "title": g.nombre,
+                        "backgroundColor": bg_color_grupo,
+                        "borderColor": bg_color_grupo,
+                        "textColor": text_color_grupo,
+                        "extendedProps": {"tipo": "grupo", "tooltip": tooltip}
                     })
-            else:
-                events.append({
-                    "resourceId": g.id,
-                    "start": current_date,
-                    "end": next_date,
-                    "title": g.nombre,
-                    "backgroundColor": bg_color_grupo,
-                    "borderColor": bg_color_grupo,
-                    "textColor": text_color_grupo,
-                    "extendedProps": {"tipo": "grupo", "tooltip": tooltip}
-                })
 
-            current_date = next_date
+                current_date = next_date
 
     # 3. GLOBAL ROW (Solo lo asignado)
     if fecha_eventos_asignados_ids := list(fechas_eventos_asignados_ids):
@@ -896,10 +977,11 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
             # Calcular ocupación solo para esta empresa
             pax_empresa = 0
             turnos_empresa = 0
+            empresa_ids_set = {emp.id for emp in empresas}
             if f.evento.tipo == "HIELO":
-                turnos_empresa = sum(1 for a in f.asignaciones if a.grupo and a.grupo.empresa_id == empresa.id)
+                turnos_empresa = sum(1 for a in f.asignaciones if a.grupo and a.grupo.empresa_id in empresa_ids_set)
                 for a in f.asignaciones:
-                    if a.grupo and a.grupo.empresa_id == empresa.id:
+                    if a.grupo and a.grupo.empresa_id in empresa_ids_set:
                         if getattr(a, "pax_asignados", None) is not None:
                             pax_empresa += a.pax_asignados
                         else:
@@ -907,18 +989,20 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                 titulo_portal = f"{f.evento.nombre} ({pax_empresa} PAX - {turnos_empresa} Turnos)"
             else:
                 for a in f.asignaciones:
-                    if a.grupo and a.grupo.empresa_id == empresa.id:
+                    if a.grupo and a.grupo.empresa_id in empresa_ids_set:
                         if getattr(a, "pax_asignados", None) is not None:
                             pax_empresa += a.pax_asignados
                         else:
                             pax_empresa += a.grupo.cantidad_pax
                 titulo_portal = f"{f.evento.nombre} ({pax_empresa} PAX)"
 
-            # Horario: primero el horario personalizado de la empresa, si no el global
-            horario_personalizado = db.query(models.HorarioEmpresa).filter(
-                models.HorarioEmpresa.fecha_evento_id == f.id,
-                models.HorarioEmpresa.empresa_id == empresa.id
-            ).first()
+            # Horario personalizado
+            horario_personalizado = None
+            if len(empresas) == 1:
+                horario_personalizado = db.query(models.HorarioEmpresa).filter(
+                    models.HorarioEmpresa.fecha_evento_id == f.id,
+                    models.HorarioEmpresa.empresa_id == empresas[0].id
+                ).first()
 
             if horario_personalizado:
                 titulo_portal += f" - {horario_personalizado.horario}"
@@ -946,10 +1030,21 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                 "extendedProps": {"tipo": "global_readonly"}
             })
 
+    nombre_empresa_display = empresas[0].nombre if len(empresas) == 1 else ("Todas las empresas" if (link_personalizado and link_personalizado.empresas_ids == "*") else f"{len(empresas)} Empresas")
+
     return {
         "resources": resources,
         "events": events,
         "serviciosGlobales": list(servicios_globales.values()),
+        "empresaNombre": nombre_empresa_display,
+        "esPersonalizado": bool(link_personalizado),
+        "linkInfo": {
+            "nombre": link_personalizado.nombre,
+            "servicios": list(servicios_permitidos) if servicios_permitidos else [],
+            "incluirVouchers": bool(link_personalizado.incluir_vouchers),
+            "empresas": [{"id": e.id, "nombre": e.nombre} for e in empresas],
+            "todasLasEmpresas": bool(link_personalizado.empresas_ids == "*"),
+        } if link_personalizado else None
     }
 
 

@@ -103,15 +103,61 @@ export default function PortalEmpresa() {
             flexDirection: "column",
             background: "#f8fafc"
         }}>
-            <h2 style={{
+            <div style={{
                 textAlign: "center",
-                margin: "10px 0",
-                color: "#1e293b",
-                fontSize: "1.1rem",
-                fontWeight: 700
+                margin: "8px 0",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "4px"
             }}>
-                Portal de Empresa
-            </h2>
+                <h2 style={{
+                    margin: 0,
+                    color: "#1e293b",
+                    fontSize: "1.15rem",
+                    fontWeight: 700
+                }}>
+                    {data.empresaNombre ? `Portal - ${data.empresaNombre}` : "Portal de Empresa"}
+                </h2>
+                {data.esPersonalizado && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", justifyContent: "center", marginTop: "2px" }}>
+                        <span style={{
+                            fontSize: "0.78rem",
+                            fontWeight: 700,
+                            padding: "2px 10px",
+                            background: "#ede9fe",
+                            color: "#6d28d9",
+                            borderRadius: "999px",
+                            border: "1px solid #ddd6fe",
+                        }}>
+                            🔒 Vista Personalizada: {data.linkInfo?.nombre || "Restringida"}
+                        </span>
+                        {data.linkInfo?.incluirVouchers && (
+                            <a
+                                href={`/vouchers/${codigo}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{
+                                    fontSize: "0.78rem",
+                                    fontWeight: 700,
+                                    padding: "2px 10px",
+                                    background: "#e0f2fe",
+                                    color: "#0369a1",
+                                    borderRadius: "999px",
+                                    border: "1px solid #bae6fd",
+                                    textDecoration: "none",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                }}
+                            >
+                                🎫 Ver Vouchers Habilitados
+                            </a>
+                        )}
+                    </div>
+                )}
+            </div>
             {/* The global services box has been removed as per user request to only show them in the corresponding calendar days in the header row */}
             {/* Barra de navegacion rapida -- solo visible en desktop */}
             {!isMobile && (

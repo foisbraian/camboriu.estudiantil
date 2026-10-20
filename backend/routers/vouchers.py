@@ -112,77 +112,138 @@ def vouchers_por_empresa(codigo_acceso: str, db: Session = Depends(get_db)):
     empresa = db.query(models.Empresa).filter(
         sqlfunc.lower(models.Empresa.codigo_acceso) == codigo_norm
     ).first()
-    if not empresa:
+
+    link_personalizado = None
+    empresas = []
+
+    if empresa:
+        empresas = [empresa]
+    else:
+        link_personalizado = db.query(models.LinkPersonalizado).filter(
+            sqlfunc.lower(models.LinkPersonalizado.token) == codigo_norm,
+            models.LinkPersonalizado.activo == True
+        ).first()
+        if link_personalizado:
+            if not link_personalizado.incluir_vouchers:
+                raise HTTPException(403, "Este link personalizado no tiene acceso a los vouchers")
+            
+            if link_personalizado.empresas_ids:
+                if link_personalizado.empresas_ids.strip() == "*":
+                    empresas = db.query(models.Empresa).order_by(models.Empresa.nombre.asc()).all()
+                else:
+                    emp_ids = [int(x.strip()) for x in link_personalizado.empresas_ids.split(",") if x.strip().isdigit()]
+                    if emp_ids:
+                        empresas = db.query(models.Empresa).filter(models.Empresa.id.in_(emp_ids)).order_by(models.Empresa.nombre.asc()).all()
+            if not empresas and link_personalizado.empresa_id:
+                emp = db.get(models.Empresa, link_personalizado.empresa_id)
+                if emp:
+                    empresas = [emp]
+
+    if not empresas:
         raise HTTPException(404, "Codigo de acceso invalido")
 
-    try:
-        habilitados = get_asignaciones_pagadas(empresa.id, db)
-    except Exception:
-        habilitados = {}
+    servicios_permitidos = None
+    grupos_permitidos_ids = None
+    if link_personalizado:
+        if link_personalizado.servicios_permitidos:
+            servicios_permitidos = set(s.strip().upper() for s in link_personalizado.servicios_permitidos.split(",") if s.strip())
+        if link_personalizado.grupos_permitidos:
+            grupos_permitidos_ids = set(int(x.strip()) for x in link_personalizado.grupos_permitidos.split(",") if x.strip().isdigit())
 
     ayer = datetime.now(BALNEARIO_TZ).date() - timedelta(days=1)
     resultado = []
-    for grupo in empresa.grupos:
-        for asig in grupo.asignaciones:
-            if not asig.fecha_evento:
-                continue
-            if not habilitados.get(asig.id, False):
-                continue
-            
-            fecha_evento = asig.fecha_evento
-            fecha = fecha_evento.fecha
 
-            if fecha and fecha < ayer:
-                continue
+    for emp in empresas:
+        try:
+            habilitados = get_asignaciones_pagadas(emp.id, db)
+        except Exception:
+            habilitados = {}
 
-            evento = fecha_evento.evento
+        grupos_a_procesar = emp.grupos
+        if grupos_permitidos_ids:
+            grupos_a_procesar = [g for g in grupos_a_procesar if g.id in grupos_permitidos_ids]
 
-            voucher = (
-                db.query(models.Voucher)
-                .filter(models.Voucher.asignacion_id == asig.id)
-                .order_by(models.Voucher.id.desc())
-                .first()
-            )
-            if not voucher:
-                token = generate_unique_token()
-                voucher = models.Voucher(token=token, asignacion_id=asig.id)
-                db.add(voucher)
-                db.commit()
-                db.refresh(voucher)
+        for grupo in grupos_a_procesar:
+            for asig in grupo.asignaciones:
+                if not asig.fecha_evento:
+                    continue
+                if not habilitados.get(asig.id, False):
+                    continue
+                
+                fecha_evento = asig.fecha_evento
+                evento = fecha_evento.evento
+                if not evento:
+                    continue
 
-            tipo_upper = (evento.tipo or "").upper()
-            nombre_lower = (evento.nombre or "").lower()
-            comida_label = None
-            if tipo_upper == "PARQUE":
-                comida_label = "Con comida" if grupo.parque_con_comida else "Sin comida"
-            elif tipo_upper == "CAMPAMENTO":
-                comida_label = "Con comida" if getattr(grupo, "campamento_con_comida", False) else "Sin comida"
-            elif tipo_upper == "ZACARIAS":
-                comida_label = "Con comida" if getattr(grupo, "zacarias_con_comida", False) else "Sin comida"
-            elif tipo_upper in {"POOL", "CASCATA"} or "cascata" in nombre_lower:
-                comida_label = "Con comida" if grupo.pool_con_comida else "Sin comida"
+                if servicios_permitidos is not None and (evento.tipo or "").upper() not in servicios_permitidos:
+                    continue
 
-            resultado.append({
-                "asignacion_id": asig.id,
-                "token": voucher.token,
-                "voucher_id": voucher.id,
-                "usado": voucher.usado,
-                "fecha_uso": voucher.fecha_uso if voucher.usado else None,
-                "evento": evento.nombre,
-                "tipo": evento.tipo,
-                "fecha": str(fecha),
-                "tematica": fecha_evento.tematica.nombre if fecha_evento.tematica else None,
-                "con_alcohol": fecha_evento.con_alcohol,
-                "grupo": grupo.nombre,
-                "pax": grupo.cantidad_pax,
-                "comida": comida_label,
-            })
+                fecha = fecha_evento.fecha
+                if fecha and fecha < ayer:
+                    continue
+
+                voucher = (
+                    db.query(models.Voucher)
+                    .filter(models.Voucher.asignacion_id == asig.id, models.Voucher.usado == False)
+                    .first()
+                )
+                if not voucher:
+                    voucher = (
+                        db.query(models.Voucher)
+                        .filter(models.Voucher.asignacion_id == asig.id)
+                        .order_by(models.Voucher.id.desc())
+                        .first()
+                    )
+                if not voucher:
+                    nuevo_token = generate_unique_token(db)
+                    voucher = models.Voucher(
+                        token=nuevo_token,
+                        asignacion_id=asig.id,
+                        usado=False
+                    )
+                    db.add(voucher)
+                    db.commit()
+                    db.refresh(voucher)
+
+                tipo_upper = (evento.tipo or "").upper()
+                nombre_lower = (evento.nombre or "").lower()
+
+                comida_label = None
+                if tipo_upper == "PARQUE":
+                    comida_label = "Con comida" if grupo.parque_con_comida else "Sin comida"
+                elif tipo_upper == "CAMPAMENTO":
+                    comida_label = "Con comida" if getattr(grupo, "campamento_con_comida", False) else "Sin comida"
+                elif tipo_upper == "ZACARIAS":
+                    comida_label = "Con comida" if getattr(grupo, "zacarias_con_comida", False) else "Sin comida"
+                elif tipo_upper in {"POOL", "CASCATA"} or "cascata" in nombre_lower:
+                    comida_label = "Con comida" if grupo.pool_con_comida else "Sin comida"
+
+                resultado.append({
+                    "asignacion_id": asig.id,
+                    "token": voucher.token,
+                    "voucher_id": voucher.id,
+                    "usado": voucher.usado,
+                    "fecha_uso": voucher.fecha_uso if voucher.usado else None,
+                    "evento": evento.nombre,
+                    "tipo": evento.tipo,
+                    "fecha": str(fecha),
+                    "tematica": fecha_evento.tematica.nombre if fecha_evento.tematica else None,
+                    "con_alcohol": fecha_evento.con_alcohol,
+                    "empresa": emp.nombre,
+                    "grupo": grupo.nombre,
+                    "pax": grupo.cantidad_pax,
+                    "comida": comida_label,
+                })
 
     resultado.sort(key=lambda x: x["fecha"])
 
+    nombre_empresa_display = empresas[0].nombre if len(empresas) == 1 else ("Todas las empresas" if (link_personalizado and link_personalizado.empresas_ids == "*") else f"{len(empresas)} Empresas")
+
     return {
-        "empresa": empresa.nombre,
-        "codigo": empresa.codigo_acceso,
+        "empresa": nombre_empresa_display,
+        "codigo": codigo_acceso,
+        "es_personalizado": bool(link_personalizado),
+        "nombre_link": link_personalizado.nombre if link_personalizado else None,
         "vouchers": resultado,
     }
 

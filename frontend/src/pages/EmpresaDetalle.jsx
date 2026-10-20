@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../api";
 import * as XLSX from "xlsx";
+import ModalLinksPersonalizados from "../components/ModalLinksPersonalizados";
 
 const parseISODate = (value) => {
   if (!value) return null;
@@ -304,7 +305,8 @@ export default function EmpresaDetalle() {
   const [editandoEmpresa, setEditandoEmpresa] = useState(false);
   const [empresaError, setEmpresaError] = useState("");
   const [horariosPersonalizados, setHorariosPersonalizados] = useState([]);
-
+  const [modalLinksOpen, setModalLinksOpen] = useState(false);
+  const [cantLinksPersonalizados, setCantLinksPersonalizados] = useState(0);
 
   const [form, setForm] = useState({
     nombre: "",
@@ -383,6 +385,14 @@ export default function EmpresaDetalle() {
       setHorariosPersonalizados(h.data || []);
     } catch (_) {
       setHorariosPersonalizados([]);
+    }
+
+    // Cargar cantidad de links personalizados
+    try {
+      const lp = await api.get(`/links-personalizados?empresa_id=${id}`);
+      setCantLinksPersonalizados(lp.data?.length || 0);
+    } catch (_) {
+      setCantLinksPersonalizados(0);
     }
   }, [id]);
 
@@ -692,6 +702,24 @@ export default function EmpresaDetalle() {
                         style={{ background: "#22c55e", color: "white", border: "none", padding: "4px 8px", borderRadius: 4, cursor: "pointer", fontSize: "0.8rem", fontWeight: "bold" }}
                       >
                         Copiar
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ padding: "8px 12px", background: "#faf5ff", borderRadius: 8, border: "1px solid #e9d5ff", display: "inline-block" }}>
+                    <p style={{ margin: 0, fontSize: "0.85rem", color: "#7e22ce", fontWeight: 600, marginBottom: 4 }}>
+                      🔒 Links Personalizados (Terceros / Proveedores)
+                    </p>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <span style={{ fontSize: "0.85rem", color: "#6b21a8", fontWeight: 500 }}>
+                        {cantLinksPersonalizados > 0 ? `${cantLinksPersonalizados} link(s) creado(s)` : "Solo discos, parques, etc."}
+                      </span>
+                      <button 
+                        type="button"
+                        onClick={() => setModalLinksOpen(true)}
+                        style={{ background: "#9333ea", color: "white", border: "none", padding: "4px 10px", borderRadius: 4, cursor: "pointer", fontSize: "0.8rem", fontWeight: "bold", display: "flex", alignItems: "center", gap: 4 }}
+                      >
+                        ⚙️ Crear / Administrar
                       </button>
                     </div>
                   </div>
@@ -1178,6 +1206,15 @@ export default function EmpresaDetalle() {
           </table>
         )}
       </div>
+
+      <ModalLinksPersonalizados
+        empresa={empresa}
+        isOpen={modalLinksOpen}
+        onClose={() => {
+          setModalLinksOpen(false);
+          cargar();
+        }}
+      />
 
     </div>
   );

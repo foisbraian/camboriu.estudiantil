@@ -362,3 +362,48 @@ class GastoOut(BaseModel):
 
 class GastoBulkCreate(BaseModel):
     gastos: list[GastoCreate]
+
+
+# ========= LINK PERSONALIZADO =========
+
+class LinkPersonalizadoCreate(BaseModel):
+    empresa_id: int | None = None
+    empresas_ids: list[int] | None = None
+    todas_las_empresas: bool = False
+    nombre: str
+    servicios_permitidos: list[str]
+    eventos_permitidos: list[int] | None = None
+    grupos_permitidos: list[int] | None = None
+    incluir_vouchers: bool = False
+
+
+class LinkPersonalizadoUpdate(BaseModel):
+    nombre: str | None = None
+    empresa_id: int | None = None
+    empresas_ids: list[int] | None = None
+    todas_las_empresas: bool | None = None
+    servicios_permitidos: list[str] | None = None
+    eventos_permitidos: list[int] | None = None
+    grupos_permitidos: list[int] | None = None
+    incluir_vouchers: bool | None = None
+    activo: bool | None = None
+
+
+class LinkPersonalizadoOut(BaseModel):
+    id: int
+    token: str
+    empresa_id: int | None = None
+    empresa_nombre: str | None = None
+    empresas_ids: list[int] | None = None
+    todas_las_empresas: bool = False
+    empresas_nombres: list[str] = []
+    nombre: str
+    servicios_permitidos: list[str]
+    eventos_permitidos: list[int] | None = None
+    grupos_permitidos: list[int] | None = None
+    incluir_vouchers: bool
+    activo: bool
+    creado_en: str | None = None
+
+    class Config:
+        from_attributes = True

@@ -32,6 +32,8 @@ class Empresa(Base):
     grupos = relationship("Grupo", back_populates="empresa")
     reservas_hotel = relationship("ReservaHotel", back_populates="empresa")
     pagos_hotel = relationship("PagoHotel", back_populates="empresa")
+    links_personalizados = relationship("LinkPersonalizado", back_populates="empresa", cascade="all, delete-orphan")
+
 
 
 # =============================
@@ -433,3 +435,25 @@ class GastoEmpresa(Base):
     total_dolares = Column(Float, nullable=True)
     origen_usd = Column(String, nullable=True)       # PLANILLA / CALCULADO 5.1 / etc.
     observaciones = Column(String, nullable=True)
+
+
+# =============================
+# LINKS PERSONALIZADOS PARA TERCEROS / PROVEEDORES
+# =============================
+
+class LinkPersonalizado(Base):
+    __tablename__ = "links_personalizados"
+
+    id = Column(Integer, primary_key=True)
+    token = Column(String, unique=True, index=True, default=lambda: secrets.token_hex(6))
+    empresa_id = Column(Integer, ForeignKey("empresas.id", ondelete="CASCADE"), nullable=True)
+    empresas_ids = Column(String, nullable=True)  # CSV de empresa IDs (ej: "1,2,5") o "*" para todas
+    nombre = Column(String, nullable=False)  # ej: "Solo Discos", "Para Proveedor Green Valley"
+    servicios_permitidos = Column(String, nullable=False)  # CSV ej: "DISCO" o "DISCO,POOL"
+    eventos_permitidos = Column(String, nullable=True)  # CSV de evento_id o None si todos
+    grupos_permitidos = Column(String, nullable=True)  # CSV de grupo_id o None si todos
+    incluir_vouchers = Column(Boolean, default=False)
+    activo = Column(Boolean, default=True)
+    creado_en = Column(String, nullable=True)
+
+    empresa = relationship("Empresa", back_populates="links_personalizados")

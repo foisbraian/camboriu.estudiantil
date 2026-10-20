@@ -164,6 +164,7 @@ function QRModal({ voucher, onClose }) {
         {/* Info grid */}
         <div style={{ width: "100%", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           <InfoPill label="Fecha" value={formatFecha(voucher.fecha)} fullWidth />
+          {voucher.empresa && <InfoPill label="Empresa" value={voucher.empresa} />}
           <InfoPill label="Grupo" value={voucher.grupo} />
           <InfoPill label="PAX" value={voucher.pax + " personas"} />
           {voucher.comida && <InfoPill label="Acceso" value={voucher.comida} />}
@@ -251,7 +252,7 @@ function VoucherCard({ voucher, onClick }) {
           {formatFecha(voucher.fecha)}
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <Tag color={meta.color}>{voucher.grupo}</Tag>
+          <Tag color={meta.color}>{voucher.empresa ? `${voucher.empresa} · ${voucher.grupo}` : voucher.grupo}</Tag>
           <Tag color="#94a3b8">{voucher.pax} PAX</Tag>
           {voucher.comida && <Tag color="#94a3b8">{voucher.comida}</Tag>}
         </div>
@@ -368,6 +369,22 @@ export default function VouchersEmpresa() {
         }}>
           {data?.empresa || "Mis Vouchers"}
         </h1>
+        {data?.es_personalizado && data?.nombre_link && (
+          <div style={{ marginTop: 6 }}>
+            <span style={{
+              display: "inline-block",
+              background: "rgba(168,85,247,0.15)",
+              border: "1px solid rgba(168,85,247,0.3)",
+              color: "#c084fc",
+              fontSize: "0.8rem",
+              fontWeight: 600,
+              padding: "3px 12px",
+              borderRadius: 999,
+            }}>
+              🔒 Vista Personalizada: {data.nombre_link}
+            </span>
+          </div>
+        )}
         <p style={{ color: "#64748b", margin: 0, fontSize: "0.9rem" }}>
           {disponibles.length} voucher{disponibles.length !== 1 ? "s" : ""} disponible{disponibles.length !== 1 ? "s" : ""}
         </p>
