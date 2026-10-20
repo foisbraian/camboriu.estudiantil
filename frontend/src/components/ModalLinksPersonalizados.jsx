@@ -76,6 +76,22 @@ export default function ModalLinksPersonalizados({ empresa, isOpen, onClose }) {
     }
   }, []);
 
+  const resetForm = useCallback(() => {
+    setNombre("");
+    if (empresa?.id) {
+      setModoEmpresas("unica");
+      setEmpresasSeleccionadas([empresa.id]);
+    } else {
+      setModoEmpresas("todas");
+      setEmpresasSeleccionadas([]);
+    }
+    setServiciosSeleccionados(["DISCO"]);
+    setTodosLosGrupos(true);
+    setGruposSeleccionados([]);
+    setIncluirVouchers(false);
+    setGuardando(false);
+  }, [empresa?.id]);
+
   useEffect(() => {
     if (isOpen) {
       cargarTodasLasEmpresas();
@@ -94,23 +110,7 @@ export default function ModalLinksPersonalizados({ empresa, isOpen, onClose }) {
       }
       resetForm();
     }
-  }, [isOpen, empresa, cargarLinks, cargarTodasLasEmpresas, cargarGruposEmpresaUnica]);
-
-  function resetForm() {
-    setNombre("");
-    if (empresa?.id) {
-      setModoEmpresas("unica");
-      setEmpresasSeleccionadas([empresa.id]);
-    } else {
-      setModoEmpresas("todas");
-      setEmpresasSeleccionadas([]);
-    }
-    setServiciosSeleccionados(["DISCO"]);
-    setTodosLosGrupos(true);
-    setGruposSeleccionados([]);
-    setIncluirVouchers(false);
-    setGuardando(false);
-  }
+  }, [isOpen, empresa?.id, cargarLinks, cargarTodasLasEmpresas, cargarGruposEmpresaUnica, resetForm]);
 
   function toggleEmpresa(empId) {
     if (empresasSeleccionadas.includes(empId)) {
