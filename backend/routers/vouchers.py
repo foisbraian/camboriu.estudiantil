@@ -97,8 +97,14 @@ def listar_eventos_para_validacion(
 
     return respuesta
 
-def generate_unique_token():
-    return secrets.token_urlsafe(16)
+def generate_unique_token(db: Optional[Session] = None):
+    while True:
+        token = secrets.token_urlsafe(16)
+        if not db:
+            return token
+        exists = db.query(models.Voucher.id).filter(models.Voucher.token == token).first()
+        if not exists:
+            return token
 
 # =========================================================
 # GET VOUCHERS POR EMPRESA (portal publico por codigo)

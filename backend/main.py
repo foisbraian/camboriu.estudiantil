@@ -44,7 +44,11 @@ except Exception as e:
 # Configuración de CORS dinámica
 frontend_url = os.getenv("FRONTEND_URL", "").strip().rstrip("/")
 frontend_urls_env = os.getenv("FRONTEND_URLS", "").strip()
-origins = ["http://localhost:3000"]
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://camboriu-estudiantil-front.vercel.app",
+]
 
 if frontend_url:
     origins.append(frontend_url)
@@ -58,22 +62,25 @@ if frontend_urls_env:
 
 origins = list(dict.fromkeys(origins))
 
-# Si no hay URLs externas definidas, permitimos todo (pero sin credenciales por seguridad y compatibilidad)
-if not frontend_url and not frontend_urls_env:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=False,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-else:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Error interno del servidor: {str(exc)}"},
     )
 
 @app.post("/login")
