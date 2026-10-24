@@ -102,50 +102,50 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
   const [anotacionGrupo, setAnotacionGrupo] = useState(null);
 
   // ==========================================================
-  // CLICK DERECHO EN ETIQUETA DE GRUPO -> ANOTACIONES
+  // CLICK DERECHO EN GRUPO (COLUMNA O TIRA) -> ANOTACIONES
   // Handler global con capture:true para interceptar ANTES del browser
   // ==========================================================
   useEffect(() => {
     const handleContextMenu = (e) => {
-      // Solo actuar si el click fue en la columna izquierda de recursos
-      const datagridCell = e.target.closest('.fc-datagrid-cell');
-      if (!datagridCell) return;
+      const calendarEl = calendarRef.current?.el;
+      if (!calendarEl || !calendarEl.contains(e.target)) return;
 
-      // Obtener el resource-id del row contenedor
+      // Buscar si el click fue dentro de una fila de recurso (datagrid o timeline)
       const row = e.target.closest('tr[data-resource-id]');
-      if (!row) return;
+      let resourceId = row ? row.getAttribute('data-resource-id') : null;
 
-      const resourceId = row.getAttribute('data-resource-id');
+      if (!resourceId) {
+        const eventEl = e.target.closest('.fc-timeline-event');
+        if (eventEl) {
+          const lane = eventEl.closest('tr[data-resource-id]');
+          if (lane) resourceId = lane.getAttribute('data-resource-id');
+        }
+      }
+
       if (!resourceId) return;
 
-      // Obtener resource via FullCalendar API
-      const calApi = calendarRef.current?.getApi();
-      if (!calApi) return;
-      const resource = calApi.getResourceById(resourceId);
-      if (!resource) return;
+      const res = resources.find(r => String(r.id) === String(resourceId));
+      if (!res) return;
 
-      // Solo grupos: parentId debe empezar con 'empresa-'
-      const parentId = resource.parentId;
+      const parentId = res.parentId;
       if (!parentId || !String(parentId).startsWith('empresa-')) return;
 
-      // Interceptar: prevenir menu del browser y abrir panel
       e.preventDefault();
       e.stopPropagation();
 
-      const props = resource.extendedProps || {};
+      const props = res.extendedProps || {};
       setAnotacionGrupo({
-        grupoId: resourceId,
-        grupoNombre: props.grupoNombre || resource.title,
+        grupoId: res.id,
+        grupoNombre: props.grupoNombre || res.title,
         empresaNombre: props.empresaNombre || '',
         fechaEntrada: props.fechaEntrada || '',
         fechaSalida: props.fechaSalida || '',
       });
     };
 
-    // capture:true = intercepta antes que el browser muestre su menu
     document.addEventListener('contextmenu', handleContextMenu, true);
     return () => document.removeEventListener('contextmenu', handleContextMenu, true);
-  }, []);
+  }, [resources]);
 
   // Horarios individuales por empresa (para eventos globales)
   const [horariosEmpresa, setHorariosEmpresa] = useState([]); // lista de { empresa_id, empresa_nombre, horario, nota, id? }
@@ -729,10 +729,52 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
             }
             const groupName = props.grupoNombre || arg.resource.title;
             const secondary = props.pax ? `PAX ${props.pax}` : "";
+            const openAnotador = (e) => {
+              e.stopPropagation();
+              setAnotacionGrupo({
+                grupoId: arg.resource.id,
+                grupoNombre: groupName,
+                empresaNombre: props.empresaNombre || "",
+                fechaEntrada: props.fechaEntrada || "",
+                fechaSalida: props.fechaSalida || "",
+              });
+            };
             return (
-              <div style={{ display: "flex", flexDirection: "column", lineHeight: 0.9 }}>
-                <span style={{ fontWeight: 500, color: "#0f172a", fontSize: "0.95em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{groupName}</span>
-                {secondary && <span style={{ fontSize: "0.8em", color: "#94a3b8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{secondary}</span>}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  width: "100%",
+                  cursor: "pointer",
+                  gap: 4
+                }}
+                title="Click izquierdo para abrir Anotador (Hoteles, Comidas, Rooming)"
+                onClick={openAnotador}
+              >
+                <div style={{ display: "flex", flexDirection: "column", lineHeight: 0.95, overflow: "hidden", flex: 1 }}>
+                  <span style={{ fontWeight: 600, color: "#0f172a", fontSize: "0.92em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{groupName}</span>
+                  {secondary && <span style={{ fontSize: "0.78em", color: "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{secondary}</span>}
+                </div>
+                <button
+                  type="button"
+                  title="Abrir Anotaciones y Rooming"
+                  onClick={openAnotador}
+                  style={{
+                    background: "#eff6ff",
+                    border: "1px solid #bfdbfe",
+                    borderRadius: 5,
+                    padding: "2px 6px",
+                    fontSize: "0.78rem",
+                    cursor: "pointer",
+                    color: "#1d4ed8",
+                    fontWeight: 700,
+                    flexShrink: 0,
+                    lineHeight: 1
+                  }}
+                >
+                  📝
+                </button>
               </div>
             );
           }}
@@ -830,6 +872,46 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
               <br />
               <small>{selectedDate}</small>
             </h3>
+
+            {grupoAsignando && (() => {
+              const grupoObj = resources.find(r => String(r.id) === String(grupoAsignando));
+              if (!grupoObj) return null;
+              const gProps = grupoObj.extendedProps || {};
+              return (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAnotacionGrupo({
+                      grupoId: grupoObj.id,
+                      grupoNombre: gProps.grupoNombre || grupoObj.title,
+                      empresaNombre: gProps.empresaNombre || "",
+                      fechaEntrada: gProps.fechaEntrada || "",
+                      fechaSalida: gProps.fechaSalida || "",
+                    });
+                    setModalOpen(false);
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "8px 12px",
+                    background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: 7,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: 12,
+                    fontWeight: 700,
+                    fontSize: "0.85rem",
+                    boxShadow: "0 2px 6px rgba(37,99,235,0.2)"
+                  }}
+                >
+                  <span>📝 Abrir Anotador del Grupo (Hoteles / Comidas / Rooming)</span>
+                  <span>➔</span>
+                </button>
+              );
+            })()}
 
             {editando?.tipo === "asignacion" ? (
               <div style={{ margin: "10px 0" }}>
