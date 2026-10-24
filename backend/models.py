@@ -457,3 +457,72 @@ class LinkPersonalizado(Base):
     creado_en = Column(String, nullable=True)
 
     empresa = relationship("Empresa", back_populates="links_personalizados")
+
+
+# =============================
+# ANOTACIONES POR GRUPO
+# Sistema de notas estructuradas por grupo
+# =============================
+
+class AnotacionGrupo(Base):
+    __tablename__ = "anotaciones_grupo"
+
+    id = Column(Integer, primary_key=True)
+    grupo_id = Column(Integer, ForeignKey("grupos.id", ondelete="CASCADE"), nullable=False)
+
+    # Composición del grupo
+    cant_hombres = Column(Integer, nullable=True)      # para rooming
+    cant_mujeres = Column(Integer, nullable=True)      # para rooming
+    cant_tripulacion = Column(Integer, nullable=True)  # guías/choferes
+
+    # Notas generales libres
+    notas_generales = Column(String, nullable=True)
+
+    # Última actualización
+    actualizado_en = Column(String, nullable=True)
+
+    grupo = relationship("Grupo", backref="anotacion", uselist=False)
+    hoteles = relationship(
+        "HotelGrupoSegmento",
+        back_populates="anotacion",
+        cascade="all, delete-orphan",
+        order_by="HotelGrupoSegmento.fecha_ingreso",
+    )
+    comidas = relationship(
+        "ComidaGrupo",
+        back_populates="anotacion",
+        cascade="all, delete-orphan",
+        order_by="ComidaGrupo.fecha",
+    )
+
+
+class HotelGrupoSegmento(Base):
+    """Un segmento de estadía en un hotel para parte del grupo."""
+    __tablename__ = "hotel_grupo_segmentos"
+
+    id = Column(Integer, primary_key=True)
+    anotacion_id = Column(Integer, ForeignKey("anotaciones_grupo.id", ondelete="CASCADE"), nullable=False)
+
+    hotel_nombre = Column(String, nullable=False)   # texto libre o nombre del hotel
+    cant_pax = Column(Integer, nullable=True)        # cuántos pax de este segmento
+    fecha_ingreso = Column(Date, nullable=True)
+    fecha_salida = Column(Date, nullable=True)
+    notas = Column(String, nullable=True)            # ej: "confirmar hab. dobles"
+
+    anotacion = relationship("AnotacionGrupo", back_populates="hoteles")
+
+
+class ComidaGrupo(Base):
+    """Registro de comida por fecha para el grupo."""
+    __tablename__ = "comidas_grupo"
+
+    id = Column(Integer, primary_key=True)
+    anotacion_id = Column(Integer, ForeignKey("anotaciones_grupo.id", ondelete="CASCADE"), nullable=False)
+
+    fecha = Column(Date, nullable=False)
+    tipo_comida = Column(String, nullable=False)    # "almuerzo" | "cena" | "desayuno"
+    lugar = Column(String, nullable=False)          # texto libre: nombre del restaurant/lugar
+    cant_pax = Column(Integer, nullable=True)
+    notas = Column(String, nullable=True)
+
+    anotacion = relationship("AnotacionGrupo", back_populates="comidas")

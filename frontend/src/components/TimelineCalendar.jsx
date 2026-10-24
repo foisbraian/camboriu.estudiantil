@@ -4,6 +4,7 @@ import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
 import interactionPlugin from "@fullcalendar/interaction";
 import api from "../api";
 import "./timeline.css";
+import AnotacionGrupoPanel from "./AnotacionGrupoPanel";
 
 export default function TimelineCalendar({ resources, events, readOnly = false, onRegisterRef }) {
   const calendarRef = useRef(null);
@@ -98,6 +99,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
 
   const [editando, setEditando] = useState(null);
   const [grupoAsignando, setGrupoAsignando] = useState(null);
+  const [anotacionGrupo, setAnotacionGrupo] = useState(null);
 
   // Horarios individuales por empresa (para eventos globales)
   const [horariosEmpresa, setHorariosEmpresa] = useState([]); // lista de { empresa_id, empresa_nombre, horario, nota, id? }
@@ -688,6 +690,24 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
               </div>
             );
           }}
+          resourceLabelDidMount={(arg) => {
+            const props = arg.resource.extendedProps || {};
+            // Solo para grupos (tienen parentId que empieza con "empresa-")
+            if (arg.resource.parentId && String(arg.resource.parentId).startsWith("empresa-")) {
+              arg.el.style.cursor = "context-menu";
+              arg.el.title = "Click derecho para ver anotaciones del grupo";
+              arg.el.addEventListener("contextmenu", (e) => {
+                e.preventDefault();
+                setAnotacionGrupo({
+                  grupoId: arg.resource.id,
+                  grupoNombre: props.grupoNombre || arg.resource.title,
+                  empresaNombre: props.empresaNombre || "",
+                  fechaEntrada: props.fechaEntrada || "",
+                  fechaSalida: props.fechaSalida || "",
+                });
+              });
+            }
+          }}
           eventClick={handleEventClick}
           dateClick={handleDateClick}
           slotLabelContent={(arg) => {
@@ -978,6 +998,17 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
             </div>
           </div>
         </div>
+      )}
+
+      {anotacionGrupo && (
+        <AnotacionGrupoPanel
+          grupoId={anotacionGrupo.grupoId}
+          grupoNombre={anotacionGrupo.grupoNombre}
+          empresaNombre={anotacionGrupo.empresaNombre}
+          fechaEntrada={anotacionGrupo.fechaEntrada}
+          fechaSalida={anotacionGrupo.fechaSalida}
+          onClose={() => setAnotacionGrupo(null)}
+        />
       )}
     </>
   );

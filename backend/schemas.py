@@ -407,3 +407,60 @@ class LinkPersonalizadoOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ========= ANOTACIONES GRUPO =========
+
+class HotelSegmentoCreate(BaseModel):
+    hotel_nombre: str
+    cant_pax: int | None = None
+    fecha_ingreso: date | None = None
+    fecha_salida: date | None = None
+    notas: str | None = None
+
+
+class HotelSegmentoOut(HotelSegmentoCreate):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
+class ComidaGrupoCreate(BaseModel):
+    fecha: date
+    tipo_comida: str  # almuerzo | cena | desayuno
+    lugar: str
+    cant_pax: int | None = None
+    notas: str | None = None
+
+
+class ComidaGrupoOut(ComidaGrupoCreate):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
+class AnotacionGrupoUpdate(BaseModel):
+    cant_hombres: int | None = None
+    cant_mujeres: int | None = None
+    cant_tripulacion: int | None = None
+    notas_generales: str | None = None
+
+
+class AnotacionGrupoOut(BaseModel):
+    id: int
+    grupo_id: int
+    cant_hombres: int | None = None
+    cant_mujeres: int | None = None
+    cant_tripulacion: int | None = None
+    notas_generales: str | None = None
+    actualizado_en: str | None = None
+    hoteles: list[HotelSegmentoOut] = []
+    comidas: list[ComidaGrupoOut] = []
+    # Campos extra enriquecidos en el router (no vienen de BD directamente)
+    grupo_nombre: str | None = None
+    empresa_nombre: str | None = None
+
+    class Config:
+        from_attributes = True
