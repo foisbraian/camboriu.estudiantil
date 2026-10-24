@@ -43,6 +43,12 @@ def get_anotacion(grupo_id: int, db: Session = Depends(get_db)):
     out = schemas.AnotacionGrupoOut.model_validate(anotacion)
     out.grupo_nombre = grupo.nombre
     out.empresa_nombre = grupo.empresa.nombre if grupo.empresa else None
+    out.fecha_entrada = grupo.fecha_entrada
+    out.fecha_salida = grupo.fecha_salida
+    out.cantidad_pax = grupo.cantidad_pax
+    out.cantidad_estudiantes = grupo.cantidad_estudiantes
+    out.cantidad_padres = grupo.cantidad_padres
+    out.cantidad_guias = grupo.cantidad_guias
     return out
 
 
@@ -74,31 +80,45 @@ def update_anotacion(grupo_id: int, body: schemas.AnotacionGrupoUpdate, db: Sess
     out = schemas.AnotacionGrupoOut.model_validate(anotacion)
     out.grupo_nombre = grupo.nombre
     out.empresa_nombre = grupo.empresa.nombre if grupo.empresa else None
+    out.fecha_entrada = grupo.fecha_entrada
+    out.fecha_salida = grupo.fecha_salida
+    out.cantidad_pax = grupo.cantidad_pax
+    out.cantidad_estudiantes = grupo.cantidad_estudiantes
+    out.cantidad_padres = grupo.cantidad_padres
+    out.cantidad_guias = grupo.cantidad_guias
     return out
 
 
 # ─────────────────────────────────────────
 # POST /anotaciones-grupo/{grupo_id}/hoteles
-# Agrega segmento de hotel
+# Agrega segmento de hotel (Check-in y Check-out se toman automáticamente del grupo si no se especifican)
 # ─────────────────────────────────────────
 @router.post("/{grupo_id}/hoteles", response_model=schemas.HotelSegmentoOut)
 def add_hotel_segmento(grupo_id: int, body: schemas.HotelSegmentoCreate, db: Session = Depends(get_db)):
+    grupo = db.query(models.Grupo).filter(models.Grupo.id == grupo_id).first()
+    if not grupo:
+        raise HTTPException(status_code=404, detail="Grupo no encontrado")
+
     anotacion = db.query(models.AnotacionGrupo).filter(
         models.AnotacionGrupo.grupo_id == grupo_id
     ).first()
 
     if not anotacion:
-        grupo = db.query(models.Grupo).filter(models.Grupo.id == grupo_id).first()
-        if not grupo:
-            raise HTTPException(status_code=404, detail="Grupo no encontrado")
         anotacion = models.AnotacionGrupo(grupo_id=grupo_id)
         db.add(anotacion)
         db.commit()
         db.refresh(anotacion)
 
+    data = body.model_dump()
+    # Tomar automáticamente las fechas de entrada y salida del grupo
+    if not data.get("fecha_ingreso"):
+        data["fecha_ingreso"] = grupo.fecha_entrada
+    if not data.get("fecha_salida"):
+        data["fecha_salida"] = grupo.fecha_salida
+
     segmento = models.HotelGrupoSegmento(
         anotacion_id=anotacion.id,
-        **body.model_dump()
+        **data
     )
     db.add(segmento)
     db.commit()
@@ -118,7 +138,16 @@ def update_hotel_segmento(segmento_id: int, body: schemas.HotelSegmentoCreate, d
     if not segmento:
         raise HTTPException(status_code=404, detail="Segmento no encontrado")
 
-    for field, value in body.model_dump(exclude_unset=True).items():
+    grupo = segmento.anotacion.grupo if segmento.anotacion else None
+    data = body.model_dump(exclude_unset=True)
+
+    if grupo:
+        if not data.get("fecha_ingreso") and not segmento.fecha_ingreso:
+            data["fecha_ingreso"] = grupo.fecha_entrada
+        if not data.get("fecha_salida") and not segmento.fecha_salida:
+            data["fecha_salida"] = grupo.fecha_salida
+
+    for field, value in data.items():
         setattr(segmento, field, value)
 
     db.commit()
@@ -248,6 +277,9 @@ def rooming_excel(grupo_id: int, db: Session = Depends(get_db)):
     notas_generales = anotacion.notas_generales if anotacion else None
 
     total_pax = (cant_hombres or 0) + (cant_mujeres or 0) + (cant_tripulacion or 0)
+    # Si no se desglosó hombres/mujeres, usar directamente los PAX totales del grupo
+    if total_pax == 0 and grupo.cantidad_pax:
+        total_pax = grupo.cantidad_pax
 
     # ── Estilos ──────────────────────────────────────────────────
     NAVY = "1e3a5f"
@@ -390,11 +422,13 @@ def rooming_excel(grupo_id: int, db: Session = Depends(get_db)):
     if hoteles:
         for i, seg in enumerate(hoteles):
             fill = alt_fill if i % 2 else normal_fill
+            f_in = seg.fecha_ingreso.strftime("%d/%m/%Y") if seg.fecha_ingreso else (fecha_entrada if fecha_entrada != "—" else "—")
+            f_out = seg.fecha_salida.strftime("%d/%m/%Y") if seg.fecha_salida else (fecha_salida if fecha_salida != "—" else "—")
             vals = [
                 seg.hotel_nombre,
                 seg.cant_pax if seg.cant_pax is not None else "—",
-                seg.fecha_ingreso.strftime("%d/%m/%Y") if seg.fecha_ingreso else "—",
-                seg.fecha_salida.strftime("%d/%m/%Y") if seg.fecha_salida else "—",
+                f_in,
+                f_out,
                 seg.notas or "",
             ]
             for col_i, v in enumerate(vals, start=1):

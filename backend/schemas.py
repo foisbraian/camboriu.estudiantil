@@ -461,6 +461,12 @@ class AnotacionGrupoOut(BaseModel):
     # Campos extra enriquecidos en el router (no vienen de BD directamente)
     grupo_nombre: str | None = None
     empresa_nombre: str | None = None
+    fecha_entrada: date | None = None
+    fecha_salida: date | None = None
+    cantidad_pax: int | None = None
+    cantidad_estudiantes: int | None = None
+    cantidad_padres: int | None = None
+    cantidad_guias: int | None = None
 
     class Config:
         from_attributes = True

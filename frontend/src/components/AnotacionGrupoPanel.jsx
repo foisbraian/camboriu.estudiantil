@@ -78,6 +78,14 @@ export default function AnotacionGrupoPanel({
 }) {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
+  const [fechaE, setFechaE] = useState(fechaEntrada || "");
+  const [fechaS, setFechaS] = useState(fechaSalida || "");
+  const [grupoPaxTotal, setGrupoPaxTotal] = useState(null);
+  const [hotelesSugeridos, setHotelesSugeridos] = useState([]);
+
+  useEffect(() => {
+    api.get("/hoteleria/hoteles/").then(res => setHotelesSugeridos(res.data || [])).catch(() => {});
+  }, []);
 
   // Composición
   const [hombres, setHombres] = useState("");
@@ -116,6 +124,9 @@ export default function AnotacionGrupoPanel({
       setNotas(d.notas_generales ?? "");
       setHoteles(d.hoteles || []);
       setComidas(d.comidas || []);
+      if (d.fecha_entrada) setFechaE(d.fecha_entrada);
+      if (d.fecha_salida) setFechaS(d.fecha_salida);
+      if (d.cantidad_pax != null) setGrupoPaxTotal(d.cantidad_pax);
     } catch (e) {
       setError("No se pudo cargar la información del grupo.");
     } finally {
@@ -186,20 +197,32 @@ export default function AnotacionGrupoPanel({
   const agregarHotel = async () => {
     if (!hotelForm.hotel_nombre.trim()) { alert("Ingresá el nombre del hotel"); return; }
     try {
-      await api.post(`/anotaciones-grupo/${grupoId}/hoteles`, hotelForm);
+      const payload = {
+        ...hotelForm,
+        fecha_ingreso: hotelForm.fecha_ingreso || fechaE || null,
+        fecha_salida: hotelForm.fecha_salida || fechaS || null,
+        cant_pax: hotelForm.cant_pax !== "" ? Number(hotelForm.cant_pax) : null,
+      };
+      await api.post(`/anotaciones-grupo/${grupoId}/hoteles`, payload);
       await cargar();
       setAddingHotel(false);
-      setHotelForm(emptyHotelForm());
+      setHotelForm(emptyHotelForm(fechaE, fechaS));
     } catch { alert("Error al agregar hotel"); }
   };
 
   const editarHotel = async (id) => {
     if (!hotelForm.hotel_nombre.trim()) { alert("Ingresá el nombre del hotel"); return; }
     try {
-      await api.put(`/anotaciones-grupo/hoteles/${id}`, hotelForm);
+      const payload = {
+        ...hotelForm,
+        fecha_ingreso: hotelForm.fecha_ingreso || fechaE || null,
+        fecha_salida: hotelForm.fecha_salida || fechaS || null,
+        cant_pax: hotelForm.cant_pax !== "" ? Number(hotelForm.cant_pax) : null,
+      };
+      await api.put(`/anotaciones-grupo/hoteles/${id}`, payload);
       await cargar();
       setEditingHotelId(null);
-      setHotelForm(emptyHotelForm());
+      setHotelForm(emptyHotelForm(fechaE, fechaS));
     } catch { alert("Error al editar hotel"); }
   };
 
@@ -429,236 +452,350 @@ export default function AnotacionGrupoPanel({
             </div>
           )}
 
-          {!cargando && !error && (
-            <>
-              {/* ── Composición ──────────────────────────────────────── */}
-              <Section title="👥 Composición del grupo">
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
-                  <label style={labelStyle}>
-                    Hombres
-                    <input
-                      type="number" min="0"
-                      value={hombres}
-                      onChange={e => setHombres(e.target.value)}
-                      style={inputStyle}
-                      placeholder="—"
-                    />
-                  </label>
-                  <label style={labelStyle}>
-                    Mujeres
-                    <input
-                      type="number" min="0"
-                      value={mujeres}
-                      onChange={e => setMujeres(e.target.value)}
-                      style={inputStyle}
-                      placeholder="—"
-                    />
-                  </label>
-                  <label style={labelStyle}>
-                    Tripulación
-                    <input
-                      type="number" min="0"
-                      value={tripulacion}
-                      onChange={e => setTripulacion(e.target.value)}
-                      style={inputStyle}
-                      placeholder="—"
-                    />
-                  </label>
+          {!cargando && !error && (() => {
+            const totalAsignadoHoteles = hoteles.reduce((acc, h) => acc + (Number(h.cant_pax) || 0), 0);
+            const tienePaxDefinido = grupoPaxTotal != null && grupoPaxTotal > 0;
+            const restanPax = tienePaxDefinido ? Math.max(0, grupoPaxTotal - totalAsignadoHoteles) : null;
+
+            return (
+              <>
+                {/* ── Tarjeta Resumen Estadía & PAX Totales ── */}
+                <div style={{
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 8,
+                  padding: "10px 14px",
+                  marginBottom: 14,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center"
+                }}>
+                  <div>
+                    <div style={{ fontSize: "0.72rem", color: "#64748b", textTransform: "uppercase", fontWeight: 700 }}>
+                      Estadía del Grupo
+                    </div>
+                    <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#1e3a5f" }}>
+                      🗓️ {fechaE || "—"} ➔ {fechaS || "—"}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: "0.72rem", color: "#64748b", textTransform: "uppercase", fontWeight: 700 }}>
+                      PAX Totales del Grupo
+                    </div>
+                    <div style={{ fontSize: "1.15rem", fontWeight: 800, color: "#2563eb" }}>
+                      {tienePaxDefinido ? `${grupoPaxTotal} PAX` : "—"}
+                    </div>
+                  </div>
                 </div>
-                <button
-                  onClick={guardarComposicion}
-                  disabled={guardandoComp}
-                  style={btnPrimaryStyle}
+
+                {/* ── 1. HOTELES (PAX totales por hotel) ────────────────── */}
+                <Section
+                  title="🏨 Hoteles del Grupo"
+                  action={
+                    !addingHotel && editingHotelId === null && (
+                      <button
+                        onClick={() => {
+                          const sugerirPax = restanPax != null && restanPax > 0 ? restanPax : (tienePaxDefinido ? grupoPaxTotal : "");
+                          setAddingHotel(true);
+                          setHotelForm(emptyHotelForm(fechaE, fechaS, sugerirPax));
+                        }}
+                        style={btnAddStyle}
+                        title="Agregar hotel"
+                      >＋</button>
+                    )
+                  }
                 >
-                  {guardandoComp ? "Guardando..." : "Guardar"}
-                </button>
-                {savedComp && <span className="ag-save-pill">Guardado ✓</span>}
-              </Section>
+                  {/* Barra de progreso / resumen de PAX asignados a hoteles */}
+                  {tienePaxDefinido && hoteles.length > 0 && (
+                    <div style={{
+                      background: totalAsignadoHoteles === grupoPaxTotal ? "#f0fdf4" : "#eff6ff",
+                      border: `1px solid ${totalAsignadoHoteles === grupoPaxTotal ? "#bbf7d0" : "#bfdbfe"}`,
+                      borderRadius: 6,
+                      padding: "6px 10px",
+                      marginBottom: 10,
+                      fontSize: "0.78rem",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center"
+                    }}>
+                      <span style={{ color: totalAsignadoHoteles === grupoPaxTotal ? "#166534" : "#1e40af", fontWeight: 600 }}>
+                        Asignados en hoteles: <strong>{totalAsignadoHoteles}</strong> / {grupoPaxTotal} PAX
+                      </span>
+                      {restanPax > 0 ? (
+                        <span style={{ color: "#d97706", fontWeight: 700 }}>Restan {restanPax} PAX</span>
+                      ) : (
+                        <span style={{ color: "#16a34a", fontWeight: 700 }}>✓ Completo</span>
+                      )}
+                    </div>
+                  )}
 
-              {/* ── Hoteles ──────────────────────────────────────────── */}
-              <Section
-                title="🏨 Hoteles"
-                action={
-                  !addingHotel && editingHotelId === null && (
-                    <button
-                      onClick={() => { setAddingHotel(true); setHotelForm(emptyHotelForm()); }}
-                      style={btnAddStyle}
-                      title="Agregar hotel"
-                    >＋</button>
-                  )
-                }
-              >
-                {hoteles.length === 0 && !addingHotel && (
-                  <p style={emptyStyle}>Sin hoteles registrados.</p>
-                )}
+                  {hoteles.length === 0 && !addingHotel && (
+                    <p style={emptyStyle}>No hay hoteles agregados. Hacé click en ＋ para indicar dónde se hospeda el grupo.</p>
+                  )}
 
-                {hoteles.map(h => (
-                  editingHotelId === h.id
-                    ? (
-                      <HotelForm
-                        key={h.id}
-                        form={hotelForm}
-                        onChange={setHotelForm}
-                        onSave={() => editarHotel(h.id)}
-                        onCancel={() => { setEditingHotelId(null); setHotelForm(emptyHotelForm()); }}
-                      />
-                    ) : (
-                      <div className="ag-item-row" key={h.id}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 700, color: "#1e3a5f", marginBottom: 2 }}>{h.hotel_nombre}</div>
-                          <div style={{ color: "#64748b", fontSize: "0.8rem" }}>
-                            {h.cant_pax && `${h.cant_pax} pax`}
-                            {h.fecha_ingreso && ` · Check-in: ${h.fecha_ingreso}`}
-                            {h.fecha_salida && ` → ${h.fecha_salida}`}
+                  {hoteles.map(h => (
+                    editingHotelId === h.id
+                      ? (
+                        <HotelForm
+                          key={h.id}
+                          form={hotelForm}
+                          onChange={setHotelForm}
+                          onSave={() => editarHotel(h.id)}
+                          onCancel={() => { setEditingHotelId(null); setHotelForm(emptyHotelForm(fechaE, fechaS)); }}
+                          fechaEntrada={fechaE}
+                          fechaSalida={fechaS}
+                          hotelesSugeridos={hotelesSugeridos}
+                        />
+                      ) : (
+                        <div className="ag-item-row" key={h.id}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                              <span style={{ fontWeight: 700, color: "#1e3a5f", fontSize: "0.92rem" }}>{h.hotel_nombre}</span>
+                              <span style={{ fontWeight: 700, color: "#0369a1", background: "#e0f2fe", border: "1px solid #bae6fd", padding: "1px 7px", borderRadius: 10, fontSize: "0.75rem" }}>
+                                {h.cant_pax ? `${h.cant_pax} PAX` : (tienePaxDefinido ? `${grupoPaxTotal} PAX (Todo)` : "Todo el grupo")}
+                              </span>
+                            </div>
+                            <div style={{ color: "#64748b", fontSize: "0.78rem" }}>
+                              🗓️ {h.fecha_ingreso || fechaE || "—"} ➔ {h.fecha_salida || fechaS || "—"}
+                            </div>
+                            {h.notas && <div style={{ color: "#64748b", fontSize: "0.78rem", marginTop: 3, fontStyle: "italic" }}>{h.notas}</div>}
                           </div>
-                          {h.notas && <div style={{ color: "#94a3b8", fontSize: "0.78rem", marginTop: 2, fontStyle: "italic" }}>{h.notas}</div>}
+                          <button className="ag-btn-icon ag-btn-edit" onClick={() => iniciarEditHotel(h)} title="Editar">✏️</button>
+                          <button className="ag-btn-icon ag-btn-danger" onClick={() => eliminarHotel(h.id)} title="Eliminar">🗑️</button>
                         </div>
-                        <button className="ag-btn-icon ag-btn-edit" onClick={() => iniciarEditHotel(h)} title="Editar">✏️</button>
-                        <button className="ag-btn-icon ag-btn-danger" onClick={() => eliminarHotel(h.id)} title="Eliminar">🗑️</button>
-                      </div>
+                      )
+                  ))}
+
+                  {addingHotel && (
+                    <HotelForm
+                      form={hotelForm}
+                      onChange={setHotelForm}
+                      onSave={agregarHotel}
+                      onCancel={() => { setAddingHotel(false); setHotelForm(emptyHotelForm(fechaE, fechaS)); }}
+                      fechaEntrada={fechaE}
+                      fechaSalida={fechaS}
+                      hotelesSugeridos={hotelesSugeridos}
+                    />
+                  )}
+                </Section>
+
+                {/* ── 2. PROGRAMA DE COMIDAS ────────────────────────────── */}
+                <Section
+                  title="🍽️ Programa de Comidas"
+                  action={
+                    !addingComida && editingComidaId === null && (
+                      <button
+                        onClick={() => { setAddingComida(true); setComidaForm(emptyComidaForm()); }}
+                        style={btnAddStyle}
+                        title="Agregar comida"
+                      >＋</button>
                     )
-                ))}
+                  }
+                >
+                  {comidas.length === 0 && !addingComida && (
+                    <p style={emptyStyle}>Sin comidas registradas. Hacé click en ＋ para agregar almuerzos, cenas o desayunos.</p>
+                  )}
 
-                {addingHotel && (
-                  <HotelForm
-                    form={hotelForm}
-                    onChange={setHotelForm}
-                    onSave={agregarHotel}
-                    onCancel={() => { setAddingHotel(false); setHotelForm(emptyHotelForm()); }}
-                  />
-                )}
-              </Section>
-
-              {/* ── Programa de Comidas ───────────────────────────────── */}
-              <Section
-                title="🍽️ Programa de Comidas"
-                action={
-                  !addingComida && editingComidaId === null && (
-                    <button
-                      onClick={() => { setAddingComida(true); setComidaForm(emptyComidaForm()); }}
-                      style={btnAddStyle}
-                      title="Agregar comida"
-                    >＋</button>
-                  )
-                }
-              >
-                {comidas.length === 0 && !addingComida && (
-                  <p style={emptyStyle}>Sin comidas registradas.</p>
-                )}
-
-                {comidas.map(c => (
-                  editingComidaId === c.id
-                    ? (
-                      <ComidaForm
-                        key={c.id}
-                        form={comidaForm}
-                        onChange={setComidaForm}
-                        onSave={() => editarComida(c.id)}
-                        onCancel={() => { setEditingComidaId(null); setComidaForm(emptyComidaForm()); }}
-                      />
-                    ) : (
-                      <div className="ag-item-row" key={c.id}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                            <TipoChip tipo={c.tipo_comida} />
-                            <span style={{ color: "#475569", fontSize: "0.82rem" }}>{c.fecha}</span>
+                  {comidas.map(c => (
+                    editingComidaId === c.id
+                      ? (
+                        <ComidaForm
+                          key={c.id}
+                          form={comidaForm}
+                          onChange={setComidaForm}
+                          onSave={() => editarComida(c.id)}
+                          onCancel={() => { setEditingComidaId(null); setComidaForm(emptyComidaForm()); }}
+                        />
+                      ) : (
+                        <div className="ag-item-row" key={c.id}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                              <TipoChip tipo={c.tipo_comida} />
+                              <span style={{ color: "#475569", fontSize: "0.82rem", fontWeight: 600 }}>{c.fecha}</span>
+                            </div>
+                            <div style={{ color: "#64748b", fontSize: "0.8rem" }}>
+                              {c.lugar && `${c.lugar}`}
+                              {c.cant_pax && ` · ${c.cant_pax} pax`}
+                            </div>
+                            {c.notas && <div style={{ color: "#94a3b8", fontSize: "0.78rem", marginTop: 2, fontStyle: "italic" }}>{c.notas}</div>}
                           </div>
-                          <div style={{ color: "#64748b", fontSize: "0.8rem" }}>
-                            {c.lugar && `${c.lugar}`}
-                            {c.cant_pax && ` · ${c.cant_pax} pax`}
-                          </div>
-                          {c.notas && <div style={{ color: "#94a3b8", fontSize: "0.78rem", marginTop: 2, fontStyle: "italic" }}>{c.notas}</div>}
+                          <button className="ag-btn-icon ag-btn-edit" onClick={() => iniciarEditComida(c)} title="Editar">✏️</button>
+                          <button className="ag-btn-icon ag-btn-danger" onClick={() => eliminarComida(c.id)} title="Eliminar">🗑️</button>
                         </div>
-                        <button className="ag-btn-icon ag-btn-edit" onClick={() => iniciarEditComida(c)} title="Editar">✏️</button>
-                        <button className="ag-btn-icon ag-btn-danger" onClick={() => eliminarComida(c.id)} title="Eliminar">🗑️</button>
-                      </div>
-                    )
-                ))}
+                      )
+                  ))}
 
-                {addingComida && (
-                  <ComidaForm
-                    form={comidaForm}
-                    onChange={setComidaForm}
-                    onSave={agregarComida}
-                    onCancel={() => { setAddingComida(false); setComidaForm(emptyComidaForm()); }}
+                  {addingComida && (
+                    <ComidaForm
+                      form={comidaForm}
+                      onChange={setComidaForm}
+                      onSave={agregarComida}
+                      onCancel={() => { setAddingComida(false); setComidaForm(emptyComidaForm()); }}
+                    />
+                  )}
+                </Section>
+
+                {/* ── 3. NOTAS GENERALES ────────────────────────────────── */}
+                <Section title="📝 Notas Generales del Grupo">
+                  <textarea
+                    value={notas}
+                    onChange={e => setNotas(e.target.value)}
+                    rows={3}
+                    placeholder="Observaciones libres, requerimientos especiales del grupo..."
+                    style={{
+                      ...inputStyle,
+                      resize: "vertical",
+                      fontFamily: "inherit",
+                      minHeight: 70,
+                    }}
                   />
-                )}
-              </Section>
+                  <div style={{ marginTop: 8 }}>
+                    <button
+                      onClick={guardarNotas}
+                      disabled={guardandoNotas}
+                      style={btnPrimaryStyle}
+                    >
+                      {guardandoNotas ? "Guardando..." : "Guardar notas"}
+                    </button>
+                    {savedNotas && <span className="ag-save-pill">Guardado ✓</span>}
+                  </div>
+                </Section>
 
-              {/* ── Notas Generales ───────────────────────────────────── */}
-              <Section title="📝 Notas Generales">
-                <textarea
-                  value={notas}
-                  onChange={e => setNotas(e.target.value)}
-                  rows={4}
-                  placeholder="Observaciones, detalles especiales, requerimientos del grupo..."
-                  style={{
-                    ...inputStyle,
-                    resize: "vertical",
-                    fontFamily: "inherit",
-                    minHeight: 80,
-                  }}
-                />
-                <div style={{ marginTop: 8 }}>
+                {/* ── 4. COMPOSICIÓN (100% OPCIONAL PARA CUANDO SE SEPA) ─── */}
+                <Section
+                  title="👥 Composición por Género (Opcional)"
+                  action={
+                    <span style={{ fontSize: "0.74rem", color: "#64748b", background: "#f1f5f9", padding: "2px 8px", borderRadius: 10 }}>
+                      No requerido
+                    </span>
+                  }
+                >
+                  <p style={{ fontSize: "0.78rem", color: "#64748b", margin: "0 0 10px 0" }}>
+                    Solo completá esto si ya tenés definida la lista de hombres, mujeres y guías para el check-in. Si no, podés dejarlo vacío.
+                  </p>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
+                    <label style={labelStyle}>
+                      Hombres
+                      <input
+                        type="number" min="0"
+                        value={hombres}
+                        onChange={e => setHombres(e.target.value)}
+                        style={inputStyle}
+                        placeholder="Opcional"
+                      />
+                    </label>
+                    <label style={labelStyle}>
+                      Mujeres
+                      <input
+                        type="number" min="0"
+                        value={mujeres}
+                        onChange={e => setMujeres(e.target.value)}
+                        style={inputStyle}
+                        placeholder="Opcional"
+                      />
+                    </label>
+                    <label style={labelStyle}>
+                      Tripulación / Guías
+                      <input
+                        type="number" min="0"
+                        value={tripulacion}
+                        onChange={e => setTripulacion(e.target.value)}
+                        style={inputStyle}
+                        placeholder="Opcional"
+                      />
+                    </label>
+                  </div>
                   <button
-                    onClick={guardarNotas}
-                    disabled={guardandoNotas}
-                    style={btnPrimaryStyle}
+                    onClick={guardarComposicion}
+                    disabled={guardandoComp}
+                    style={{ ...btnPrimaryStyle, background: "#475569" }}
                   >
-                    {guardandoNotas ? "Guardando..." : "Guardar notas"}
+                    {guardandoComp ? "Guardando..." : "Guardar composición"}
                   </button>
-                  {savedNotas && <span className="ag-save-pill">Guardado ✓</span>}
-                </div>
-              </Section>
-            </>
-          )}
+                  {savedComp && <span className="ag-save-pill">Guardado ✓</span>}
+                </Section>
+              </>
+            );
+          })()}
         </div>
       </div>
     </>
   );
 }
 
-// ─── Sub-formulario Hotel ───────────────────────────────────────────────────
-function HotelForm({ form, onChange, onSave, onCancel }) {
+// ─── Sub-formulario Hotel (fechas tomadas automaticamente del grupo) ───────
+function HotelForm({ form, onChange, onSave, onCancel, fechaEntrada, fechaSalida, hotelesSugeridos = [] }) {
   const set = (k, v) => onChange(prev => ({ ...prev, [k]: v }));
+  const fIn = fechaEntrada || form.fecha_ingreso;
+  const fOut = fechaSalida || form.fecha_salida;
+
   return (
     <div className="ag-inline-form">
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 80px", gap: 7 }}>
+      {/* Banner automatico de fechas de estadia del grupo */}
+      <div style={{
+        background: "#f0fdf4",
+        border: "1px solid #bbf7d0",
+        borderRadius: 6,
+        padding: "6px 10px",
+        fontSize: "0.8rem",
+        color: "#166534",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between"
+      }}>
+        <span>🗓️ Estadía del grupo:</span>
+        <strong style={{ letterSpacing: "0.02em" }}>{fIn || "—"} ➔ {fOut || "—"}</strong>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 90px", gap: 7 }}>
         <div>
           <label style={labelStyle}>
             Hotel *
-            <input type="text" value={form.hotel_nombre} onChange={e => set("hotel_nombre", e.target.value)}
-              style={inputStyle} placeholder="Nombre del hotel" />
+            <input
+              type="text"
+              list="hoteles-sugeridos-list"
+              value={form.hotel_nombre}
+              onChange={e => set("hotel_nombre", e.target.value)}
+              style={inputStyle}
+              placeholder="Escribí o seleccioná hotel"
+              autoFocus
+            />
+            <datalist id="hoteles-sugeridos-list">
+              {hotelesSugeridos.map(h => (
+                <option key={h.id || h.nombre} value={h.nombre} />
+              ))}
+            </datalist>
           </label>
         </div>
         <div>
           <label style={labelStyle}>
             PAX
-            <input type="number" min="0" value={form.cant_pax} onChange={e => set("cant_pax", e.target.value)}
-              style={inputStyle} placeholder="0" />
+            <input
+              type="number"
+              min="0"
+              value={form.cant_pax}
+              onChange={e => set("cant_pax", e.target.value)}
+              style={inputStyle}
+              placeholder="Ej: 50"
+            />
           </label>
         </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
-        <label style={labelStyle}>
-          Check-in
-          <input type="date" value={form.fecha_ingreso} onChange={e => set("fecha_ingreso", e.target.value)}
-            style={inputStyle} />
-        </label>
-        <label style={labelStyle}>
-          Check-out
-          <input type="date" value={form.fecha_salida} onChange={e => set("fecha_salida", e.target.value)}
-            style={inputStyle} />
-        </label>
-      </div>
+
       <label style={labelStyle}>
-        Notas
-        <input type="text" value={form.notas} onChange={e => set("notas", e.target.value)}
-          style={inputStyle} placeholder="Notas opcionales" />
+        Notas / Distribución (opcional)
+        <input
+          type="text"
+          value={form.notas}
+          onChange={e => set("notas", e.target.value)}
+          style={inputStyle}
+          placeholder="Ej: Habitaciones dobles/triples, ala norte, etc."
+        />
       </label>
-      <div style={{ display: "flex", gap: 7, justifyContent: "flex-end" }}>
+
+      <div style={{ display: "flex", gap: 7, justifyContent: "flex-end", marginTop: 4 }}>
         <button onClick={onCancel} style={btnCancelStyle}>Cancelar</button>
-        <button onClick={onSave} style={btnPrimaryStyle}>Guardar</button>
+        <button onClick={onSave} style={btnPrimaryStyle}>Guardar Hotel</button>
       </div>
     </div>
   );
@@ -711,8 +848,8 @@ function ComidaForm({ form, onChange, onSave, onCancel }) {
 }
 
 // ─── Helpers de estado inicial ──────────────────────────────────────────────
-function emptyHotelForm() {
-  return { hotel_nombre: "", cant_pax: "", fecha_ingreso: "", fecha_salida: "", notas: "" };
+function emptyHotelForm(fIn = "", fOut = "", defaultPax = "") {
+  return { hotel_nombre: "", cant_pax: defaultPax, fecha_ingreso: fIn, fecha_salida: fOut, notas: "" };
 }
 function emptyComidaForm() {
   return { fecha: "", tipo_comida: "", lugar: "", cant_pax: "", notas: "" };
