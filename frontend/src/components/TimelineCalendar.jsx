@@ -101,6 +101,52 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
   const [grupoAsignando, setGrupoAsignando] = useState(null);
   const [anotacionGrupo, setAnotacionGrupo] = useState(null);
 
+  // ==========================================================
+  // CLICK DERECHO EN ETIQUETA DE GRUPO -> ANOTACIONES
+  // Handler global con capture:true para interceptar ANTES del browser
+  // ==========================================================
+  useEffect(() => {
+    const handleContextMenu = (e) => {
+      // Solo actuar si el click fue en la columna izquierda de recursos
+      const datagridCell = e.target.closest('.fc-datagrid-cell');
+      if (!datagridCell) return;
+
+      // Obtener el resource-id del row contenedor
+      const row = e.target.closest('tr[data-resource-id]');
+      if (!row) return;
+
+      const resourceId = row.getAttribute('data-resource-id');
+      if (!resourceId) return;
+
+      // Obtener resource via FullCalendar API
+      const calApi = calendarRef.current?.getApi();
+      if (!calApi) return;
+      const resource = calApi.getResourceById(resourceId);
+      if (!resource) return;
+
+      // Solo grupos: parentId debe empezar con 'empresa-'
+      const parentId = resource.parentId;
+      if (!parentId || !String(parentId).startsWith('empresa-')) return;
+
+      // Interceptar: prevenir menu del browser y abrir panel
+      e.preventDefault();
+      e.stopPropagation();
+
+      const props = resource.extendedProps || {};
+      setAnotacionGrupo({
+        grupoId: resourceId,
+        grupoNombre: props.grupoNombre || resource.title,
+        empresaNombre: props.empresaNombre || '',
+        fechaEntrada: props.fechaEntrada || '',
+        fechaSalida: props.fechaSalida || '',
+      });
+    };
+
+    // capture:true = intercepta antes que el browser muestre su menu
+    document.addEventListener('contextmenu', handleContextMenu, true);
+    return () => document.removeEventListener('contextmenu', handleContextMenu, true);
+  }, []);
+
   // Horarios individuales por empresa (para eventos globales)
   const [horariosEmpresa, setHorariosEmpresa] = useState([]); // lista de { empresa_id, empresa_nombre, horario, nota, id? }
   const [cargandoHorarios, setCargandoHorarios] = useState(false);
@@ -690,24 +736,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
               </div>
             );
           }}
-          resourceLabelDidMount={(arg) => {
-            const props = arg.resource.extendedProps || {};
-            // Solo para grupos (tienen parentId que empieza con "empresa-")
-            if (arg.resource.parentId && String(arg.resource.parentId).startsWith("empresa-")) {
-              arg.el.style.cursor = "context-menu";
-              arg.el.title = "Click derecho para ver anotaciones del grupo";
-              arg.el.addEventListener("contextmenu", (e) => {
-                e.preventDefault();
-                setAnotacionGrupo({
-                  grupoId: arg.resource.id,
-                  grupoNombre: props.grupoNombre || arg.resource.title,
-                  empresaNombre: props.empresaNombre || "",
-                  fechaEntrada: props.fechaEntrada || "",
-                  fechaSalida: props.fechaSalida || "",
-                });
-              });
-            }
-          }}
+
           eventClick={handleEventClick}
           dateClick={handleDateClick}
           slotLabelContent={(arg) => {
