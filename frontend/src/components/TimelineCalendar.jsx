@@ -6,7 +6,7 @@ import api from "../api";
 import "./timeline.css";
 import AnotacionGrupoPanel from "./AnotacionGrupoPanel";
 
-export default function TimelineCalendar({ resources, events, readOnly = false, onRegisterRef }) {
+export default function TimelineCalendar({ resources, events, readOnly = false, onRegisterRef, onRecargar }) {
   const calendarRef = useRef(null);
   const [initialDate] = useState(() => new Date());
 
@@ -704,7 +704,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           height="100%"
           stickyHeaderDates
           resourceAreaHeaderContent="Empresas"
-          resourceAreaWidth={230}
+          resourceAreaWidth={260}
           resourceLabelContent={(arg) => {
             const props = arg.resource.extendedProps || {};
             
@@ -729,6 +729,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
             }
             const groupName = props.grupoNombre || arg.resource.title;
             const secondary = props.pax ? `PAX ${props.pax}` : "";
+            const hoteles = props.hoteles || [];
             const openAnotador = (e) => {
               e.stopPropagation();
               setAnotacionGrupo({
@@ -747,27 +748,68 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
                   justifyContent: "space-between",
                   width: "100%",
                   cursor: "pointer",
-                  gap: 4
+                  gap: 5,
+                  padding: "2px 0"
                 }}
-                title="Click izquierdo para abrir Anotador (Hoteles, Comidas, Rooming)"
+                title="Click para ver/editar Anotaciones, Hoteles y Rooming"
                 onClick={openAnotador}
               >
-                <div style={{ display: "flex", flexDirection: "column", lineHeight: 0.95, overflow: "hidden", flex: 1 }}>
-                  <span style={{ fontWeight: 600, color: "#0f172a", fontSize: "0.92em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{groupName}</span>
-                  {secondary && <span style={{ fontSize: "0.78em", color: "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{secondary}</span>}
+                <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1, overflow: "hidden", flex: 1 }}>
+                  <span style={{ fontWeight: 600, color: "#0f172a", fontSize: "0.92em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {groupName}
+                  </span>
+                  {secondary && (
+                    <span style={{ fontSize: "0.76em", color: "#64748b", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {secondary}
+                    </span>
+                  )}
+                  {hoteles.length > 0 && (
+                    <div style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 3,
+                      marginTop: 2
+                    }}>
+                      {hoteles.map((h, i) => (
+                        <span
+                          key={i}
+                          title={`Hotel: ${h.nombre}${h.pax ? ` (${h.pax} PAX)` : ""}`}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 2,
+                            background: "#ecfdf5",
+                            color: "#065f46",
+                            border: "1px solid #a7f3d0",
+                            borderRadius: 4,
+                            padding: "1px 5px",
+                            fontSize: "0.72rem",
+                            fontWeight: 700,
+                            lineHeight: 1.25,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            maxWidth: "100%"
+                          }}
+                        >
+                          🏨 {h.nombre} {h.pax ? `(${h.pax})` : ""}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <button
                   type="button"
-                  title="Abrir Anotaciones y Rooming"
+                  title="Abrir Anotador del grupo"
                   onClick={openAnotador}
                   style={{
-                    background: "#eff6ff",
-                    border: "1px solid #bfdbfe",
+                    background: hoteles.length > 0 ? "#ecfdf5" : "#eff6ff",
+                    border: `1px solid ${hoteles.length > 0 ? "#a7f3d0" : "#bfdbfe"}`,
                     borderRadius: 5,
                     padding: "2px 6px",
-                    fontSize: "0.78rem",
+                    fontSize: "0.76rem",
                     cursor: "pointer",
-                    color: "#1d4ed8",
+                    color: hoteles.length > 0 ? "#065f46" : "#1d4ed8",
                     fontWeight: 700,
                     flexShrink: 0,
                     lineHeight: 1
@@ -1118,7 +1160,13 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           empresaNombre={anotacionGrupo.empresaNombre}
           fechaEntrada={anotacionGrupo.fechaEntrada}
           fechaSalida={anotacionGrupo.fechaSalida}
-          onClose={() => setAnotacionGrupo(null)}
+          onClose={() => {
+            setAnotacionGrupo(null);
+            if (onRecargar) onRecargar();
+          }}
+          onActualizado={() => {
+            if (onRecargar) onRecargar();
+          }}
         />
       )}
     </>

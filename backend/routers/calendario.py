@@ -107,6 +107,14 @@ def calendario(db: Session = Depends(get_db)):
         order_counter += 1
 
         for g in e.grupos:
+            hoteles_list = []
+            if getattr(g, "anotacion", None) and g.anotacion.hoteles:
+                for h in g.anotacion.hoteles:
+                    hoteles_list.append({
+                        "nombre": h.hotel_nombre,
+                        "pax": h.cant_pax,
+                    })
+
             resources.append({
                 "id": g.id,
                 "parentId": empresa_resource_id,
@@ -120,6 +128,7 @@ def calendario(db: Session = Depends(get_db)):
                     "fechaEntrada": g.fecha_entrada,
                     "fechaSalida": g.fecha_salida,
                     "permite_alcohol": g.permite_alcohol,
+                    "hoteles": hoteles_list,
                 }
             })
             order_counter += 1
@@ -731,6 +740,14 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
             grupos_a_mostrar = [g for g in grupos_a_mostrar if g.id in grupos_permitidos_ids]
 
         for g in grupos_a_mostrar:
+            hoteles_list = []
+            if getattr(g, "anotacion", None) and g.anotacion.hoteles:
+                for h in g.anotacion.hoteles:
+                    hoteles_list.append({
+                        "nombre": h.hotel_nombre,
+                        "pax": h.cant_pax,
+                    })
+
             resources.append({
                 "id": g.id,
                 "parentId": empresa_resource_id,
@@ -745,6 +762,7 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                     "fechaSalida": g.fecha_salida,
                     "permite_alcohol": g.permite_alcohol,
                     "es_mix_grupo": getattr(g, 'es_mix_grupo', False),
+                    "hoteles": hoteles_list,
                 }
             })
             order_counter += 1

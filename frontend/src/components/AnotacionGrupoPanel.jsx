@@ -75,6 +75,7 @@ export default function AnotacionGrupoPanel({
   fechaEntrada,
   fechaSalida,
   onClose,
+  onActualizado,
 }) {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
@@ -205,6 +206,7 @@ export default function AnotacionGrupoPanel({
       };
       await api.post(`/anotaciones-grupo/${grupoId}/hoteles`, payload);
       await cargar();
+      if (onActualizado) onActualizado();
       setAddingHotel(false);
       setHotelForm(emptyHotelForm(fechaE, fechaS));
     } catch { alert("Error al agregar hotel"); }
@@ -221,6 +223,7 @@ export default function AnotacionGrupoPanel({
       };
       await api.put(`/anotaciones-grupo/hoteles/${id}`, payload);
       await cargar();
+      if (onActualizado) onActualizado();
       setEditingHotelId(null);
       setHotelForm(emptyHotelForm(fechaE, fechaS));
     } catch { alert("Error al editar hotel"); }
@@ -231,6 +234,7 @@ export default function AnotacionGrupoPanel({
     try {
       await api.delete(`/anotaciones-grupo/hoteles/${id}`);
       await cargar();
+      if (onActualizado) onActualizado();
     } catch { alert("Error al eliminar hotel"); }
   };
 
