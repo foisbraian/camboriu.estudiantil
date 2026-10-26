@@ -89,6 +89,30 @@ def calendario(db: Session = Depends(get_db)):
             }
         })
 
+    # Mapeo seguro grupo_id -> hoteles en un solo query sin lazy-loading
+    hoteles_por_grupo = defaultdict(list)
+    try:
+        rows = (
+            db.query(
+                models.AnotacionGrupo.grupo_id,
+                models.HotelGrupoSegmento.hotel_nombre,
+                models.HotelGrupoSegmento.cant_pax,
+            )
+            .join(
+                models.HotelGrupoSegmento,
+                models.HotelGrupoSegmento.anotacion_id == models.AnotacionGrupo.id,
+            )
+            .all()
+        )
+        for gid, hnom, hpax in rows:
+            if gid and hnom:
+                hoteles_por_grupo[gid].append({
+                    "nombre": hnom,
+                    "pax": hpax,
+                })
+    except Exception as err:
+        print(f"Aviso al cargar hoteles para calendario: {err}")
+
     empresas = db.query(models.Empresa).join(models.Grupo).distinct().all()
 
     order_counter = 1
@@ -107,14 +131,6 @@ def calendario(db: Session = Depends(get_db)):
         order_counter += 1
 
         for g in e.grupos:
-            hoteles_list = []
-            if getattr(g, "anotacion", None) and g.anotacion.hoteles:
-                for h in g.anotacion.hoteles:
-                    hoteles_list.append({
-                        "nombre": h.hotel_nombre,
-                        "pax": h.cant_pax,
-                    })
-
             resources.append({
                 "id": g.id,
                 "parentId": empresa_resource_id,
@@ -128,7 +144,7 @@ def calendario(db: Session = Depends(get_db)):
                     "fechaEntrada": g.fecha_entrada,
                     "fechaSalida": g.fecha_salida,
                     "permite_alcohol": g.permite_alcohol,
-                    "hoteles": hoteles_list,
+                    "hoteles": hoteles_por_grupo.get(g.id, []),
                 }
             })
             order_counter += 1
@@ -720,6 +736,30 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
         "order": 0,
     })
 
+    # Mapeo seguro grupo_id -> hoteles en portal
+    hoteles_por_grupo = defaultdict(list)
+    try:
+        rows = (
+            db.query(
+                models.AnotacionGrupo.grupo_id,
+                models.HotelGrupoSegmento.hotel_nombre,
+                models.HotelGrupoSegmento.cant_pax,
+            )
+            .join(
+                models.HotelGrupoSegmento,
+                models.HotelGrupoSegmento.anotacion_id == models.AnotacionGrupo.id,
+            )
+            .all()
+        )
+        for gid, hnom, hpax in rows:
+            if gid and hnom:
+                hoteles_por_grupo[gid].append({
+                    "nombre": hnom,
+                    "pax": hpax,
+                })
+    except Exception as err:
+        print(f"Aviso al cargar hoteles para portal: {err}")
+
     order_counter = 1
     for emp in empresas:
         empresa_resource_id = f"empresa-{emp.id}"
@@ -740,14 +780,6 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
             grupos_a_mostrar = [g for g in grupos_a_mostrar if g.id in grupos_permitidos_ids]
 
         for g in grupos_a_mostrar:
-            hoteles_list = []
-            if getattr(g, "anotacion", None) and g.anotacion.hoteles:
-                for h in g.anotacion.hoteles:
-                    hoteles_list.append({
-                        "nombre": h.hotel_nombre,
-                        "pax": h.cant_pax,
-                    })
-
             resources.append({
                 "id": g.id,
                 "parentId": empresa_resource_id,
@@ -762,7 +794,7 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                     "fechaSalida": g.fecha_salida,
                     "permite_alcohol": g.permite_alcohol,
                     "es_mix_grupo": getattr(g, 'es_mix_grupo', False),
-                    "hoteles": hoteles_list,
+                    "hoteles": hoteles_por_grupo.get(g.id, []),
                 }
             })
             order_counter += 1
