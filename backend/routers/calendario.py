@@ -801,7 +801,6 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
 
     # 2. EVENTS
     fechas_eventos_asignados_ids = set()
-    from collections import defaultdict
 
     for emp in empresas:
         grupos_a_mostrar = emp.grupos
