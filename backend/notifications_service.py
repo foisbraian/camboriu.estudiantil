@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import threading
+from urllib.parse import urlparse
 from typing import Optional, Dict, Any, Union, List
 
 from pywebpush import webpush, WebPushException
@@ -83,8 +84,6 @@ def _send_push_worker(role: Union[str, List[str], None], title: str, body: str, 
         print(f"[PUSH ERROR] No se pudo inicializar la clave VAPID: {e}")
         return
 
-    claims = {"sub": VAPID_SUBJECT}
-
     payload = json.dumps({
         "title": title,
         "body": body,
@@ -120,16 +119,24 @@ def _send_push_worker(role: Union[str, List[str], None], title: str, body: str, 
             }
 
             try:
-                # ⭐ Pasamos la instancia vapid_obj directamente para evitar el error de deserialización de string
+                # ⭐ Cada proveedor (Google, Apple, Mozilla, etc.) requiere su propio origin en 'aud'.
+                # pywebpush muta el diccionario 'claims' in-place, por eso lo generamos fresco por dispositivo:
+                endpoint_url = urlparse(sub.endpoint)
+                aud = f"{endpoint_url.scheme}://{endpoint_url.netloc}"
+                sub_claims = {
+                    "sub": VAPID_SUBJECT,
+                    "aud": aud
+                }
+
                 webpush(
                     subscription_info=sub_info,
                     data=payload,
                     vapid_private_key=vapid_obj,
-                    vapid_claims=claims,
+                    vapid_claims=sub_claims,
                     ttl=86400  # 24 horas si el dispositivo está apagado
                 )
                 sent_count += 1
-                print(f"[PUSH EXITO] Notificacion enviada correctamente al dispositivo [rol: {sub.role}]")
+                print(f"[PUSH EXITO] Notificacion enviada correctamente a {aud} [rol: {sub.role}]")
             except WebPushException as ex:
                 status_code = getattr(ex.response, "status_code", None)
                 print(f"[PUSH ERROR WebPush] status={status_code}, error={ex}")
