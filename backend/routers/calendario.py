@@ -1256,18 +1256,19 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
         db.add_all(asignaciones)
         db.commit()
 
-        try:
-            evento_nom = nuevo_evento_fecha.evento.nombre if nuevo_evento_fecha.evento else "Bar de Hielo"
-            grupo_nom = grupo.nombre if grupo else "Grupo"
-            fecha_str = fecha.strftime('%d/%m/%Y') if hasattr(fecha, 'strftime') else str(fecha)
-            notify_role(
-                role=["equipo", "admin"],
-                title=f"Asignación: {evento_nom}",
-                body=f"{grupo_nom} asignado para el {fecha_str} ({turnos} turnos).",
-                url="/calendario"
-            )
-        except Exception as e:
-            print(f"Error notificando bar de hielo: {e}")
+        # NOTIFICACIÓN DESACTIVADA TEMPORALMENTE (Asignaciones individuales a grupos)
+        # try:
+        #     evento_nom = nuevo_evento_fecha.evento.nombre if nuevo_evento_fecha.evento else "Bar de Hielo"
+        #     grupo_nom = grupo.nombre if grupo else "Grupo"
+        #     fecha_str = fecha.strftime('%d/%m/%Y') if hasattr(fecha, 'strftime') else str(fecha)
+        #     notify_role(
+        #         role=["equipo", "admin"],
+        #         title=f"Asignación: {evento_nom}",
+        #         body=f"{grupo_nom} asignado para el {fecha_str} ({turnos} turnos).",
+        #         url="/calendario"
+        #     )
+        # except Exception as e:
+        #     print(f"Error notificando bar de hielo: {e}")
 
         return {"ok": True, "turnos": turnos}
 
@@ -1296,18 +1297,19 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
     db.add(asignacion)
     db.commit()
 
-    try:
-        evento_nom = nuevo_evento_fecha.evento.nombre if nuevo_evento_fecha.evento else "Evento"
-        grupo_nom = grupo.nombre if grupo else "Grupo"
-        fecha_str = fecha.strftime('%d/%m/%Y') if hasattr(fecha, 'strftime') else str(fecha)
-        notify_role(
-            role=["equipo", "admin"],
-            title=f"Asignación: {evento_nom}",
-            body=f"{grupo_nom} asignado para el {fecha_str}.",
-            url="/calendario"
-        )
-    except Exception as e:
-        print(f"Error notificando: {e}")
+    # NOTIFICACIÓN DESACTIVADA TEMPORALMENTE (Asignaciones individuales a grupos)
+    # try:
+    #     evento_nom = nuevo_evento_fecha.evento.nombre if nuevo_evento_fecha.evento else "Evento"
+    #     grupo_nom = grupo.nombre if grupo else "Grupo"
+    #     fecha_str = fecha.strftime('%d/%m/%Y') if hasattr(fecha, 'strftime') else str(fecha)
+    #     notify_role(
+    #         role=["equipo", "admin"],
+    #         title=f"Asignación: {evento_nom}",
+    #         body=f"{grupo_nom} asignado para el {fecha_str}.",
+    #         url="/calendario"
+    #     )
+    # except Exception as e:
+    #     print(f"Error notificando: {e}")
 
     return {"ok": True}
 
@@ -1339,19 +1341,20 @@ def eliminar_asignacion(grupo_id: int, body: AsignarEventoBody, db: Session = De
         db.delete(asig)
     db.commit()
 
-    try:
-        evento_nom = fecha_evt.evento.nombre if (fecha_evt and fecha_evt.evento) else "Evento"
-        grupo_obj = db.get(models.Grupo, grupo_id)
-        grupo_nom = grupo_obj.nombre if grupo_obj else f"Grupo {grupo_id}"
-        fecha_str = fecha.strftime('%d/%m/%Y') if hasattr(fecha, 'strftime') else str(fecha)
-        notify_role(
-            role=["equipo", "admin"],
-            title=f"Baja de fecha: {evento_nom}",
-            body=f"Se quitó asignación de {grupo_nom} el día {fecha_str}.",
-            url="/calendario"
-        )
-    except Exception as e:
-        print(f"Error notificando: {e}")
+    # NOTIFICACIÓN DESACTIVADA TEMPORALMENTE (Asignaciones individuales a grupos)
+    # try:
+    #     evento_nom = fecha_evt.evento.nombre if (fecha_evt and fecha_evt.evento) else "Evento"
+    #     grupo_obj = db.get(models.Grupo, grupo_id)
+    #     grupo_nom = grupo_obj.nombre if grupo_obj else f"Grupo {grupo_id}"
+    #     fecha_str = fecha.strftime('%d/%m/%Y') if hasattr(fecha, 'strftime') else str(fecha)
+    #     notify_role(
+    #         role=["equipo", "admin"],
+    #         title=f"Baja de fecha: {evento_nom}",
+    #         body=f"Se quitó asignación de {grupo_nom} el día {fecha_str}.",
+    #         url="/calendario"
+    #     )
+    # except Exception as e:
+    #     print(f"Error notificando: {e}")
 
     return {"ok": True}
 
