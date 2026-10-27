@@ -6,6 +6,7 @@ venv/
 .env
 app.db
 database.db
+backend/vapid_keys.json
 
 # Node
 node_modules/

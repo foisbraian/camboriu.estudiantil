@@ -1,3 +1,4 @@
+from notifications_service import notify_role
 """Rutas del calendario."""
 # pyright: reportGeneralTypeIssues=false
 
@@ -1281,6 +1282,19 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
     db.add(asignacion)
     db.commit()
 
+    try:
+        evento_nom = nuevo_evento_fecha.evento.nombre if nuevo_evento_fecha.evento else "Evento"
+        grupo_nom = grupo.nombre if grupo else "Grupo"
+        fecha_str = fecha.strftime('%d/%m/%Y') if hasattr(fecha, 'strftime') else str(fecha)
+        notify_role(
+            role="equipo",
+            title=f"Asignación: {evento_nom}",
+            body=f"{grupo_nom} asignado para el {fecha_str}.",
+            url="/calendario"
+        )
+    except Exception as e:
+        print(f"Error notificando: {e}")
+
     return {"ok": True}
 
 
@@ -1309,6 +1323,20 @@ def eliminar_asignacion(grupo_id: int, body: AsignarEventoBody, db: Session = De
 
     db.delete(asignacion)
     db.commit()
+
+    try:
+        evento_nom = fecha_evt.evento.nombre if (fecha_evt and fecha_evt.evento) else "Evento"
+        grupo_obj = db.get(models.Grupo, grupo_id)
+        grupo_nom = grupo_obj.nombre if grupo_obj else f"Grupo {grupo_id}"
+        fecha_str = fecha.strftime('%d/%m/%Y') if hasattr(fecha, 'strftime') else str(fecha)
+        notify_role(
+            role="equipo",
+            title=f"Baja de fecha: {evento_nom}",
+            body=f"Se quitó asignación de {grupo_nom} el día {fecha_str}.",
+            url="/calendario"
+        )
+    except Exception as e:
+        print(f"Error notificando: {e}")
 
     return {"ok": True}
 
@@ -1372,6 +1400,25 @@ def editar_fecha_evento(fecha_evento_id: int, body: EditarFechaEventoBody, db: S
                     db.delete(asig)
 
     db.commit()
+
+    try:
+        evento_nom = f.evento.nombre if f.evento else "Evento"
+        cambios = []
+        if body.fecha_nueva and str(body.fecha_nueva) != str(f.fecha):
+            cambios.append(f"Nueva fecha: {body.fecha_nueva}")
+        if body.horario:
+            cambios.append(f"Horario: {body.horario}")
+        if not cambios:
+            cambios.append("Se modificaron detalles del evento")
+        notify_role(
+            role="equipo",
+            title=f"Modificación: {evento_nom}",
+            body=" | ".join(cambios),
+            url="/calendario"
+        )
+    except Exception as e:
+        print(f"Error notificando: {e}")
+
     return {"ok": True}
 
 
@@ -1389,8 +1436,21 @@ def eliminar_fecha_evento_global(fecha_evento_id: int, db: Session = Depends(get
         db.query(models.Voucher).filter(models.Voucher.asignacion_id.in_(asignaciones_ids)).delete(synchronize_session=False)
         db.query(models.Asignacion).filter(models.Asignacion.id.in_(asignaciones_ids)).delete(synchronize_session=False)
 
+    evento_nombre = f.evento.nombre if f.evento else "Evento"
+    fecha_str = str(f.fecha)
+
     db.delete(f)
     db.commit()
+
+    try:
+        notify_role(
+            role="equipo",
+            title=f"Fecha cancelada: {evento_nombre}",
+            body=f"Se canceló la fecha del {fecha_str}.",
+            url="/calendario"
+        )
+    except Exception as e:
+        print(f"Error notificando: {e}")
 
     return {"ok": True}
 

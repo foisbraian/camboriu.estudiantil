@@ -1,3 +1,4 @@
+from notifications_service import notify_role
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
@@ -44,6 +45,17 @@ def crear_fecha_evento(data: schemas.FechaEventoCreate, db: Session = Depends(ge
     db.add(f)
     db.commit()
     db.refresh(f)
+    try:
+        evento_nom = f.evento.nombre if f.evento else "Evento"
+        fecha_str = f.fecha.strftime('%d/%m/%Y') if hasattr(f.fecha, 'strftime') else str(f.fecha)
+        notify_role(
+            role="equipo",
+            title=f"Nueva fecha: {evento_nom}",
+            body=f"Se agregó el día {fecha_str} al calendario.",
+            url="/calendario"
+        )
+    except Exception as e:
+        print(f"Error notificando: {e}")
     return f
 
 
@@ -57,8 +69,19 @@ def eliminar_fecha_evento(fecha_evento_id: int, db: Session = Depends(get_db)):
     if not f:
         raise HTTPException(404)
 
+    evento_nom = f.evento.nombre if f.evento else "Evento"
+    fecha_str = str(f.fecha)
     db.delete(f)
     db.commit()
+    try:
+        notify_role(
+            role="equipo",
+            title=f"Fecha cancelada: {evento_nom}",
+            body=f"Se dio de baja la fecha del {fecha_str}.",
+            url="/calendario"
+        )
+    except Exception as e:
+        print(f"Error notificando: {e}")
 
     return {"ok": True}
 

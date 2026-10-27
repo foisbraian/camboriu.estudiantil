@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, Float, String, Boolean, Date, ForeignKey
+from sqlalchemy import Column, Integer, Float, String, Boolean, Date, ForeignKey, DateTime
+from datetime import datetime
 from sqlalchemy.orm import relationship
 from database import Base
 import secrets
@@ -526,3 +527,15 @@ class ComidaGrupo(Base):
     notas = Column(String, nullable=True)
 
     anotacion = relationship("AnotacionGrupo", back_populates="comidas")
+
+
+class PushSubscription(Base):
+    __tablename__ = "push_subscriptions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    endpoint = Column(String, unique=True, index=True, nullable=False)
+    p256dh = Column(String, nullable=False)
+    auth = Column(String, nullable=False)
+    role = Column(String, default="equipo", index=True)
+    user_agent = Column(String, nullable=True)
+    creado_en = Column(DateTime, default=datetime.utcnow)

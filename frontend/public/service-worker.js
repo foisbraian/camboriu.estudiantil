@@ -73,3 +73,56 @@ self.addEventListener('fetch', (event) => {
         })
     );
 });
+
+
+// ==========================================
+// PUSH NOTIFICATIONS
+// ==========================================
+self.addEventListener('push', (event) => {
+    let data = {
+        title: 'Actualización de Eventos',
+        body: 'Hubo cambios en fechas o actividades.',
+        url: '/calendario'
+    };
+
+    if (event.data) {
+        try {
+            data = event.data.json();
+        } catch (e) {
+            data.body = event.data.text();
+        }
+    }
+
+    const options = {
+        body: data.body,
+        icon: '/logo192.png',
+        badge: '/logo192.png',
+        vibrate: [200, 100, 200],
+        data: {
+            url: data.url || '/calendario'
+        }
+    };
+
+    event.waitUntil(
+        self.registration.showNotification(data.title || 'Eventos Camboriú', options)
+    );
+});
+
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    const targetUrl = event.notification.data?.url || '/calendario';
+
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+            for (const client of clientList) {
+                if (client.url.includes(self.location.origin) && 'focus' in client) {
+                    client.navigate(targetUrl);
+                    return client.focus();
+                }
+            }
+            if (clients.openWindow) {
+                return clients.openWindow(targetUrl);
+            }
+        })
+    );
+});

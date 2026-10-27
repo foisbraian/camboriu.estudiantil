@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BASE_URL } from "../api";
+import NotificationBanner from "../components/NotificationBanner";
 
 export default function SelectorInicio() {
     const navigate = useNavigate();
@@ -168,7 +169,11 @@ export default function SelectorInicio() {
                 boxSizing: "border-box"
             }}
         >
-            <h1 style={{ marginBottom: 32, color: "#1e293b", fontWeight: 800, textAlign: "center" }}>Panel de Administración</h1>
+            <h1 style={{ marginBottom: 20, color: "#1e293b", fontWeight: 800, textAlign: "center" }}>Panel de Administración</h1>
+
+            <div style={{ width: "100%", maxWidth: 1100, marginBottom: 16 }}>
+                <NotificationBanner />
+            </div>
 
             <div style={{ display: "flex", gap: 24, flexWrap: "wrap", justifyContent: "center", width: "100%", maxWidth: 1100 }}>
                 {cards.map((c) => (

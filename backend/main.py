@@ -21,6 +21,7 @@ from routers import (
     gastos,
     links_personalizados,
     anotaciones_grupo,
+    notifications,
 )
 import models
 from database import engine
@@ -139,6 +140,7 @@ app.include_router(upload.router)
 app.include_router(gastos.router)
 app.include_router(links_personalizados.router)
 app.include_router(anotaciones_grupo.router)
+app.include_router(notifications.router)
 
 # Conector de Claude (solo lectura). Se activa con la variable de entorno MCP_TOKEN.
 montar_conector(app)

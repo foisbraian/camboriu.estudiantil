@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
+import NotificationBanner from "./NotificationBanner";
 
 const MESES = [
     "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -177,6 +178,8 @@ export default function Layout() {
                 ))}
 
                 <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", margin: "12px 0" }} />
+
+                <NotificationBanner />
 
                 {isCalendar && (
                     <>
