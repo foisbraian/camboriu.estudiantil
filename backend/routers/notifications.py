@@ -78,10 +78,11 @@ def unsubscribe(body: UnsubscribeBody, db: Session = Depends(get_db)):
 
 @router.post("/test")
 def test_notification(body: TestNotificationBody):
+    target_role = body.role if body.role else ["equipo", "admin"]
     notify_role(
-        role=body.role or "equipo",
+        role=target_role,
         title=body.title or "Prueba de Notificación",
         body=body.body or "Notificación de prueba enviada desde el sistema",
         url=body.url or "/calendario"
     )
-    return {"ok": True, "message": f"Notificación disparada para el rol '{body.role}'"}
+    return {"ok": True, "message": f"Notificación disparada para '{target_role}'"}

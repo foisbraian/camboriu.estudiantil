@@ -2,7 +2,7 @@ import os
 import json
 import logging
 import threading
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union, List
 
 from pywebpush import webpush, WebPushException
 from py_vapid import Vapid
@@ -75,11 +75,12 @@ def get_vapid_public_key() -> str:
     return keys["public_key"]
 
 
-def _send_push_worker(role: str, title: str, body: str, url: str = "/calendario"):
+def _send_push_worker(role: Union[str, List[str], None], title: str, body: str, url: str = "/calendario"):
     """
     Ejecutado en un hilo secundario para no bloquear la respuesta HTTP.
-    Busca todas las suscripciones del rol especificado y envía la notificación.
+    Busca todas las suscripciones del rol o roles especificados y envía la notificación.
     """
+    print(f"[PUSH] Iniciando envio: '{title}' - '{body}' para roles: {role}")
     keys = get_or_create_vapid_keys()
     private_pem = keys["private_pem"]
     claims = {"sub": VAPID_SUBJECT}
@@ -97,10 +98,16 @@ def _send_push_worker(role: str, title: str, body: str, url: str = "/calendario"
     try:
         query = db.query(models.PushSubscription)
         if role and role != "all":
-            query = query.filter(models.PushSubscription.role == role)
+            if isinstance(role, (list, tuple, set)):
+                query = query.filter(models.PushSubscription.role.in_([r.lower() for r in role]))
+            else:
+                query = query.filter(models.PushSubscription.role == role.lower())
         
         subscriptions = query.all()
+        print(f"[PUSH] Total dispositivos encontrados en DB: {len(subscriptions)}")
+
         if not subscriptions:
+            print(f"[PUSH AVISO] No hay ningun dispositivo suscrito para roles={role}. Verifica si el usuario activo notificaciones.")
             return
 
         for sub in subscriptions:
@@ -121,15 +128,15 @@ def _send_push_worker(role: str, title: str, body: str, url: str = "/calendario"
                     ttl=86400  # 24 horas si el dispositivo está apagado
                 )
                 sent_count += 1
+                print(f"[PUSH EXITO] Enviado correctamente al dispositivo [rol: {sub.role}]")
             except WebPushException as ex:
                 status_code = getattr(ex.response, "status_code", None)
+                print(f"[PUSH ERROR WebPush] status={status_code}, error={ex}")
                 # 404 Not Found o 410 Gone indican suscripción expirada o desinstalada
                 if status_code in (404, 410):
                     dead_ids.append(sub.id)
-                else:
-                    logger.warning(f"Fallo al enviar push a {sub.endpoint}: {ex}")
             except Exception as e:
-                logger.error(f"Error inesperado enviando push: {e}")
+                print(f"[PUSH ERROR Inesperado] {e}")
 
         # Limpiar suscripciones inválidas o dadas de baja
         if dead_ids:
@@ -143,14 +150,13 @@ def _send_push_worker(role: str, title: str, body: str, url: str = "/calendario"
                 db.rollback()
                 logger.error(f"Error borrando suscripciones vencidas: {e}")
 
-        if sent_count > 0:
-            print(f"[PUSH] Notificacion enviada con exito a {sent_count} dispositivo(s) [rol: {role}]: '{title}'")
+        print(f"[PUSH FINALIZADO] Enviado con exito a {sent_count}/{len(subscriptions)} dispositivo(s).")
 
     finally:
         db.close()
 
 
-def notify_role(role: str = "equipo", title: str = "Cambio en Calendario", body: str = "", url: str = "/calendario"):
+def notify_role(role: Union[str, List[str], None] = "equipo", title: str = "Cambio en Calendario", body: str = "", url: str = "/calendario"):
     """
     Envía una notificación push asincrónica a todos los usuarios con el rol dado.
     """

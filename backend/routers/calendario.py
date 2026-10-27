@@ -1255,6 +1255,20 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
 
         db.add_all(asignaciones)
         db.commit()
+
+        try:
+            evento_nom = nuevo_evento_fecha.evento.nombre if nuevo_evento_fecha.evento else "Bar de Hielo"
+            grupo_nom = grupo.nombre if grupo else "Grupo"
+            fecha_str = fecha.strftime('%d/%m/%Y') if hasattr(fecha, 'strftime') else str(fecha)
+            notify_role(
+                role=["equipo", "admin"],
+                title=f"Asignación: {evento_nom}",
+                body=f"{grupo_nom} asignado para el {fecha_str} ({turnos} turnos).",
+                url="/calendario"
+            )
+        except Exception as e:
+            print(f"Error notificando bar de hielo: {e}")
+
         return {"ok": True, "turnos": turnos}
 
 
@@ -1287,7 +1301,7 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
         grupo_nom = grupo.nombre if grupo else "Grupo"
         fecha_str = fecha.strftime('%d/%m/%Y') if hasattr(fecha, 'strftime') else str(fecha)
         notify_role(
-            role="equipo",
+            role=["equipo", "admin"],
             title=f"Asignación: {evento_nom}",
             body=f"{grupo_nom} asignado para el {fecha_str}.",
             url="/calendario"
@@ -1330,7 +1344,7 @@ def eliminar_asignacion(grupo_id: int, body: AsignarEventoBody, db: Session = De
         grupo_nom = grupo_obj.nombre if grupo_obj else f"Grupo {grupo_id}"
         fecha_str = fecha.strftime('%d/%m/%Y') if hasattr(fecha, 'strftime') else str(fecha)
         notify_role(
-            role="equipo",
+            role=["equipo", "admin"],
             title=f"Baja de fecha: {evento_nom}",
             body=f"Se quitó asignación de {grupo_nom} el día {fecha_str}.",
             url="/calendario"
@@ -1411,7 +1425,7 @@ def editar_fecha_evento(fecha_evento_id: int, body: EditarFechaEventoBody, db: S
         if not cambios:
             cambios.append("Se modificaron detalles del evento")
         notify_role(
-            role="equipo",
+            role=["equipo", "admin"],
             title=f"Modificación: {evento_nom}",
             body=" | ".join(cambios),
             url="/calendario"
@@ -1444,7 +1458,7 @@ def eliminar_fecha_evento_global(fecha_evento_id: int, db: Session = Depends(get
 
     try:
         notify_role(
-            role="equipo",
+            role=["equipo", "admin"],
             title=f"Fecha cancelada: {evento_nombre}",
             body=f"Se canceló la fecha del {fecha_str}.",
             url="/calendario"

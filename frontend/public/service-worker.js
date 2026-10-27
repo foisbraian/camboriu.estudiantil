@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 
 // This service worker is required for PWA installability
-const CACHE_NAME = 'camboriu-cache-v2';
+const CACHE_NAME = 'camboriu-cache-v3';
 const urlsToCache = [
     '/',
     '/index.html',
