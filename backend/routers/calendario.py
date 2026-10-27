@@ -1327,15 +1327,16 @@ def eliminar_asignacion(grupo_id: int, body: AsignarEventoBody, db: Session = De
     if not fecha_evt:
          raise HTTPException(404, "Evento no encontrado en esa fecha")
 
-    asignacion = db.query(models.Asignacion).filter_by(
+    asignaciones = db.query(models.Asignacion).filter_by(
         grupo_id=grupo_id,
         fecha_evento_id=fecha_evt.id
-    ).first()
+    ).all()
 
-    if not asignacion:
+    if not asignaciones:
         raise HTTPException(404, "Asignación no encontrada")
 
-    db.delete(asignacion)
+    for asig in asignaciones:
+        db.delete(asig)
     db.commit()
 
     try:

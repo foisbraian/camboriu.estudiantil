@@ -18,61 +18,56 @@ VAPID_FILE = os.path.join(os.path.dirname(__file__), "vapid_keys.json")
 VAPID_SUBJECT = os.getenv("VAPID_SUBJECT", "mailto:notificaciones@camboriu.app")
 
 
-def get_or_create_vapid_keys() -> Dict[str, str]:
+def get_vapid_instance() -> Vapid:
     """
-    Obtiene o crea el par de claves VAPID (pública y privada).
-    Prioridad:
-    1. Variables de entorno (VAPID_PUBLIC_KEY y VAPID_PRIVATE_KEY / VAPID_PRIVATE_PEM)
+    Retorna una instancia de Vapid ya inicializada y lista para firmar.
+    Soporta:
+    1. Variables de entorno (VAPID_PRIVATE_KEY o VAPID_PRIVATE_PEM)
     2. Archivo vapid_keys.json
-    3. Si no existen, genera un par nuevo y lo guarda en vapid_keys.json
+    3. Generación automática y almacenamiento
     """
-    env_pub = os.getenv("VAPID_PUBLIC_KEY")
     env_priv = os.getenv("VAPID_PRIVATE_KEY") or os.getenv("VAPID_PRIVATE_PEM")
+    if env_priv:
+        cleaned = env_priv.replace("\\n", "\n").strip()
+        try:
+            return Vapid.from_pem(cleaned.encode("utf-8"))
+        except Exception as e:
+            print(f"[VAPID] Error cargando VAPID desde env: {e}")
 
-    if env_pub and env_priv:
-        # Si la clave privada tiene los escapes de salto de línea, normalizamos
-        priv_cleaned = env_priv.replace("\\n", "\n").strip()
-        return {
-            "public_key": env_pub.strip(),
-            "private_pem": priv_cleaned,
-        }
-
-    # Revisar si existe archivo local
     if os.path.exists(VAPID_FILE):
         try:
             with open(VAPID_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                if data.get("public_key") and data.get("private_pem"):
-                    return data
+                if data.get("private_pem"):
+                    cleaned = data["private_pem"].replace("\\n", "\n").strip()
+                    return Vapid.from_pem(cleaned.encode("utf-8"))
         except Exception as e:
-            logger.warning(f"Error leyendo {VAPID_FILE}: {e}")
+            print(f"[VAPID] Error cargando {VAPID_FILE}: {e}")
 
-    # Generar un nuevo par de claves VAPID
+    # Fallback: Generar nuevas claves
     vapid = Vapid()
     vapid.generate_keys()
-
-    pub_bytes = vapid.public_key.public_bytes(Encoding.X962, PublicFormat.UncompressedPoint)
-    pub_b64 = b64urlencode(pub_bytes)
-    priv_pem = vapid.private_pem().decode("utf-8")
-
-    keys_data = {
-        "public_key": pub_b64,
-        "private_pem": priv_pem,
-    }
-
     try:
+        pub_bytes = vapid.public_key.public_bytes(Encoding.X962, PublicFormat.UncompressedPoint)
+        pub_b64 = b64urlencode(pub_bytes)
+        priv_pem = vapid.private_pem().decode("utf-8")
         with open(VAPID_FILE, "w", encoding="utf-8") as f:
-            json.dump(keys_data, f, indent=2)
+            json.dump({"public_key": pub_b64, "private_pem": priv_pem}, f, indent=2)
         print(f"[VAPID] Claves generadas y guardadas en {VAPID_FILE}")
     except Exception as e:
-        logger.warning(f"No se pudo guardar {VAPID_FILE}: {e}")
+        print(f"[VAPID] No se pudo guardar {VAPID_FILE}: {e}")
 
-    return keys_data
+    return vapid
 
 
 def get_vapid_public_key() -> str:
-    keys = get_or_create_vapid_keys()
-    return keys["public_key"]
+    env_pub = os.getenv("VAPID_PUBLIC_KEY")
+    if env_pub and env_pub.strip():
+        return env_pub.strip()
+
+    vapid = get_vapid_instance()
+    pub_bytes = vapid.public_key.public_bytes(Encoding.X962, PublicFormat.UncompressedPoint)
+    return b64urlencode(pub_bytes)
 
 
 def _send_push_worker(role: Union[str, List[str], None], title: str, body: str, url: str = "/calendario"):
@@ -81,8 +76,13 @@ def _send_push_worker(role: Union[str, List[str], None], title: str, body: str, 
     Busca todas las suscripciones del rol o roles especificados y envía la notificación.
     """
     print(f"[PUSH] Iniciando envio: '{title}' - '{body}' para roles: {role}")
-    keys = get_or_create_vapid_keys()
-    private_pem = keys["private_pem"]
+    
+    try:
+        vapid_obj = get_vapid_instance()
+    except Exception as e:
+        print(f"[PUSH ERROR] No se pudo inicializar la clave VAPID: {e}")
+        return
+
     claims = {"sub": VAPID_SUBJECT}
 
     payload = json.dumps({
@@ -107,7 +107,7 @@ def _send_push_worker(role: Union[str, List[str], None], title: str, body: str, 
         print(f"[PUSH] Total dispositivos encontrados en DB: {len(subscriptions)}")
 
         if not subscriptions:
-            print(f"[PUSH AVISO] No hay ningun dispositivo suscrito para roles={role}. Verifica si el usuario activo notificaciones.")
+            print(f"[PUSH AVISO] No hay ningun dispositivo suscrito para roles={role}.")
             return
 
         for sub in subscriptions:
@@ -120,15 +120,16 @@ def _send_push_worker(role: Union[str, List[str], None], title: str, body: str, 
             }
 
             try:
+                # ⭐ Pasamos la instancia vapid_obj directamente para evitar el error de deserialización de string
                 webpush(
                     subscription_info=sub_info,
                     data=payload,
-                    vapid_private_key=private_pem,
+                    vapid_private_key=vapid_obj,
                     vapid_claims=claims,
                     ttl=86400  # 24 horas si el dispositivo está apagado
                 )
                 sent_count += 1
-                print(f"[PUSH EXITO] Enviado correctamente al dispositivo [rol: {sub.role}]")
+                print(f"[PUSH EXITO] Notificacion enviada correctamente al dispositivo [rol: {sub.role}]")
             except WebPushException as ex:
                 status_code = getattr(ex.response, "status_code", None)
                 print(f"[PUSH ERROR WebPush] status={status_code}, error={ex}")
@@ -148,7 +149,7 @@ def _send_push_worker(role: Union[str, List[str], None], title: str, body: str, 
                 print(f"[PUSH] Se eliminaron {len(dead_ids)} suscripciones push vencidas.")
             except Exception as e:
                 db.rollback()
-                logger.error(f"Error borrando suscripciones vencidas: {e}")
+                print(f"[PUSH ERROR] Error borrando suscripciones vencidas: {e}")
 
         print(f"[PUSH FINALIZADO] Enviado con exito a {sent_count}/{len(subscriptions)} dispositivo(s).")
 
