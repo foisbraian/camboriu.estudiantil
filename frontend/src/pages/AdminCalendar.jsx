@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import TimelineCalendar from "../components/TimelineCalendar";
 import MobileDayView from "../components/MobileDayView";
 import api from "../api";
@@ -9,6 +10,26 @@ const MESES = [
 ];
 
 export default function AdminCalendar() {
+  const [searchParams] = useSearchParams();
+  const fechaParam = searchParams.get("fecha") || searchParams.get("date");
+
+  // Parsear fecha del parámetro URL (si proviene de notificación push o enlace directo)
+  const targetDate = useMemo(() => {
+    if (!fechaParam) return null;
+    const clean = fechaParam.trim();
+    const parts = clean.split("-");
+    if (parts.length === 3) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const d = parseInt(parts[2], 10);
+      if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+        return new Date(y, m, d, 0, 0, 0);
+      }
+    }
+    const parsed = new Date(clean);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  }, [fechaParam]);
+
   const [resources, setResources] = useState([]);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,12 +43,35 @@ export default function AdminCalendar() {
   }, []);
 
   const now = new Date();
-  const [mesSeleccionado, setMesSeleccionado] = useState(now.getMonth());
-  const [anioSeleccionado, setAnioSeleccionado] = useState(now.getFullYear());
+  const [mesSeleccionado, setMesSeleccionado] = useState(() => targetDate ? targetDate.getMonth() : now.getMonth());
+  const [anioSeleccionado, setAnioSeleccionado] = useState(() => targetDate ? targetDate.getFullYear() : now.getFullYear());
   const [filtroAlcohol, setFiltroAlcohol] = useState("global");
   const [filtroEmpresa, setFiltroEmpresa] = useState("todas");
   const [showFiltros, setShowFiltros] = useState(true);
-  const aniosDisponibles = Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i);
+
+  const aniosDisponibles = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const list = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+    if (anioSeleccionado && !list.includes(anioSeleccionado)) {
+      list.push(anioSeleccionado);
+      list.sort((a, b) => a - b);
+    }
+    return list;
+  }, [anioSeleccionado]);
+
+  // Si cambia la fecha del parámetro URL (por ejemplo al tocar una notificación), navegar al mes y día
+  useEffect(() => {
+    if (targetDate) {
+      const m = targetDate.getMonth();
+      const y = targetDate.getFullYear();
+      setMesSeleccionado(m);
+      setAnioSeleccionado(y);
+      if (calendarApi) {
+        calendarApi.navegarAMes(new Date(y, m, 1));
+        calendarApi.irAFecha(targetDate);
+      }
+    }
+  }, [targetDate, calendarApi]);
 
   const navegarAlMes = (mes, anio) => {
     setMesSeleccionado(mes);
@@ -334,7 +378,12 @@ export default function AdminCalendar() {
       )}
 
       {isMobile ? (
-        <MobileDayView resources={filteredResources} events={events} loading={loading} />
+        <MobileDayView 
+          resources={filteredResources} 
+          events={events} 
+          loading={loading} 
+          initialDate={targetDate}
+        />
       ) : (
         <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
           <div id="print-title" style={{ display: "none" }}>
@@ -349,6 +398,7 @@ export default function AdminCalendar() {
             events={events}
             readOnly={readOnly}
             onRecargar={cargar}
+            targetDate={targetDate}
           />
         </div>
       )}

@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 
 const DAY_NAMES = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 const SHORT_MONTHS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
@@ -14,11 +14,20 @@ function formatHuman(date) {
 }
 
 function iso(date) {
-  return date.toISOString().slice(0, 10);
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
-export default function MobileDayView({ resources, events, loading }) {
-  const [currentDate, setCurrentDate] = useState(() => today());
+export default function MobileDayView({ resources, events, loading, initialDate = null }) {
+  const [currentDate, setCurrentDate] = useState(() => initialDate || today());
+
+  useEffect(() => {
+    if (initialDate && !isNaN(initialDate.getTime())) {
+      setCurrentDate(initialDate);
+    }
+  }, [initialDate]);
   const currentISO = iso(currentDate);
   const currentMonthKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
 
@@ -37,8 +46,10 @@ export default function MobileDayView({ resources, events, loading }) {
   const matchesCurrentDate = useCallback(
     (value) => {
       if (!value) return false;
-      const raw = value instanceof Date ? value.toISOString() : String(value);
-      return raw.slice(0, 10) === currentISO;
+      if (value instanceof Date) {
+        return iso(value) === currentISO;
+      }
+      return String(value).slice(0, 10) === currentISO;
     },
     [currentISO]
   );

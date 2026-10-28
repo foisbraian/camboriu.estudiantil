@@ -1,4 +1,4 @@
-from notifications_service import notify_role
+from notifications_service import notify_role, format_fecha_humana, format_fecha_iso
 """Rutas del calendario."""
 # pyright: reportGeneralTypeIssues=false
 
@@ -1369,9 +1369,17 @@ def editar_fecha_evento(fecha_evento_id: int, body: EditarFechaEventoBody, db: S
         raise HTTPException(404, "FechaEvento no encontrada")
     f = cast(Any, f_obj)
 
-    # Actualizar campos
+    # Guardar valores previos para la notificación y validación
+    antigua_fecha = f.fecha
+    antiguo_horario = f.horario
+    antigua_tematica_id = f.tematica_id
     antiguo_con_alcohol = f.con_alcohol
     antiguo_es_mix = getattr(f, 'es_mix_evento', False)
+    antiguo_es_privado = getattr(f, 'es_privado', False)
+    antigua_empresa_privada_id = getattr(f, 'empresa_privada_id', None)
+    antiguo_evento_nom = f.evento.nombre if f.evento else "Evento"
+
+    # Actualizar campos
     setattr(f, "evento_id", body.evento_id)
     if body.fecha_nueva:
         setattr(f, "fecha", body.fecha_nueva)
@@ -1419,20 +1427,54 @@ def editar_fecha_evento(fecha_evento_id: int, body: EditarFechaEventoBody, db: S
 
     db.commit()
 
+    db.refresh(f)
     try:
-        evento_nom = f.evento.nombre if f.evento else "Evento"
+        nueva_fecha = f.fecha
+        nuevo_evento_nom = f.evento.nombre if f.evento else antiguo_evento_nom
+
+        antigua_fecha_str = format_fecha_humana(antigua_fecha)
+        nueva_fecha_str = format_fecha_humana(nueva_fecha)
+        nueva_fecha_iso = format_fecha_iso(nueva_fecha)
+
+        cambio_de_fecha = (antigua_fecha_str != nueva_fecha_str)
+
         cambios = []
-        if body.fecha_nueva and str(body.fecha_nueva) != str(f.fecha):
-            cambios.append(f"Nueva fecha: {body.fecha_nueva}")
-        if body.horario:
-            cambios.append(f"Horario: {body.horario}")
+        if cambio_de_fecha:
+            cambios.append(f"Nueva fecha: {nueva_fecha_str} (antes {antigua_fecha_str})")
+        if (body.horario or "").strip() != (antiguo_horario or "").strip():
+            cambios.append(f"Horario: {body.horario or 'Sin horario'}")
+        if body.tematica_id != antigua_tematica_id:
+            nueva_tematica = f.tematica.nombre if f.tematica else "Sin temática"
+            cambios.append(f"Temática: {nueva_tematica}")
+        if (body.con_alcohol != antiguo_con_alcohol) or (getattr(body, "es_mix_evento", False) != antiguo_es_mix):
+            if getattr(body, "es_mix_evento", False):
+                cambios.append("Mix (pulsera)")
+            elif body.con_alcohol:
+                cambios.append("Con alcohol")
+            else:
+                cambios.append("Sin alcohol")
+        if body.es_privado != antiguo_es_privado or body.empresa_privada_id != antigua_empresa_privada_id:
+            if body.es_privado:
+                emp_nom = f.empresa_privada.nombre if f.empresa_privada else "Empresa"
+                cambios.append(f"Privado ({emp_nom})")
+            else:
+                cambios.append("Público")
+
         if not cambios:
-            cambios.append("Se modificaron detalles del evento")
+            cambios.append("Se actualizaron detalles")
+
+        if cambio_de_fecha:
+            title = f"✏️ Cambio de fecha: {nuevo_evento_nom}"
+            body_text = f"{nuevo_evento_nom}: " + " | ".join(cambios)
+        else:
+            title = f"✏️ Modificación: {nuevo_evento_nom} ({nueva_fecha_str})"
+            body_text = f"Día {nueva_fecha_str}: " + " | ".join(cambios)
+
         notify_role(
             role=["equipo", "admin"],
-            title=f"Modificación: {evento_nom}",
-            body=" | ".join(cambios),
-            url="/calendario"
+            title=title,
+            body=body_text,
+            url=f"/calendario?fecha={nueva_fecha_iso}"
         )
     except Exception as e:
         print(f"Error notificando: {e}")
@@ -1455,7 +1497,8 @@ def eliminar_fecha_evento_global(fecha_evento_id: int, db: Session = Depends(get
         db.query(models.Asignacion).filter(models.Asignacion.id.in_(asignaciones_ids)).delete(synchronize_session=False)
 
     evento_nombre = f.evento.nombre if f.evento else "Evento"
-    fecha_str = str(f.fecha)
+    fecha_str = format_fecha_humana(f.fecha)
+    fecha_iso = format_fecha_iso(f.fecha)
 
     db.delete(f)
     db.commit()
@@ -1463,9 +1506,9 @@ def eliminar_fecha_evento_global(fecha_evento_id: int, db: Session = Depends(get
     try:
         notify_role(
             role=["equipo", "admin"],
-            title=f"Fecha cancelada: {evento_nombre}",
-            body=f"Se canceló la fecha del {fecha_str}.",
-            url="/calendario"
+            title=f"❌ Fecha cancelada: {evento_nombre} ({fecha_str})",
+            body=f"Se canceló la fecha del {fecha_str} para {evento_nombre}.",
+            url=f"/calendario?fecha={fecha_iso}"
         )
     except Exception as e:
         print(f"Error notificando: {e}")

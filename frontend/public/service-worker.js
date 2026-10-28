@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 
 // This service worker is required for PWA installability
-const CACHE_NAME = 'camboriu-cache-v3';
+const CACHE_NAME = 'camboriu-cache-v4';
 const urlsToCache = [
     '/',
     '/index.html',
@@ -110,13 +110,16 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
-    const targetUrl = event.notification.data?.url || '/calendario';
+    const rawUrl = event.notification.data?.url || '/calendario';
+    const targetUrl = new URL(rawUrl, self.location.origin).href;
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
             for (const client of clientList) {
-                if (client.url.includes(self.location.origin) && 'focus' in client) {
-                    client.navigate(targetUrl);
+                if (client.url && client.url.startsWith(self.location.origin) && 'focus' in client) {
+                    if ('navigate' in client) {
+                        client.navigate(targetUrl);
+                    }
                     return client.focus();
                 }
             }

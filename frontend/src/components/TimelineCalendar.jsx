@@ -6,42 +6,20 @@ import api from "../api";
 import "./timeline.css";
 import AnotacionGrupoPanel from "./AnotacionGrupoPanel";
 
-export default function TimelineCalendar({ resources, events, readOnly = false, onRegisterRef, onRecargar }) {
+export default function TimelineCalendar({ resources, events, readOnly = false, onRegisterRef, onRecargar, targetDate = null }) {
   const calendarRef = useRef(null);
-  const [initialDate] = useState(() => new Date());
+  const [initialDate] = useState(() => targetDate || new Date());
 
-  // Exponer método navegarAMes al padre via callback prop
-  useEffect(() => {
-    if (onRegisterRef) {
-      onRegisterRef({
-        navegarAMes(fecha) {
-          const api = calendarRef.current?.getApi();
-          if (!api) return;
-          api.changeView("resourceTimelineMonth", fecha);
-        },
-        irAFecha(fecha) {
-          const api = calendarRef.current?.getApi();
-          if (!api) return;
-          api.gotoDate(fecha);
-        }
-      });
-    }
-  }, [onRegisterRef]);
-
-  // =========================================================
-  // STATE
-  // =========================================================
-  const [slotWidth, setSlotWidth] = useState(110);
-  const [localEvents, setLocalEvents] = useState(events);
-  const hasCenteredToday = useRef(false);
-
-  const centerToday = useCallback(() => {
+  const centerDate = useCallback((dateToCenter) => {
     const rootEl = calendarRef.current?.el;
     if (!rootEl) return false;
-    const todayISO = new Date().toLocaleDateString('en-CA');
+    const d = dateToCenter || targetDate || initialDate || new Date();
+    const dateISO = d instanceof Date
+      ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      : String(d).slice(0, 10);
     const slot =
-      rootEl.querySelector(`.fc-timeline-slot[data-date="${todayISO}"]`)
-      || rootEl.querySelector(`.fc-col-header-cell[data-date="${todayISO}"]`);
+      rootEl.querySelector(`.fc-timeline-slot[data-date="${dateISO}"]`)
+      || rootEl.querySelector(`.fc-col-header-cell[data-date="${dateISO}"]`);
     const scroller =
       rootEl.querySelector(".fc-scroller-harness .fc-scroller")
       || rootEl.querySelector(".fc-timeline-body .fc-scroller");
@@ -55,20 +33,48 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
       return true;
     }
     return false;
-  }, []);
+  }, [initialDate, targetDate]);
+
+  // Exponer método navegarAMes y irAFecha al padre via callback prop
+  useEffect(() => {
+    if (onRegisterRef) {
+      onRegisterRef({
+        navegarAMes(fecha) {
+          const api = calendarRef.current?.getApi();
+          if (!api) return;
+          api.changeView("resourceTimelineMonth", fecha);
+        },
+        irAFecha(fecha) {
+          const api = calendarRef.current?.getApi();
+          if (!api) return;
+          api.gotoDate(fecha);
+          setTimeout(() => centerDate(fecha), 80);
+          setTimeout(() => centerDate(fecha), 250);
+        }
+      });
+    }
+  }, [onRegisterRef, centerDate]);
+
+  // =========================================================
+  // STATE
+  // =========================================================
+  const [slotWidth, setSlotWidth] = useState(110);
+  const [localEvents, setLocalEvents] = useState(events);
+  const hasCenteredInitial = useRef(false);
 
   useEffect(() => {
-    if (hasCenteredToday.current) return;
+    if (hasCenteredInitial.current) return;
     const api = calendarRef.current?.getApi();
     if (!api) return;
-    api.gotoDate(initialDate);
+    const dateToCenter = targetDate || initialDate;
+    api.gotoDate(dateToCenter);
 
     let attempts = 0;
     const maxAttempts = 6;
 
     const tryCenter = () => {
-      if (centerToday()) {
-        hasCenteredToday.current = true;
+      if (centerDate(dateToCenter)) {
+        hasCenteredInitial.current = true;
         return;
       }
       if (attempts >= maxAttempts) return;
@@ -80,7 +86,18 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
     return () => {
       cancelAnimationFrame(raf);
     };
-  }, [centerToday, events, initialDate]);
+  }, [centerDate, events, initialDate, targetDate]);
+
+  // Si cambia targetDate dinámicamente
+  useEffect(() => {
+    if (!targetDate) return;
+    const api = calendarRef.current?.getApi();
+    if (api) {
+      api.gotoDate(targetDate);
+      setTimeout(() => centerDate(targetDate), 100);
+      setTimeout(() => centerDate(targetDate), 300);
+    }
+  }, [targetDate, centerDate]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);

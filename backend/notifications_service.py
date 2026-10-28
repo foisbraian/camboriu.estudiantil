@@ -71,6 +71,32 @@ def get_vapid_public_key() -> str:
     return b64urlencode(pub_bytes)
 
 
+def format_fecha_humana(fecha_val) -> str:
+    """Retorna fecha en formato legible DD/MM/YYYY."""
+    if not fecha_val:
+        return ""
+    if hasattr(fecha_val, 'strftime'):
+        return fecha_val.strftime('%d/%m/%Y')
+    s = str(fecha_val).strip()
+    parts = s.split("-")
+    if len(parts) == 3 and len(parts[0]) == 4:
+        return f"{parts[2]}/{parts[1]}/{parts[0]}"
+    return s
+
+
+def format_fecha_iso(fecha_val) -> str:
+    """Retorna fecha en formato ISO YYYY-MM-DD para URLs y parámetros."""
+    if not fecha_val:
+        return ""
+    if hasattr(fecha_val, 'strftime'):
+        return fecha_val.strftime('%Y-%m-%d')
+    s = str(fecha_val).strip()
+    parts = s.split("/")
+    if len(parts) == 3 and len(parts[2]) == 4:
+        return f"{parts[2]}-{parts[1]}-{parts[0]}"
+    return s
+
+
 def _send_push_worker(role: Union[str, List[str], None], title: str, body: str, url: str = "/calendario"):
     """
     Ejecutado en un hilo secundario para no bloquear la respuesta HTTP.

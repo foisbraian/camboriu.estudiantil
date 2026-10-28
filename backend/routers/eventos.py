@@ -1,4 +1,4 @@
-from notifications_service import notify_role
+from notifications_service import notify_role, format_fecha_humana, format_fecha_iso
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
@@ -47,12 +47,26 @@ def crear_fecha_evento(data: schemas.FechaEventoCreate, db: Session = Depends(ge
     db.refresh(f)
     try:
         evento_nom = f.evento.nombre if f.evento else "Evento"
-        fecha_str = f.fecha.strftime('%d/%m/%Y') if hasattr(f.fecha, 'strftime') else str(f.fecha)
+        fecha_str = format_fecha_humana(f.fecha)
+        fecha_iso = format_fecha_iso(f.fecha)
+
+        detalles = []
+        if f.horario:
+            detalles.append(f"Horario: {f.horario}")
+        if f.tematica:
+            detalles.append(f"Temática: {f.tematica.nombre}")
+        if getattr(f, "es_mix_evento", False):
+            detalles.append("Mix (pulsera)")
+        elif f.con_alcohol:
+            detalles.append("Con alcohol")
+
+        detalle_str = f" ({', '.join(detalles)})" if detalles else ""
+
         notify_role(
             role=["equipo", "admin"],
-            title=f"Nueva fecha: {evento_nom}",
-            body=f"Se agregó el día {fecha_str} al calendario.",
-            url="/calendario"
+            title=f"📅 Nueva fecha: {evento_nom} ({fecha_str})",
+            body=f"Se agregó {evento_nom} para el día {fecha_str} al calendario{detalle_str}.",
+            url=f"/calendario?fecha={fecha_iso}"
         )
     except Exception as e:
         print(f"Error notificando: {e}")
@@ -70,15 +84,16 @@ def eliminar_fecha_evento(fecha_evento_id: int, db: Session = Depends(get_db)):
         raise HTTPException(404)
 
     evento_nom = f.evento.nombre if f.evento else "Evento"
-    fecha_str = str(f.fecha)
+    fecha_str = format_fecha_humana(f.fecha)
+    fecha_iso = format_fecha_iso(f.fecha)
     db.delete(f)
     db.commit()
     try:
         notify_role(
             role=["equipo", "admin"],
-            title=f"Fecha cancelada: {evento_nom}",
-            body=f"Se dio de baja la fecha del {fecha_str}.",
-            url="/calendario"
+            title=f"❌ Fecha cancelada: {evento_nom} ({fecha_str})",
+            body=f"Se dio de baja la fecha del {fecha_str} para {evento_nom}.",
+            url=f"/calendario?fecha={fecha_iso}"
         )
     except Exception as e:
         print(f"Error notificando: {e}")
