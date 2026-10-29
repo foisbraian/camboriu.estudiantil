@@ -43,6 +43,7 @@ def editar_grupo(grupo_id: int, data: schemas.GrupoUpdate, db: Session = Depends
     grupo.fecha_salida = data.fecha_salida
     
     grupo.discos_compradas = data.discos_compradas
+    grupo.discos_opcionales = data.discos_opcionales
     grupo.permite_alcohol = data.permite_alcohol
     grupo.es_mix_grupo = data.es_mix_grupo
     
@@ -87,6 +88,7 @@ def editar_grupo(grupo_id: int, data: schemas.GrupoUpdate, db: Session = Depends
     grupo.pagantes_finales_sunset = data.pagantes_finales_sunset
     grupo.pagantes_finales_quinta_comida = data.pagantes_finales_quinta_comida
     grupo.pagantes_finales_multiparque = data.pagantes_finales_multiparque
+    grupo.pagantes_finales_disco_opcional = data.pagantes_finales_disco_opcional
 
     db.commit()
     db.refresh(grupo)

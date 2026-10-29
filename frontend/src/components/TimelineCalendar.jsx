@@ -113,6 +113,9 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
   const [empresas, setEmpresas] = useState([]);
   const [empresaObjetivo, setEmpresaObjetivo] = useState(null);
   const [horario, setHorario] = useState("");
+  const [show, setShow] = useState("");
+  const [animador, setAnimador] = useState("");
+  const [esOpcionalAsignar, setEsOpcionalAsignar] = useState(false);
 
   const [editando, setEditando] = useState(null);
   const [grupoAsignando, setGrupoAsignando] = useState(null);
@@ -400,6 +403,9 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
     setEsPrivado(false);
     setEmpresaPrivadaId("");
     setHorario("");
+    setShow("");
+    setAnimador("");
+    setEsOpcionalAsignar(false);
 
     // Para crear global, mostramos TODOS los eventos posibles para elegir
     const res = await api.get("/eventos/");
@@ -434,7 +440,8 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
         id: props.asignacion_id,
         tipo: "asignacion",
         evento_id_num: props.evento_id_num, // Capturamos el ID real para borrar
-        nombre: props.nombre_evento
+        nombre: props.nombre_evento,
+        es_opcional: Boolean(props.es_opcional)
       });
 
       setEventoSeleccionado("");
@@ -463,6 +470,8 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
       setEsPrivado(Boolean(props.es_privado));
       setEmpresaPrivadaId(props.empresa_privada_id ? String(props.empresa_privada_id) : "");
       setHorario(props.horario || "");
+      setShow(props.show || "");
+      setAnimador(props.animador || "");
 
       // CRITICAL FIX: Do NOT spread info.event directly. It's a complex object.
       // Extract what we need.
@@ -536,6 +545,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
     setEditando(null); // Modo "crear asignación"
     setEsPrivado(false);
     setEmpresaPrivadaId("");
+    setEsOpcionalAsignar(false);
 
     setModalOpen(true);
   };
@@ -558,7 +568,8 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
         await api.post(`/calendario/grupo/${grupoAsignando}/asignar`, {
           evento_id: seleccionadoObj ? seleccionadoObj.id : Number(eventoSeleccionado),
           fecha: selectedDate,
-          fecha_evento_id: seleccionadoObj ? seleccionadoObj.fecha_evento_id : null
+          fecha_evento_id: seleccionadoObj ? seleccionadoObj.fecha_evento_id : null,
+          es_opcional: Boolean(esOpcionalAsignar)
         });
       }
 
@@ -573,6 +584,8 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           es_privado: esPrivado,
           empresa_privada_id: esPrivado ? Number(empresaPrivadaId) : null,
           horario: horario || null,
+          show: show.trim() || null,
+          animador: animador.trim() || null,
         });
       }
 
@@ -587,6 +600,8 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           es_privado: esPrivado,
           empresa_privada_id: esPrivado ? Number(empresaPrivadaId) : null,
           horario: horario || null,
+          show: show.trim() || null,
+          animador: animador.trim() || null,
         });
       }
 
@@ -682,6 +697,9 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
     setGrupoAsignando(null);
     setEsPrivado(false);
     setEmpresaPrivadaId("");
+    setEsOpcionalAsignar(false);
+    setShow("");
+    setAnimador("");
     setHorariosEmpresa([]);
     setFechaEventoIdActual(null);
     refresh();
@@ -875,13 +893,25 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
               };
             }
 
+            if (props.es_opcional) {
+              const lines = title.split('\n');
+              return {
+                html: `<div style="padding: 2px 4px; white-space: normal; line-height: 1.2;">
+                  <div style="font-weight: bold;">${lines[0]}</div>
+                  <div style="font-size: 0.72em; font-weight: 800; color: #78350f; background: #fef08a; border: 1px solid #facc15; border-radius: 3px; padding: 1px 5px; display: inline-block; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.02em;">
+                    ⭐ Opcional vendida
+                  </div>
+                </div>`
+              };
+            }
+
             // Si el título contiene salto de línea, renderizar con HTML
             if (title.includes('\n')) {
               const lines = title.split('\n');
               return {
                 html: `<div style="padding: 2px 4px; white-space: normal; line-height: 1.2;">
                   <div style="font-weight: bold;">${lines[0]}</div>
-                  ${lines[1] ? `<div style="font-size: 0.9em; margin-top: 2px;">${lines[1]}</div>` : ''}
+                  ${lines.slice(1).map(l => `<div style="font-size: 0.85em; margin-top: 2px;">${l}</div>`).join('')}
                 </div>`
               };
             }
@@ -975,7 +1005,35 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
             {editando?.tipo === "asignacion" ? (
               <div style={{ margin: "10px 0" }}>
                 <p><b>Evento:</b> {editando.nombre}</p>
-                <p>Para eliminar esta asignación, pulsa el botón rojo.</p>
+                {/* Botón toggle opcional */}
+                <div style={{ margin: "12px 0", padding: "10px", background: "#fef9c3", borderRadius: 8, border: "1px solid #fde68a" }}>
+                  <p style={{ margin: "0 0 8px 0", fontWeight: 600, color: "#92400e", fontSize: "0.9rem" }}>
+                    🌟 Compra opcional
+                  </p>
+                  <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: "0.88rem" }}>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(editando.es_opcional)}
+                      onChange={async (e) => {
+                        const newVal = e.target.checked;
+                        try {
+                          await api.put(`/calendario/asignacion/${editando.id}`, { es_opcional: newVal });
+                          setEditando(prev => ({ ...prev, es_opcional: newVal }));
+                          refresh();
+                        } catch {
+                          alert("Error al actualizar");
+                        }
+                      }}
+                    />
+                    Opcional vendida (precio diferente al incluido)
+                  </label>
+                  {editando.es_opcional && (
+                    <p style={{ margin: "6px 0 0", fontSize: "0.8rem", color: "#78350f" }}>
+                      ✅ Marcada como opcional. Aparecerá en finanzas con precio de "Disco Opcional".
+                    </p>
+                  )}
+                </div>
+                <p style={{ fontSize: "0.85rem", color: "#64748b" }}>Para eliminar esta asignación, pulsá el botón rojo.</p>
               </div>
             ) : (
               <>
@@ -1082,6 +1140,45 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
                         </div>
                       )}
 
+                      {esDisco && (
+                        <div style={{ marginTop: 12, padding: "10px 12px", background: "#f8fafc", borderRadius: 8, border: "1px dashed #94a3b8" }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                            <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "#1e293b" }}>
+                              🔒 Anotaciones Internas (Admin y Equipo)
+                            </span>
+                            <span style={{ fontSize: "0.72rem", background: "#e2e8f0", color: "#475569", padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>
+                              No visible para empresas
+                            </span>
+                          </div>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                            <div>
+                              <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
+                                🎤 Show:
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="ej: Robot LED / Banda"
+                                value={show}
+                                onChange={(e) => setShow(e.target.value)}
+                                style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+                              />
+                            </div>
+                            <div>
+                              <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
+                                🎧 Animador / DJ:
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="ej: Animador Leo"
+                                value={animador}
+                                onChange={(e) => setAnimador(e.target.value)}
+                                style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       <div style={{ marginTop: 10 }}>
                         <label style={{ display: "block", marginBottom: 5 }}>
                           Horario / Turno (opcional, ej: 18:00hs):
@@ -1130,6 +1227,22 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
                     </>
                   );
                 })()}
+
+                {grupoAsignando && (
+                  <div style={{ marginTop: 12, padding: "10px", background: "#fef9c3", borderRadius: 8, border: "1px solid #fde68a" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: "0.88rem", fontWeight: 700, color: "#854d0e" }}>
+                      <input
+                        type="checkbox"
+                        checked={esOpcionalAsignar}
+                        onChange={(e) => setEsOpcionalAsignar(e.target.checked)}
+                      />
+                      🌟 Marcar como Opcional vendida
+                    </label>
+                    <small style={{ display: "block", marginTop: 4, color: "#a16207", fontSize: "0.78rem" }}>
+                      Tendrá valor diferenciado en Finanzas y dirá "Opcional vendida" en el diagrama.
+                    </small>
+                  </div>
+                )}
               </>
             )}
 

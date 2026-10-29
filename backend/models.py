@@ -63,6 +63,7 @@ class Grupo(Base):
 
     # discos
     discos_compradas = Column(Integer, default=0)
+    discos_opcionales = Column(Integer, default=0)
     permite_alcohol = Column(Boolean, default=False)
     es_mix_grupo = Column(Boolean, default=False)  # Mix (pulsera): acepta con y sin alcohol
 
@@ -113,6 +114,7 @@ class Grupo(Base):
     pagantes_finales_multiparque = Column(Integer, nullable=True)
     pagantes_finales_campamento_p = Column(Integer, nullable=True) # alias/extra if needed but we use pagantes_finales_campamento
     pagantes_finales_zacarias_p = Column(Integer, nullable=True)
+    pagantes_finales_disco_opcional = Column(Integer, nullable=True)
 
     empresa = relationship("Empresa", back_populates="grupos")
     asignaciones = relationship("Asignacion", back_populates="grupo")
@@ -172,6 +174,10 @@ class FechaEvento(Base):
     # temática (opcional, solo para discos)
     tematica_id = Column(Integer, ForeignKey("tematicas.id"), nullable=True)
 
+    # anotaciones internas (solo admin / equipo)
+    show = Column(String, nullable=True)
+    animador = Column(String, nullable=True)
+
     es_privado = Column(Boolean, default=False)
     empresa_privada_id = Column(Integer, ForeignKey("empresas.id"), nullable=True)
 
@@ -194,6 +200,7 @@ class Asignacion(Base):
     grupo_id = Column(Integer, ForeignKey("grupos.id", ondelete="CASCADE"))
     fecha_evento_id = Column(Integer, ForeignKey("fechas_evento.id", ondelete="CASCADE"))
     pax_asignados = Column(Integer, nullable=True)
+    es_opcional = Column(Boolean, default=False)
 
     grupo = relationship("Grupo", back_populates="asignaciones")
     fecha_evento = relationship("FechaEvento", back_populates="asignaciones")
@@ -212,6 +219,7 @@ class FinanzasEmpresa(Base):
     moneda = Column(String, default="ARS")
 
     precio_disco_individual = Column(Float, default=0)
+    precio_disco_opcional = Column(Float, default=0)
     precio_parque_individual = Column(Float, default=0)
     precio_parque_con_comida = Column(Float, default=0)
     precio_parque_sin_comida = Column(Float, default=0)

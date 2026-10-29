@@ -210,6 +210,8 @@ def _get_pagantes_finales_por_servicio(grupo, servicio_key: str):
         return grupo.pagantes_finales_quinta_comida if getattr(grupo, "pagantes_finales_quinta_comida", None) is not None else legacy
     if servicio_key == "multiparque":
         return grupo.pagantes_finales_multiparque if getattr(grupo, "pagantes_finales_multiparque", None) is not None else legacy
+    if servicio_key == "disco_opcional":
+        return getattr(grupo, "pagantes_finales_disco_opcional", None)
     return None
 
 def _aplicar_pagantes_override(pax_base: int, grupo, servicio_key: str):
@@ -259,7 +261,7 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
             })
         else:
             # Precio individual por cada servicio
-            # Discos
+            # Discos incluidas
             if g.discos_compradas > 0:
                 pax_cobrar = calcular_pax_cobrar(g, config.disco_liberados_ratio, config.disco_padres_gratis, config.disco_guias_gratis)
                 pax_cobrar = _aplicar_pagantes_override(pax_cobrar, g, "disco")
@@ -274,6 +276,28 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
                     "cantidad": g.discos_compradas,
                     "pax": pax_cobrar,
                     "subtotal": costo_discos,
+                    "pax_original": total_pax_grupo,
+                    "estudiantes": g.cantidad_estudiantes or 0,
+                    "padres": g.cantidad_padres or 0,
+                    "guias": g.cantidad_guias or 0
+                })
+
+            # Discos opcionales (compra extra, precio diferente)
+            discos_opcionales = getattr(g, "discos_opcionales", 0) or 0
+            if discos_opcionales > 0:
+                pax_cobrar_opc = calcular_pax_cobrar(g, config.disco_liberados_ratio, config.disco_padres_gratis, config.disco_guias_gratis)
+                pax_cobrar_opc = _aplicar_pagantes_override(pax_cobrar_opc, g, "disco_opcional")
+                p_disco_opc = obtener_precio_servicio_grupo(g, "disco_opcional", getattr(config, "precio_disco_opcional", 0) or 0, config)
+                costo_discos_opc = pax_cobrar_opc * p_disco_opc * discos_opcionales
+                costo_grupo += costo_discos_opc
+                servicios_detalle.append({
+                    "servicio": "Discotecas Opcionales",
+                    "servicio_key": "disco_opcional",
+                    "descripcion": f"{discos_opcionales} unidades (opcional vendida)",
+                    "precio_u": p_disco_opc,
+                    "cantidad": discos_opcionales,
+                    "pax": pax_cobrar_opc,
+                    "subtotal": costo_discos_opc,
                     "pax_original": total_pax_grupo,
                     "estudiantes": g.cantidad_estudiantes or 0,
                     "padres": g.cantidad_padres or 0,
@@ -489,6 +513,7 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
                 "sunset": _get_pagantes_finales_por_servicio(g, "sunset"),
                 "quinta_comida": _get_pagantes_finales_por_servicio(g, "quinta_comida"),
                 "multiparque": _get_pagantes_finales_por_servicio(g, "multiparque"),
+                "disco_opcional": _get_pagantes_finales_por_servicio(g, "disco_opcional"),
             },
             "estudiantes": g.cantidad_estudiantes or 0,
             "padres": g.cantidad_padres or 0,
@@ -556,7 +581,7 @@ def get_asignaciones_pagadas(empresa_id: int, db: Session):
                 # Cuántos eventos combo tiene asignados este grupo
                 num_combo_eventos = sum(
                     1 for a2 in asigs_grupo
-                    if a2.fecha_evento and a2.fecha_evento.evento and a2.fecha_evento.evento.tipo in combo_tipos
+                    if a2.fecha_evento and a2.fecha_evento.evento and a2.fecha_evento.evento.tipo in combo_tipos and not getattr(a2, "es_opcional", False)
                 )
                 combo_costo_por_evento = (total_costo_combo / num_combo_eventos) if num_combo_eventos > 0 else total_costo_combo
             # ─────────────────────────────────────────────────────────────────────────
@@ -568,9 +593,15 @@ def get_asignaciones_pagadas(empresa_id: int, db: Session):
                 
                 tipo = a.fecha_evento.evento.tipo
                 costo = 0
-                
+
+                # Si es opcional vendida, costo según precio_disco_opcional
+                if getattr(a, "es_opcional", False):
+                    pax_opc = calcular_pax_cobrar(g, config.disco_liberados_ratio, config.disco_padres_gratis, config.disco_guias_gratis)
+                    pax_opc = _aplicar_pagantes_override(pax_opc, g, "disco_opcional")
+                    p_opc = obtener_precio_servicio_grupo(g, "disco_opcional", getattr(config, "precio_disco_opcional", 0) or 0, config)
+                    costo = pax_opc * p_opc
                 # Resolucion de combo
-                if config.es_combo:
+                elif config.es_combo:
                     if tipo in combo_tipos:
                         # Evento incluido en el combo → costo proporcional
                         costo = combo_costo_por_evento
@@ -739,6 +770,7 @@ def get_asignaciones_grupo(grupo_id: int, db: Session = Depends(get_db)):
         "servicio": a.fecha_evento.evento.nombre if a.fecha_evento and a.fecha_evento.evento else "Sin servicio",
         "tipo": a.fecha_evento.evento.tipo if a.fecha_evento and a.fecha_evento.evento else "N/A",
         "pax": a.pax_asignados if a.pax_asignados is not None else (a.grupo.cantidad_pax if a.grupo else 0),
+        "es_opcional": getattr(a, "es_opcional", False),
         "habilitado": habilitados.get(a.id, False),
         "voucher_usado": db.query(models.Voucher).filter(models.Voucher.asignacion_id == a.id).first().usado if db.query(models.Voucher).filter(models.Voucher.asignacion_id == a.id).first() else False,
         "voucher_fecha_uso": db.query(models.Voucher).filter(models.Voucher.asignacion_id == a.id).first().fecha_uso if db.query(models.Voucher).filter(models.Voucher.asignacion_id == a.id).first() else None
@@ -772,6 +804,7 @@ def get_asignaciones_empresa(empresa_id: int, db: Session = Depends(get_db)):
                 "servicio": a.fecha_evento.evento.nombre if a.fecha_evento and a.fecha_evento.evento else "Sin servicio",
                 "tipo": a.fecha_evento.evento.tipo if a.fecha_evento and a.fecha_evento.evento else "N/A",
                 "pax": a.pax_asignados if a.pax_asignados is not None else (grupo.cantidad_pax or 0),
+                "es_opcional": getattr(a, "es_opcional", False),
                 "habilitado": habilitados.get(a.id, False),
                 "voucher_usado": v.usado if v else False,
                 "voucher_fecha_uso": v.fecha_uso if v else None,
@@ -903,7 +936,7 @@ def actualizar_pagantes_finales(grupo_id: int, body: schemas.GrupoPagantesUpdate
     servicio = body.servicio
     if servicio is not None:
         servicio = servicio.lower()
-    valid_servicios = {"disco", "parque", "campamento", "zacarias", "pool", "cena", "hielo", "combo", "surf", "unipraias", "beto", "barco", "cristo", "sunset", "quinta_comida", "multiparque"}
+    valid_servicios = {"disco", "parque", "campamento", "zacarias", "pool", "cena", "hielo", "combo", "surf", "unipraias", "beto", "barco", "cristo", "sunset", "quinta_comida", "multiparque", "disco_opcional"}
     if servicio and servicio not in valid_servicios:
         raise HTTPException(400, "Servicio inválido")
     if pagantes is not None:
@@ -948,6 +981,8 @@ def actualizar_pagantes_finales(grupo_id: int, body: schemas.GrupoPagantesUpdate
             grupo.pagantes_finales_quinta_comida = pagantes
         elif servicio == "multiparque":
             grupo.pagantes_finales_multiparque = pagantes
+        elif servicio == "disco_opcional":
+            grupo.pagantes_finales_disco_opcional = pagantes
     db.commit()
     db.refresh(grupo)
     return {"ok": True, "pagantes_finales": pagantes, "servicio": servicio}

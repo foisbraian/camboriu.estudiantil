@@ -35,6 +35,7 @@ class GrupoCreate(BaseModel):
     fecha_salida: date
 
     discos_compradas: int
+    discos_opcionales: int = 0
     permite_alcohol: bool
     es_mix_grupo: bool = False  # Mix (pulsera): acepta grupos con y sin alcohol
 
@@ -79,6 +80,7 @@ class GrupoCreate(BaseModel):
     pagantes_finales_sunset: int | None = None
     pagantes_finales_quinta_comida: int | None = None
     pagantes_finales_multiparque: int | None = None
+    pagantes_finales_disco_opcional: int | None = None
 
     @model_validator(mode="after")
     def fecha_salida_posterior(self):
@@ -135,6 +137,8 @@ class FechaEventoCreate(BaseModel):
     con_alcohol: bool = False
     es_mix_evento: bool = False  # Mix (pulsera)
     tematica_id: Union[int, None] = None  # opcional, solo para discos
+    show: Union[str, None] = None          # notas internas admin/equipo
+    animador: Union[str, None] = None      # notas internas admin/equipo
     es_privado: bool = False
     empresa_privada_id: Union[int, None] = None
 
@@ -152,6 +156,7 @@ class FinanzasEmpresaCreate(BaseModel):
     empresa_id: int
     moneda: str = "ARS"
     precio_disco_individual: float = 0
+    precio_disco_opcional: float = 0
     precio_parque_individual: float = 0
     precio_parque_con_comida: float = 0
     precio_parque_sin_comida: float = 0

@@ -33,6 +33,7 @@ export default function FinanzasDetalle() {
         "pool_con_comida": "Pool con Comida",
         "pool_sin_comida": "Pool sin Comida",
         "disco": "Discoteca",
+        "disco_opcional": "Noche Opcional (Discoteca)",
         "cena": "Cena de velas",
         "hielo": "Bar de hielo",
         "surf": "Surf",
@@ -55,6 +56,7 @@ export default function FinanzasDetalle() {
     const [configForm, setConfigForm] = useState({
         moneda: "USD",
         precio_disco_individual: 0,
+        precio_disco_opcional: 0,
         precio_parque_individual: 0,
         precio_parque_con_comida: 0,
         precio_parque_sin_comida: 0,
@@ -328,6 +330,19 @@ export default function FinanzasDetalle() {
                                     />
                                     <LiberadosInputs prefix="disco" label="Disco" />
                                 </div>
+                                <div style={{ padding: 12, background: "#fef9c3", borderRadius: 8, border: "1px solid #fde68a" }}>
+                                    <p style={{ margin: "0 0 4px 0", fontSize: "0.82rem", fontWeight: 700, color: "#854d0e" }}>🌟 Precio Noche Opcional (Discoteca)</p>
+                                    <input
+                                        type="number" step="any"
+                                        value={configForm.precio_disco_opcional ?? 0}
+                                        onChange={e => setConfigForm({ ...configForm, precio_disco_opcional: Number(e.target.value) })}
+                                        style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #facc15" }}
+                                        placeholder="0"
+                                    />
+                                    <small style={{ color: "#a16207", fontSize: "0.75rem", display: "block", marginTop: 4 }}>
+                                        Precio diferenciado para las noches vendidas como compra opcional.
+                                    </small>
+                                </div>
                                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                                     <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                                     <p style={{ margin: "0 0 4px 0", fontSize: "0.8rem", color: "#64748b" }}>Precio Parque</p>
@@ -530,6 +545,19 @@ export default function FinanzasDetalle() {
                                     <label><input type="checkbox" checked={configForm.combo_multiparque || false} onChange={e => setConfigForm({ ...configForm, combo_multiparque: e.target.checked })} /> Multiparque</label>
                                 </div>
                                 <LiberadosInputs prefix="disco" label="Combo (Basado en Disco)" />
+                                <div style={{ padding: 12, background: "#fef9c3", borderRadius: 8, border: "1px solid #fde68a", marginTop: 8 }}>
+                                    <p style={{ margin: "0 0 4px 0", fontSize: "0.82rem", fontWeight: 700, color: "#854d0e" }}>🌟 Precio Noche Opcional (Discoteca Fuera de Combo)</p>
+                                    <input
+                                        type="number" step="any"
+                                        value={configForm.precio_disco_opcional ?? 0}
+                                        onChange={e => setConfigForm({ ...configForm, precio_disco_opcional: Number(e.target.value) })}
+                                        style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #facc15" }}
+                                        placeholder="0"
+                                    />
+                                    <small style={{ color: "#a16207", fontSize: "0.75rem", display: "block", marginTop: 4 }}>
+                                        Se factura aparte del combo cuando un grupo compra noches extras opcionales.
+                                    </small>
+                                </div>
                             </div>
                         )}
                         <button onClick={guardarConfig} style={{ padding: 12, background: "#1e293b", color: "white", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 700 }}>

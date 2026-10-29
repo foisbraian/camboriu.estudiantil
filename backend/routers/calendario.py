@@ -26,6 +26,11 @@ class AsignarEventoBody(BaseModel):
     evento_id: Optional[int] = None
     fecha: date
     fecha_evento_id: Optional[int] = None
+    es_opcional: bool = False
+
+
+class EditarAsignacionBody(BaseModel):
+    es_opcional: bool
 
 
 
@@ -38,6 +43,8 @@ class EditarFechaEventoBody(BaseModel):
     es_privado: bool = False
     empresa_privada_id: Optional[int] = None
     horario: Optional[str] = None
+    show: Optional[str] = None
+    animador: Optional[str] = None
 
 
 # =========================================================
@@ -145,6 +152,8 @@ def calendario(db: Session = Depends(get_db)):
                     "fechaEntrada": g.fecha_entrada,
                     "fechaSalida": g.fecha_salida,
                     "permite_alcohol": g.permite_alcohol,
+                    "discos_compradas": g.discos_compradas or 0,
+                    "discos_opcionales": getattr(g, "discos_opcionales", 0) or 0,
                     "hoteles": hoteles_por_grupo.get(g.id, []),
                 }
             })
@@ -245,6 +254,17 @@ def calendario(db: Session = Depends(get_db)):
         if f.tematica:
             titulo += f"\n{f.tematica.nombre}"
         
+        # Anotaciones internas exclusivas para admin y equipo (Show y Animador en boliches)
+        show_val = (getattr(f, "show", None) or "").strip()
+        animador_val = (getattr(f, "animador", None) or "").strip()
+        detalles_internos = []
+        if show_val:
+            detalles_internos.append(f"🎤 {show_val}")
+        if animador_val:
+            detalles_internos.append(f"🎧 {animador_val}")
+        if detalles_internos:
+            titulo += f"\n{' | '.join(detalles_internos)}"
+
         titulo_extra = ""
         if f.es_privado and f.empresa_privada:
             titulo_extra = f"\nPrivado: {f.empresa_privada.nombre}"
@@ -275,7 +295,9 @@ def calendario(db: Session = Depends(get_db)):
                 "es_privado": f.es_privado,
                 "empresa_privada_id": f.empresa_privada_id,
                 "empresa_privada_nombre": f.empresa_privada.nombre if f.empresa_privada else None,
-                "empresa_privada": f.empresa_privada.nombre if f.empresa_privada else None
+                "empresa_privada": f.empresa_privada.nombre if f.empresa_privada else None,
+                "show": getattr(f, "show", None),
+                "animador": getattr(f, "animador", None)
             }
         })
 
@@ -439,11 +461,16 @@ def calendario(db: Session = Depends(get_db)):
                         bg_color_asig = color_map.get(asignacion.fecha_evento.evento.tipo, "gray")
                         text_color_asig = "black" if bg_color_asig in ["#e0f2fe", "#f59e0b", "#fcd34d"] else "white"
 
+                        es_opc = bool(getattr(asignacion, "es_opcional", False))
+                        titulo_asig = asignacion.fecha_evento.evento.nombre
+                        if es_opc:
+                            titulo_asig += "\nOpcional vendida"
+
                         events.append({
                             "resourceId": g.id, # ID del Grupo ahora es la fila
                             "start": current_date,
                             "end": next_date,
-                            "title": asignacion.fecha_evento.evento.nombre,
+                            "title": titulo_asig,
                             "backgroundColor": bg_color_asig,
                             "borderColor": "transparent",
                             "textColor": text_color_asig,
@@ -455,7 +482,8 @@ def calendario(db: Session = Depends(get_db)):
                                 "nombre_evento": asignacion.fecha_evento.evento.nombre,
                                 "evento_id_num": asignacion.fecha_evento.evento.id,
                                 "empresa_nombre": e.nombre,
-                                "tooltip": f"Asignado: {asignacion.fecha_evento.evento.nombre}"
+                                "es_opcional": es_opc,
+                                "tooltip": f"Asignado: {asignacion.fecha_evento.evento.nombre}" + (" (Opcional vendida)" if es_opc else "")
                             }
                         })
 
@@ -942,10 +970,13 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                         pax_asig = getattr(asignacion, "pax_asignados", None)
                         pax_val = pax_asig if pax_asig is not None else g.cantidad_pax
                         tematica_nombre = asignacion.fecha_evento.tematica.nombre if asignacion.fecha_evento.tematica else ""
+                        es_opc = bool(getattr(asignacion, "es_opcional", False))
                         
                         titulo_asig = f"{asignacion.fecha_evento.evento.nombre} ({pax_val} PAX)"
                         if tematica_nombre:
                             titulo_asig += f"\n{tematica_nombre}"
+                        if es_opc:
+                            titulo_asig += "\nOpcional vendida"
 
                         events.append({
                             "resourceId": g.id, 
@@ -957,8 +988,9 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                             "textColor": text_color_asig,
                             "extendedProps": {
                                 "tipo": "asignacion",
-                                "tooltip": f"{emp.nombre} - Asignado: {asignacion.fecha_evento.evento.nombre}",
-                                "pax": pax_val
+                                "tooltip": f"{emp.nombre} - Asignado: {asignacion.fecha_evento.evento.nombre}" + (" (Opcional vendida)" if es_opc else ""),
+                                "pax": pax_val,
+                                "es_opcional": es_opc
                             } 
                         })
                     if asignaciones_hielo:
@@ -1163,7 +1195,7 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
             if grupo.permite_alcohol and not es_mix_grupo:
                 raise HTTPException(400, "El grupo con alcohol debe asistir a eventos con alcohol")
             
-        # NUEVA VALIDACION: Capacidad de compras DISCO
+        # NUEVA VALIDACION: Capacidad de compras DISCO (incluye opcionales)
         # Contar cuantas asignaciones de tipo DISCO tiene ya el grupo
         discos_asignadas_count = db.query(func.count(func.distinct(models.Asignacion.id)))\
             .join(models.FechaEvento)\
@@ -1174,11 +1206,14 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
             .filter(models.Evento.tipo == "DISCO")\
             .scalar() or 0
 
+        discos_incluidas = grupo.discos_compradas or 0
+        discos_opcionales = getattr(grupo, "discos_opcionales", 0) or 0
+        total_discos_permitidas = discos_incluidas + discos_opcionales
             
-        if discos_asignadas_count >= grupo.discos_compradas:
+        if discos_asignadas_count >= total_discos_permitidas:
              raise HTTPException(
                  400,
-                 f"El grupo ya agotó sus discos: {discos_asignadas_count} asignadas de {grupo.discos_compradas} configuradas"
+                 f"El grupo ya agotó sus discos: {discos_asignadas_count} asignadas de {total_discos_permitidas} ({discos_incluidas} incluidas + {discos_opcionales} opcionales)"
              )
 
 
@@ -1250,7 +1285,8 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
             asignaciones.append(models.Asignacion(
                 grupo_id=grupo_id,
                 fecha_evento_id=nuevo_evento_fecha.id,
-                pax_asignados=pax_turno
+                pax_asignados=pax_turno,
+                es_opcional=bool(body.es_opcional)
             ))
 
         db.add_all(asignaciones)
@@ -1288,10 +1324,19 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
         if tipo_nuevo == "DISCO" and tipo_existente == "DISCO":
             raise HTTPException(400, "El grupo ya tiene una DISCO asignada ese día")
 
+    # Si pasa validación, determinar si es opcional vendida
+    es_opc_final = False
+    if body.es_opcional:
+        es_opc_final = True
+    elif tipo_nuevo == "DISCO" and discos_asignadas_count >= (grupo.discos_compradas or 0):
+        # Superó las incluidas pero estaba dentro del cupo con opcionales -> se marca opcional automáticamente
+        es_opc_final = True
+
     # Si pasa validación, crear
     asignacion = models.Asignacion(
         grupo_id=grupo_id,
-        fecha_evento_id=nuevo_evento_fecha.id
+        fecha_evento_id=nuevo_evento_fecha.id,
+        es_opcional=es_opc_final
     )
 
     db.add(asignacion)
@@ -1311,6 +1356,30 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
     # except Exception as e:
     #     print(f"Error notificando: {e}")
 
+    return {"ok": True}
+
+
+# =========================================================
+# EDITAR / ELIMINAR ASIGNACIÓN DIRECTA
+# =========================================================
+@router.put("/asignacion/{asignacion_id}")
+def actualizar_asignacion(asignacion_id: int, body: EditarAsignacionBody, db: Session = Depends(get_db)):
+    asig = db.get(models.Asignacion, asignacion_id)
+    if not asig:
+        raise HTTPException(404, "Asignación no encontrada")
+    asig.es_opcional = bool(body.es_opcional)
+    db.commit()
+    db.refresh(asig)
+    return {"ok": True, "asignacion_id": asig.id, "es_opcional": asig.es_opcional}
+
+
+@router.delete("/asignacion/{asignacion_id}")
+def eliminar_asignacion_por_id(asignacion_id: int, db: Session = Depends(get_db)):
+    asig = db.get(models.Asignacion, asignacion_id)
+    if not asig:
+        raise HTTPException(404, "Asignación no encontrada")
+    db.delete(asig)
+    db.commit()
     return {"ok": True}
 
 
@@ -1360,6 +1429,30 @@ def eliminar_asignacion(grupo_id: int, body: AsignarEventoBody, db: Session = De
 
 
 # =========================================================
+# EDITAR / ELIMINAR ASIGNACIÓN DIRECTA
+# =========================================================
+@router.put("/asignacion/{asignacion_id}")
+def actualizar_asignacion(asignacion_id: int, body: EditarAsignacionBody, db: Session = Depends(get_db)):
+    asig = db.get(models.Asignacion, asignacion_id)
+    if not asig:
+        raise HTTPException(404, "Asignación no encontrada")
+    asig.es_opcional = bool(body.es_opcional)
+    db.commit()
+    db.refresh(asig)
+    return {"ok": True, "asignacion_id": asig.id, "es_opcional": asig.es_opcional}
+
+
+@router.delete("/asignacion/{asignacion_id}")
+def eliminar_asignacion_por_id(asignacion_id: int, db: Session = Depends(get_db)):
+    asig = db.get(models.Asignacion, asignacion_id)
+    if not asig:
+        raise HTTPException(404, "Asignación no encontrada")
+    db.delete(asig)
+    db.commit()
+    return {"ok": True}
+
+
+# =========================================================
 # EDITAR FECHA EVENTO GLOBAL
 # =========================================================
 @router.put("/fecha/{fecha_evento_id}")
@@ -1387,6 +1480,8 @@ def editar_fecha_evento(fecha_evento_id: int, body: EditarFechaEventoBody, db: S
     setattr(f, "es_mix_evento", body.es_mix_evento)
     setattr(f, "tematica_id", body.tematica_id)
     setattr(f, "horario", body.horario)
+    setattr(f, "show", body.show)
+    setattr(f, "animador", body.animador)
 
     # Solo cambiar es_privado/empresa_privada_id si hay un cambio real
     # NO borrar asignaciones al marcar como privado
@@ -1482,6 +1577,30 @@ def editar_fecha_evento(fecha_evento_id: int, body: EditarFechaEventoBody, db: S
     return {"ok": True}
 
 
+# =========================================================
+# EDITAR / ELIMINAR ASIGNACIÓN DIRECTA
+# =========================================================
+@router.put("/asignacion/{asignacion_id}")
+def actualizar_asignacion(asignacion_id: int, body: EditarAsignacionBody, db: Session = Depends(get_db)):
+    asig = db.get(models.Asignacion, asignacion_id)
+    if not asig:
+        raise HTTPException(404, "Asignación no encontrada")
+    asig.es_opcional = bool(body.es_opcional)
+    db.commit()
+    db.refresh(asig)
+    return {"ok": True, "asignacion_id": asig.id, "es_opcional": asig.es_opcional}
+
+
+@router.delete("/asignacion/{asignacion_id}")
+def eliminar_asignacion_por_id(asignacion_id: int, db: Session = Depends(get_db)):
+    asig = db.get(models.Asignacion, asignacion_id)
+    if not asig:
+        raise HTTPException(404, "Asignación no encontrada")
+    db.delete(asig)
+    db.commit()
+    return {"ok": True}
+
+
 
 # =========================================================
 @router.delete("/fecha/{fecha_evento_id}")
@@ -1513,6 +1632,30 @@ def eliminar_fecha_evento_global(fecha_evento_id: int, db: Session = Depends(get
     except Exception as e:
         print(f"Error notificando: {e}")
 
+    return {"ok": True}
+
+
+# =========================================================
+# EDITAR / ELIMINAR ASIGNACIÓN DIRECTA
+# =========================================================
+@router.put("/asignacion/{asignacion_id}")
+def actualizar_asignacion(asignacion_id: int, body: EditarAsignacionBody, db: Session = Depends(get_db)):
+    asig = db.get(models.Asignacion, asignacion_id)
+    if not asig:
+        raise HTTPException(404, "Asignación no encontrada")
+    asig.es_opcional = bool(body.es_opcional)
+    db.commit()
+    db.refresh(asig)
+    return {"ok": True, "asignacion_id": asig.id, "es_opcional": asig.es_opcional}
+
+
+@router.delete("/asignacion/{asignacion_id}")
+def eliminar_asignacion_por_id(asignacion_id: int, db: Session = Depends(get_db)):
+    asig = db.get(models.Asignacion, asignacion_id)
+    if not asig:
+        raise HTTPException(404, "Asignación no encontrada")
+    db.delete(asig)
+    db.commit()
     return {"ok": True}
 
 
@@ -1585,6 +1728,30 @@ def crear_horario_empresa(fecha_evento_id: int, body: HorarioEmpresaBody, db: Se
     return {"ok": True}
 
 
+# =========================================================
+# EDITAR / ELIMINAR ASIGNACIÓN DIRECTA
+# =========================================================
+@router.put("/asignacion/{asignacion_id}")
+def actualizar_asignacion(asignacion_id: int, body: EditarAsignacionBody, db: Session = Depends(get_db)):
+    asig = db.get(models.Asignacion, asignacion_id)
+    if not asig:
+        raise HTTPException(404, "Asignación no encontrada")
+    asig.es_opcional = bool(body.es_opcional)
+    db.commit()
+    db.refresh(asig)
+    return {"ok": True, "asignacion_id": asig.id, "es_opcional": asig.es_opcional}
+
+
+@router.delete("/asignacion/{asignacion_id}")
+def eliminar_asignacion_por_id(asignacion_id: int, db: Session = Depends(get_db)):
+    asig = db.get(models.Asignacion, asignacion_id)
+    if not asig:
+        raise HTTPException(404, "Asignación no encontrada")
+    db.delete(asig)
+    db.commit()
+    return {"ok": True}
+
+
 @router.delete("/horario-empresa/{horario_id}")
 def eliminar_horario_empresa(horario_id: int, db: Session = Depends(get_db)):
     """Elimina un horario individual de empresa."""
@@ -1592,6 +1759,30 @@ def eliminar_horario_empresa(horario_id: int, db: Session = Depends(get_db)):
     if not h:
         raise HTTPException(404, "Horario no encontrado")
     db.delete(h)
+    db.commit()
+    return {"ok": True}
+
+
+# =========================================================
+# EDITAR / ELIMINAR ASIGNACIÓN DIRECTA
+# =========================================================
+@router.put("/asignacion/{asignacion_id}")
+def actualizar_asignacion(asignacion_id: int, body: EditarAsignacionBody, db: Session = Depends(get_db)):
+    asig = db.get(models.Asignacion, asignacion_id)
+    if not asig:
+        raise HTTPException(404, "Asignación no encontrada")
+    asig.es_opcional = bool(body.es_opcional)
+    db.commit()
+    db.refresh(asig)
+    return {"ok": True, "asignacion_id": asig.id, "es_opcional": asig.es_opcional}
+
+
+@router.delete("/asignacion/{asignacion_id}")
+def eliminar_asignacion_por_id(asignacion_id: int, db: Session = Depends(get_db)):
+    asig = db.get(models.Asignacion, asignacion_id)
+    if not asig:
+        raise HTTPException(404, "Asignación no encontrada")
+    db.delete(asig)
     db.commit()
     return {"ok": True}
 

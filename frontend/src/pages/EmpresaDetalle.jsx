@@ -316,6 +316,7 @@ export default function EmpresaDetalle() {
     fecha_entrada: "",
     fecha_salida: "",
     discos_compradas: 0,
+    discos_opcionales: 0,
     permite_alcohol: false,
     es_mix_grupo: false,
     parque_acceso: false,
@@ -349,6 +350,7 @@ export default function EmpresaDetalle() {
     fecha_entrada: "",
     fecha_salida: "",
     discos_compradas: 0,
+    discos_opcionales: 0,
     permite_alcohol: false,
     es_mix_grupo: false,
     parque_acceso: false,
@@ -431,6 +433,7 @@ export default function EmpresaDetalle() {
       fecha_entrada: "",
       fecha_salida: "",
       discos_compradas: 0,
+      discos_opcionales: 0,
       permite_alcohol: false,
       es_mix_grupo: false,
       parque_acceso: false,
@@ -466,6 +469,7 @@ export default function EmpresaDetalle() {
       fecha_entrada: g.fecha_entrada,
       fecha_salida: g.fecha_salida,
       discos_compradas: g.discos_compradas,
+      discos_opcionales: g.discos_opcionales || 0,
       permite_alcohol: g.permite_alcohol,
       es_mix_grupo: g.es_mix_grupo || false,
       parque_acceso: g.parque_acceso,
@@ -574,6 +578,7 @@ export default function EmpresaDetalle() {
       "Fecha Entrada": g.fecha_entrada || "No especificada",
       "Fecha Salida": g.fecha_salida || "No especificada",
       "Discos Compradas": g.discos_compradas,
+      "Discos Opcionales": g.discos_opcionales || 0,
       "Permite Alcohol": g.es_mix_grupo ? "Mix (Pulsera)" : (g.permite_alcohol ? "Sí" : "No"),
       "Parque Acceso": g.parque_acceso ? "Sí" : "No",
       "Parque c/Comida": g.parque_con_comida ? "Sí" : "No",
@@ -845,11 +850,21 @@ export default function EmpresaDetalle() {
           <div>
 
             <div>
-              <label>Discos</label>
+              <label>Discos incluidas</label>
               <input
                 type="number"
                 value={form.discos_compradas}
                 onChange={(e) => set("discos_compradas", e.target.value)}
+              />
+            </div>
+            <div>
+              <label>🌟 Discos opcionales vendidas</label>
+              <input
+                type="number"
+                min="0"
+                value={form.discos_opcionales}
+                onChange={(e) => set("discos_opcionales", e.target.value)}
+                title="Cantidad de noches de disco opcionales que la empresa vendió (precio diferente al incluido)"
               />
             </div>
           </div>
@@ -1044,6 +1059,11 @@ export default function EmpresaDetalle() {
           <div>
             <b>{g.nombre}</b> — {g.cantidad_estudiantes} est | {g.cantidad_padres} pdr | {g.cantidad_guias} guia ({g.cantidad_pax} total)<br />
             <small>{g.fecha_entrada} → {g.fecha_salida}</small>
+            {(g.discos_opcionales > 0) && (
+              <span style={{ marginLeft: 8, background: "#fef9c3", color: "#854d0e", padding: "1px 6px", borderRadius: 4, fontSize: "0.75rem", fontWeight: 700 }}>
+                🌟 {g.discos_opcionales} disco(s) opcional(es)
+              </span>
+            )}
           </div>
 
           <div style={{ display: "flex", gap: 10 }}>
@@ -1085,7 +1105,10 @@ export default function EmpresaDetalle() {
               </div>
 
               <div>
-                <label>Discos: <input type="number" value={editForm.discos_compradas} onChange={e => setEdit("discos_compradas", e.target.value)} /></label>
+                <label>Discos incluidas: <input type="number" value={editForm.discos_compradas} onChange={e => setEdit("discos_compradas", e.target.value)} /></label>
+              </div>
+              <div>
+                <label>🌟 Discos opcionales: <input type="number" min="0" title="Discos opcionales vendidas por la empresa" value={editForm.discos_opcionales} onChange={e => setEdit("discos_opcionales", e.target.value)} /></label>
               </div>
 
               <DateRangeField

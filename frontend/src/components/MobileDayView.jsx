@@ -82,6 +82,8 @@ export default function MobileDayView({ resources, events, loading, initialDate 
           conAlcohol: props.con_alcohol,
           esMixEvento: props.es_mix_evento,
           esPrivado,
+          show: props.show,
+          animador: props.animador,
         };
       });
   }, [events, matchesCurrentDate]);
@@ -270,6 +272,12 @@ export default function MobileDayView({ resources, events, loading, initialDate 
                   >
                     <div style={{ fontSize: "1rem", fontWeight: 700 }}>{evt.title}</div>
                     {evt.tematica && <div style={{ marginTop: 2, fontSize: "0.85rem", opacity: 0.95 }}>{evt.tematica}</div>}
+                    {(evt.show || evt.animador) && (
+                      <div style={{ marginTop: 4, fontSize: "0.8rem", background: "rgba(0,0,0,0.3)", padding: "2px 6px", borderRadius: 4, display: "inline-flex", gap: 8, flexWrap: "wrap" }}>
+                        {evt.show && <span>🎤 Show: <b>{evt.show}</b></span>}
+                        {evt.animador && <span>🎧 Animador: <b>{evt.animador}</b></span>}
+                      </div>
+                    )}
                     <div style={{ marginTop: 6, fontSize: "0.85rem", opacity: 0.9 }}>
                       {evt.ocupacion != null && evt.capacidad != null && (
                         <span>Capacidad {evt.ocupacion}/{evt.capacidad}</span>

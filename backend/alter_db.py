@@ -25,6 +25,12 @@ def upgrade_db():
         "ALTER TABLE finanzas_empresa ADD COLUMN combo_multiparque BOOLEAN DEFAULT FALSE",
         "ALTER TABLE reservas_hotel ADD COLUMN total_habitaciones INTEGER DEFAULT 0",
         "ALTER TABLE pagos_hotel ADD COLUMN reserva_id INTEGER",
+        "ALTER TABLE grupos ADD COLUMN discos_opcionales INTEGER DEFAULT 0",
+        "ALTER TABLE grupos ADD COLUMN pagantes_finales_disco_opcional INTEGER",
+        "ALTER TABLE asignaciones ADD COLUMN es_opcional BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE finanzas_empresa ADD COLUMN precio_disco_opcional FLOAT DEFAULT 0",
+        "ALTER TABLE fechas_evento ADD COLUMN show VARCHAR",
+        "ALTER TABLE fechas_evento ADD COLUMN animador VARCHAR",
         """CREATE TABLE IF NOT EXISTS links_personalizados (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             token VARCHAR UNIQUE,
