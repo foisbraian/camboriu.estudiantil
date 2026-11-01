@@ -238,7 +238,7 @@ export default function CardapioSinAlcohol() {
                     {item.descripcion && (
                       <div style={{
                         color: "#ffffff",
-                        fontSize: 11,
+                        fontSize: 13,
                         marginTop: 5,
                         fontWeight: 700,
                         letterSpacing: 0.5,
