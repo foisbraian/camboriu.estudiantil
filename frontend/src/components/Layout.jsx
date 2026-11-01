@@ -27,6 +27,7 @@ export default function Layout() {
         { label: "🤝 Proveedores", path: "/proveedores" },
         { label: "🧾 Planilla Vouchers", path: "/vouchers/planilla" },
         { label: "📲 Validar QR", path: "/panel/validar" },
+        { label: "🍹 Cardapio", path: "/admin/cardapio" },
     ];
     const role = localStorage.getItem("auth_role");
     let navItems = NAV_ITEMS;

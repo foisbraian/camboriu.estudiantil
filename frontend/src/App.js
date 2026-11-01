@@ -24,6 +24,9 @@ import VouchersPlanilla from "./pages/VouchersPlanilla";
 import Hoteleria from "./pages/Hoteleria";
 import VouchersEmpresa from "./pages/VouchersEmpresa";
 import GastosDashboard from "./pages/GastosDashboard";
+import CardapioPublico from "./pages/CardapioPublico";
+import CardapioSinAlcohol from "./pages/CardapioSinAlcohol";
+import AdminCardapio from "./pages/AdminCardapio";
 
 const hasStoredRole = (role) => {
   const storedRole = localStorage.getItem("auth_role");
@@ -111,9 +114,12 @@ export default function App() {
           <Route path="/proveedores/:id" element={<ProveedorDetalle />} />
           <Route path="/hoteleria" element={<Hoteleria />} />
           <Route path="/gastos" element={<GastosDashboard />} />
+          <Route path="/admin/cardapio" element={<AdminCardapio />} />
         </Route>
 
         {/* Rutas Públicas */}
+        <Route path="/cardapio" element={<CardapioPublico />} />
+        <Route path="/cardapio-sin-alcohol" element={<CardapioSinAlcohol />} />
         <Route path="/portal/:codigo" element={<PortalEmpresa />} />
         <Route path="/vouchers/:codigo" element={<VouchersEmpresa />} />
 

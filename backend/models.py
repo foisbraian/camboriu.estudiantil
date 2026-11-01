@@ -547,3 +547,20 @@ class PushSubscription(Base):
     role = Column(String, default="equipo", index=True)
     user_agent = Column(String, nullable=True)
     creado_en = Column(DateTime, default=datetime.utcnow)
+
+
+# =============================
+# CARDAPIO DIGITAL
+# =============================
+
+class ItemCardapio(Base):
+    __tablename__ = "items_cardapio"
+
+    id = Column(Integer, primary_key=True)
+    tipo = Column(String, nullable=False)       # "alcohol" | "sin_alcohol"
+    seccion = Column(String, nullable=False)    # "COMBOS" | "TRAGOS Y MEDIDAS" | "DIVERSOS" | "ESPECIAL"
+    nombre = Column(String, nullable=False)
+    descripcion = Column(String, nullable=True) # descripción extra (ej: "+ 5 Energéticos")
+    precio = Column(Float, nullable=False)
+    orden = Column(Integer, default=0)          # para ordenar items dentro de la sección
+    activo = Column(Boolean, default=True)
