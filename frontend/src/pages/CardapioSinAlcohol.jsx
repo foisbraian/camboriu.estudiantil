@@ -142,21 +142,6 @@ export default function CardapioSinAlcohol() {
         </div>
       </div>
 
-      {/* Banner descuento */}
-      <div style={{
-        background: "linear-gradient(90deg, #FFDE5B, #f5a623, #FFDE5B)",
-        backgroundSize: "200% auto",
-        animation: "shimmerOrange 2.5s linear infinite",
-        color: "#1a0a00",
-        textAlign: "center",
-        padding: "9px 16px",
-        fontWeight: 900,
-        fontSize: 13,
-        letterSpacing: 1,
-        position: "relative", zIndex: 10,
-      }}>
-        🏷️&nbsp;&nbsp;10% DE DESCUENTO PAGANDO EN EFECTIVO&nbsp;&nbsp;💵
-      </div>
 
       {/* ─── CONTENIDO ─── */}
       <div style={{ maxWidth: 480, margin: "0 auto", padding: "20px 14px 60px", position: "relative", zIndex: 1 }}>
