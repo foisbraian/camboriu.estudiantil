@@ -253,12 +253,19 @@ export default function CardapioPublico() {
                     </div>
                     {item.descripcion && (
                       <div style={{
-                        color: cfg.special ? "rgba(255,222,91,0.85)" : "#ffffff",
+                        color: "#ffffff",
                         fontSize: 11,
-                        marginTop: 4,
-                        fontWeight: 600,
+                        marginTop: 5,
+                        fontWeight: 700,
                         letterSpacing: 0.5,
                         textTransform: "uppercase",
+                        ...(cfg.special ? {
+                          background: "rgba(0,0,0,0.28)",
+                          border: "1px solid rgba(255,222,91,0.3)",
+                          borderRadius: 8,
+                          padding: "4px 9px",
+                          display: "inline-block",
+                        } : {}),
                       }}>
                         {item.descripcion}
                       </div>
