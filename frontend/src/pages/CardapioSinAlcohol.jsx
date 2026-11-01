@@ -237,11 +237,12 @@ export default function CardapioSinAlcohol() {
                     </div>
                     {item.descripcion && (
                       <div style={{
-                        color: cfg.special ? "rgba(255,222,91,0.55)" : "rgba(255,159,28,0.5)",
+                        color: cfg.special ? "rgba(255,222,91,0.85)" : "#ffffff",
                         fontSize: 11,
                         marginTop: 4,
                         fontWeight: 600,
                         letterSpacing: 0.5,
+                        textTransform: "uppercase",
                       }}>
                         {item.descripcion}
                       </div>

@@ -253,11 +253,12 @@ export default function CardapioPublico() {
                     </div>
                     {item.descripcion && (
                       <div style={{
-                        color: cfg.special ? "rgba(255,222,91,0.55)" : "rgba(255,255,255,0.38)",
+                        color: cfg.special ? "rgba(255,222,91,0.85)" : "#ffffff",
                         fontSize: 11,
                         marginTop: 4,
                         fontWeight: 600,
                         letterSpacing: 0.5,
+                        textTransform: "uppercase",
                       }}>
                         {item.descripcion}
                       </div>
