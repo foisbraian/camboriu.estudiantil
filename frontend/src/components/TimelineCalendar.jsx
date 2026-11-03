@@ -319,42 +319,67 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
   };
 
   // =========================================================
-  // EVENTOS DEL DIA SOLAMENTE
+  // EVENTOS DEL DIA Y SERVICIOS DISPONIBLES
   // =========================================================
   const cargarEventosDelDia = async (fechaISO) => {
-    // Obtener lo que está "abierto" ese día desde el calendario
-    const calendario = await api.get("/calendario");
+    try {
+      // Obtener lo que está "abierto" ese día desde el calendario y todos los eventos base
+      const [calRes, eventosBaseRes] = await Promise.all([
+        api.get("/calendario"),
+        api.get("/eventos/")
+      ]);
 
-    // Filtrar los que son de servicios y coinciden con la fecha
-    const existentes = calendario.data.events.filter(
-      (e) => String(e.resourceId).startsWith("servicio-") && e.start.startsWith(fechaISO)
-    );
+      // Filtrar los que son de servicios y coinciden con la fecha
+      const existentes = (calRes.data.events || []).filter(
+        (e) => String(e.resourceId).startsWith("servicio-") && e.start.startsWith(fechaISO)
+      );
 
-    const filtrados = existentes.map(ext => {
-      const cleanFid = getCleanId(ext.id);
-      const evId = ext.extendedProps?.evento_id;
-      const evTipo = ext.extendedProps?.evento_tipo;
-      const evNombre = ext.extendedProps?.evento_nombre || ext.title;
-      const horarioVal = ext.extendedProps?.horario;
-      const capMax = ext.extendedProps?.capacidad;
-      const esPriv = ext.extendedProps?.es_privado;
-      const empPrivId = ext.extendedProps?.empresa_privada_id;
-      const empPrivNom = ext.extendedProps?.empresa_privada_nombre;
+      const filtrados = existentes.map(ext => {
+        const cleanFid = getCleanId(ext.id);
+        const evId = ext.extendedProps?.evento_id;
+        const evTipo = ext.extendedProps?.evento_tipo;
+        const evNombre = ext.extendedProps?.evento_nombre || ext.title;
+        const horarioVal = ext.extendedProps?.horario;
+        const capMax = ext.extendedProps?.capacidad;
+        const esPriv = ext.extendedProps?.es_privado;
+        const empPrivId = ext.extendedProps?.empresa_privada_id;
+        const empPrivNom = ext.extendedProps?.empresa_privada_nombre;
 
-      return {
-        id: evId,
-        fecha_evento_id: cleanFid,
-        tipo: evTipo,
-        nombre: evNombre,
-        horario: horarioVal,
-        capacidad_maxima: capMax,
-        es_privado: esPriv,
-        empresa_privada_id: empPrivId,
-        empresa_privada_nombre: empPrivNom
-      };
-    });
+        return {
+          id: evId,
+          fecha_evento_id: cleanFid,
+          tipo: evTipo,
+          nombre: evNombre,
+          horario: horarioVal,
+          capacidad_maxima: capMax,
+          es_privado: esPriv,
+          empresa_privada_id: empPrivId,
+          empresa_privada_nombre: empPrivNom,
+          esta_abierto: true
+        };
+      });
 
-    setEventosDisponibles(filtrados);
+      // Agregar también los eventos base que aún no están instanciados en esa fecha
+      const idsAbiertos = new Set(filtrados.map(f => Number(f.id)));
+      const baseDisponibles = (eventosBaseRes.data || [])
+        .filter(base => !idsAbiertos.has(Number(base.id)))
+        .map(base => ({
+          id: base.id,
+          fecha_evento_id: null,
+          tipo: base.tipo,
+          nombre: base.nombre,
+          horario: null,
+          capacidad_maxima: base.capacidad_maxima,
+          es_privado: false,
+          empresa_privada_id: null,
+          empresa_privada_nombre: null,
+          esta_abierto: false
+        }));
+
+      setEventosDisponibles([...filtrados, ...baseDisponibles]);
+    } catch (e) {
+      console.error("Error al cargar eventos del día", e);
+    }
   };
 
   // Helper para sacar ID limpio
@@ -832,6 +857,88 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
                       ))}
                     </div>
                   )}
+                  {/* Badges de servicios y actividades pendientes */}
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 3 }}>
+                    {props.quinta_comida_acceso && (
+                      <span
+                        title="Este grupo tiene contratada 5ta comida"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 2,
+                          background: "#ecfdf5",
+                          color: "#047857",
+                          border: "1px solid #6ee7b7",
+                          borderRadius: 4,
+                          padding: "1px 5px",
+                          fontSize: "0.70rem",
+                          fontWeight: 700,
+                          lineHeight: 1.2
+                        }}
+                      >
+                        🍔 5ta Comida
+                      </span>
+                    )}
+                    {props.zacarias_ultimo_dia && (
+                      <span
+                        title="Zacarías configurado para el día de salida"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 2,
+                          background: "#f0fdf4",
+                          color: "#15803d",
+                          border: "1px solid #86efac",
+                          borderRadius: 4,
+                          padding: "1px 5px",
+                          fontSize: "0.70rem",
+                          fontWeight: 700,
+                          lineHeight: 1.2
+                        }}
+                      >
+                        🌲 Zacarías Salida
+                      </span>
+                    )}
+                    {props.actividades_pendientes && props.actividades_pendientes.length > 0 && (
+                      props.actividades_pendientes.slice(0, 2).map((act, idx) => (
+                        <span
+                          key={idx}
+                          title={`Falta asignar en el diagrama: ${act}`}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 2,
+                            background: "#fffbeb",
+                            color: "#b45309",
+                            border: "1px solid #fde68a",
+                            borderRadius: 4,
+                            padding: "1px 4px",
+                            fontSize: "0.68rem",
+                            fontWeight: 700,
+                            lineHeight: 1.2
+                          }}
+                        >
+                          ⚠️ Falta {act}
+                        </span>
+                      ))
+                    )}
+                    {props.actividades_pendientes && props.actividades_pendientes.length > 2 && (
+                      <span
+                        title={`Faltan: ${props.actividades_pendientes.slice(2).join(', ')}`}
+                        style={{
+                          fontSize: "0.68rem",
+                          color: "#b45309",
+                          fontWeight: 700,
+                          background: "#fef3c7",
+                          padding: "1px 4px",
+                          borderRadius: 4,
+                          lineHeight: 1.2
+                        }}
+                      >
+                        +{props.actividades_pendientes.length - 2}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -889,6 +996,37 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
                   <div style="font-weight: 700;">${lines[0] || ""}</div>
                   ${lines[1] ? `<div>${lines[1]}</div>` : ""}
                   ${lines[2] ? `<div>${lines[2]}</div>` : ""}
+                </div>`
+              };
+            }
+
+            if (props.tipo === "grupo") {
+              const tieneQuinta = Boolean(props.tiene_quinta_comida);
+              const esSalidaZac = Boolean(props.es_ultimo_dia_zacarias);
+              const pendientes = props.actividades_pendientes || [];
+
+              return {
+                html: `<div style="padding: 2px 4px; display: flex; flex-direction: column; gap: 2px; height: 100%; justify-content: center; overflow: hidden; line-height: 1.15;">
+                  <div style="font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    ${title}
+                  </div>
+                  <div style="display: flex; flex-wrap: wrap; gap: 3px; align-items: center; margin-top: 1px;">
+                    ${tieneQuinta ? `
+                      <span style="display: inline-flex; align-items: center; gap: 2px; background: #047857; color: #ffffff; padding: 1px 4px; border-radius: 3px; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.02em; box-shadow: 0 1px 2px rgba(0,0,0,0.18); white-space: nowrap;">
+                        🍔 5ta Comida
+                      </span>
+                    ` : ''}
+                    ${esSalidaZac ? `
+                      <span style="display: inline-flex; align-items: center; gap: 2px; background: #15803d; color: #ffffff; padding: 1px 4px; border-radius: 3px; font-size: 0.68rem; font-weight: 800; white-space: nowrap;">
+                        🌲 Salida
+                      </span>
+                    ` : ''}
+                    ${pendientes.length > 0 ? `
+                      <span style="display: inline-flex; align-items: center; gap: 2px; background: rgba(0,0,0,0.08); color: inherit; padding: 1px 3px; border-radius: 3px; font-size: 0.65rem; font-weight: 700; white-space: nowrap;" title="Falta: ${pendientes.join(', ')}">
+                        ⚠️ ${pendientes[0]}
+                      </span>
+                    ` : ''}
+                  </div>
                 </div>`
               };
             }
@@ -1040,59 +1178,71 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
                 <select
                   value={eventoSeleccionado}
                   onChange={(e) => setEventoSeleccionado(e.target.value)}
+                  style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "0.9rem" }}
                 >
-                  <option value="">Seleccionar evento</option>
-                  {eventosDisponibles.map((ev) => {
-                    // Buscar si este evento ya está instanciado este día para mostrar cap?
-                    // El usuario quiere ver ocupacion al asignar.
-                    // 'eventosDisponibles' son Event Definitions.
-                    // Pero en 'cargarEventosDelDia' filtramos los que existen dia.
-                    // Si esta instanciado, en 'localEvents' tenemos su extendedProps con ocupacion.
-                    // Pero localEvents tiene 'id' "id-X".
-                    // Buscamos en localEvents
-                    const instancia = localEvents.find(e =>
-                      String(e.resourceId).startsWith("servicio-") &&
-                      Number(e.extendedProps?.evento_id) === Number(ev.id) &&
-                      e.start.startsWith(selectedDate)
-                    );
+                  <option value="">-- Seleccionar evento o servicio --</option>
+                  {(() => {
+                    const abiertos = eventosDisponibles.filter(ev => ev.esta_abierto !== false);
+                    const otros = eventosDisponibles.filter(ev => ev.esta_abierto === false);
 
-                    let label = `${ev.nombre} (${ev.tipo})`;
-                    if (instancia && instancia.extendedProps) {
-                      const { ocupacion, capacidad, con_comida, sin_comida } = instancia.extendedProps;
+                    const renderOption = (ev) => {
+                      const instancia = localEvents.find(e =>
+                        String(e.resourceId).startsWith("servicio-") &&
+                        Number(e.extendedProps?.evento_id) === Number(ev.id) &&
+                        e.start.startsWith(selectedDate)
+                      );
 
-                      let extra = "";
-                      if (ev.tipo === "PARQUE" || ev.tipo === "POOL") {
-                        extra = ` (Comida: ${con_comida} / Sin: ${sin_comida})`;
+                      let label = `${ev.nombre} (${ev.tipo})`;
+                      if (instancia && instancia.extendedProps) {
+                        const { ocupacion, capacidad, con_comida, sin_comida } = instancia.extendedProps;
+                        let extra = "";
+                        if (ev.tipo === "PARQUE" || ev.tipo === "POOL") {
+                          extra = ` (Comida: ${con_comida} / Sin: ${sin_comida})`;
+                        }
+                        label += ` [Oc: ${ocupacion} / Cap: ${capacidad}]${extra}`;
+                      } else if (ev.capacidad_maxima) {
+                        label += ` [Cap: ${ev.capacidad_maxima}]`;
                       }
 
-                      label += ` [Oc: ${ocupacion} / Cap: ${capacidad}]${extra}`;
-                    } else {
-                      label += ` [Cap: ${ev.capacidad_maxima}]`;
-                    }
+                      const esPrivadoEvento = Boolean(instancia?.extendedProps?.es_privado);
+                      const empresaPrivadaEvento = instancia?.extendedProps?.empresa_privada_id != null
+                        ? Number(instancia.extendedProps.empresa_privada_id)
+                        : null;
+                      const empresaObjId = empresaObjetivo != null ? Number(empresaObjetivo) : null;
 
-                    const esPrivadoEvento = Boolean(instancia?.extendedProps?.es_privado);
-                    const empresaPrivadaEvento = instancia?.extendedProps?.empresa_privada_id != null
-                      ? Number(instancia.extendedProps.empresa_privada_id)
-                      : null;
-                    const empresaObjId = empresaObjetivo != null ? Number(empresaObjetivo) : null;
-
-                    if (grupoAsignando && esPrivadoEvento) {
-                      if (!empresaObjId || empresaPrivadaEvento !== empresaObjId) {
-                        return null;
+                      if (grupoAsignando && esPrivadoEvento) {
+                        if (!empresaObjId || empresaPrivadaEvento !== empresaObjId) {
+                          return null;
+                        }
                       }
-                    }
 
-                    if (esPrivadoEvento && instancia?.extendedProps?.empresa_privada_nombre) {
-                      label += ` [Privado: ${instancia.extendedProps.empresa_privada_nombre}]`;
-                    }
+                      if (esPrivadoEvento && instancia?.extendedProps?.empresa_privada_nombre) {
+                        label += ` [Privado: ${instancia.extendedProps.empresa_privada_nombre}]`;
+                      }
 
-                    const optionVal = ev.fecha_evento_id || ev.id;
+                      const optionVal = ev.fecha_evento_id || ev.id;
+                      return (
+                        <option key={`${ev.esta_abierto ? 'abierto' : 'base'}-${optionVal}`} value={optionVal}>
+                          {label}
+                        </option>
+                      );
+                    };
+
                     return (
-                      <option key={optionVal} value={optionVal}>
-                        {label}
-                      </option>
+                      <>
+                        {abiertos.length > 0 && (
+                          <optgroup label="✨ Eventos ya abiertos en esta fecha">
+                            {abiertos.map(renderOption)}
+                          </optgroup>
+                        )}
+                        {otros.length > 0 && (
+                          <optgroup label="📋 Otros servicios disponibles (Crear / Asignar)">
+                            {otros.map(renderOption)}
+                          </optgroup>
+                        )}
+                      </>
                     );
-                  })}
+                  })()}
                 </select>
 
                 {!grupoAsignando && (() => {
@@ -1239,7 +1389,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
                       🌟 Marcar como Opcional vendida
                     </label>
                     <small style={{ display: "block", marginTop: 4, color: "#a16207", fontSize: "0.78rem" }}>
-                      Tendrá valor diferenciado en Finanzas y dirá "Opcional vendida" en el diagrama.
+                      Permite asignar cualquier servicio vendido extra (Zacarías, Hielo, Pool, etc.). Tendrá valor diferenciado en Finanzas y dirá "Opcional vendida" en el diagrama.
                     </small>
                   </div>
                 )}

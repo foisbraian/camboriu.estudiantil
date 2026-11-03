@@ -325,6 +325,7 @@ export default function EmpresaDetalle() {
     campamento_con_comida: false,
     zacarias_acceso: false,
     zacarias_con_comida: false,
+    zacarias_ultimo_dia: false,
     pool_acceso: false,
     pool_con_comida: false,
     cena_velas: false,
@@ -359,6 +360,7 @@ export default function EmpresaDetalle() {
     campamento_con_comida: false,
     zacarias_acceso: false,
     zacarias_con_comida: false,
+    zacarias_ultimo_dia: false,
     pool_acceso: false,
     pool_con_comida: false,
     cena_velas: false,
@@ -442,6 +444,7 @@ export default function EmpresaDetalle() {
       campamento_con_comida: false,
       zacarias_acceso: false,
       zacarias_con_comida: false,
+      zacarias_ultimo_dia: false,
       pool_acceso: false,
       pool_con_comida: false,
       cena_velas: false,
@@ -478,6 +481,7 @@ export default function EmpresaDetalle() {
       campamento_con_comida: g.campamento_con_comida || false,
       zacarias_acceso: g.zacarias_acceso || false,
       zacarias_con_comida: g.zacarias_con_comida || false,
+      zacarias_ultimo_dia: g.zacarias_ultimo_dia || false,
       pool_acceso: g.pool_acceso,
       pool_con_comida: g.pool_con_comida,
       cena_velas: g.cena_velas,
@@ -586,6 +590,7 @@ export default function EmpresaDetalle() {
       "Campamento c/Comida": g.campamento_con_comida ? "Sí" : "No",
       "Zacarias Acceso": g.zacarias_acceso ? "Sí" : "No",
       "Zacarias c/Comida": g.zacarias_con_comida ? "Sí" : "No",
+      "Zacarias Ultimo Dia": g.zacarias_ultimo_dia ? "Sí" : "No",
       "Pool Acceso": g.pool_acceso ? "Sí" : "No",
       "Pool c/Comida": g.pool_con_comida ? "Sí" : "No",
       "Cena Velas": g.cena_velas ? "Sí" : "No",
@@ -949,6 +954,15 @@ export default function EmpresaDetalle() {
             />
             Con comida
           </label>
+
+          <label style={{ marginLeft: 20, color: "#15803d", fontWeight: 600 }}>
+            <input
+              type="checkbox"
+              checked={form.zacarias_ultimo_dia || false}
+              onChange={(e) => set("zacarias_ultimo_dia", e.target.checked)}
+            />
+            🌲 Zacarías último día (Día de salida)
+          </label>
         </fieldset>
 
         {/* ================= POOL ================= */}
@@ -1064,6 +1078,16 @@ export default function EmpresaDetalle() {
                 🌟 {g.discos_opcionales} disco(s) opcional(es)
               </span>
             )}
+            {g.quinta_comida_acceso && (
+              <span style={{ marginLeft: 6, background: "#ecfdf5", color: "#047857", border: "1px solid #6ee7b7", padding: "1px 6px", borderRadius: 4, fontSize: "0.75rem", fontWeight: 700 }}>
+                🍔 5ta Comida
+              </span>
+            )}
+            {g.zacarias_ultimo_dia && (
+              <span style={{ marginLeft: 6, background: "#f0fdf4", color: "#15803d", border: "1px solid #86efac", padding: "1px 6px", borderRadius: 4, fontSize: "0.75rem", fontWeight: 700 }}>
+                🌲 Zacarías último día
+              </span>
+            )}
           </div>
 
           <div style={{ display: "flex", gap: 10 }}>
@@ -1155,6 +1179,7 @@ export default function EmpresaDetalle() {
                 <b>Zacarias:</b>
                 <label><input type="checkbox" checked={editForm.zacarias_acceso || false} onChange={e => setEdit("zacarias_acceso", e.target.checked)} /> Acceso</label>
                 <label style={{ marginLeft: 10 }}><input type="checkbox" checked={editForm.zacarias_con_comida || false} onChange={e => setEdit("zacarias_con_comida", e.target.checked)} /> Comida</label>
+                <label style={{ marginLeft: 10, color: "#15803d", fontWeight: 600 }}><input type="checkbox" checked={editForm.zacarias_ultimo_dia || false} onChange={e => setEdit("zacarias_ultimo_dia", e.target.checked)} /> 🌲 Último día (Salida)</label>
               </div>
 
               <div style={{ border: "1px solid #eee", padding: 5 }}>

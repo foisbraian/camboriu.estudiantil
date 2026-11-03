@@ -55,6 +55,7 @@ def editar_grupo(grupo_id: int, data: schemas.GrupoUpdate, db: Session = Depends
 
     grupo.zacarias_acceso = data.zacarias_acceso
     grupo.zacarias_con_comida = data.zacarias_con_comida
+    grupo.zacarias_ultimo_dia = data.zacarias_ultimo_dia
     
     grupo.pool_acceso = data.pool_acceso
     grupo.pool_con_comida = data.pool_con_comida

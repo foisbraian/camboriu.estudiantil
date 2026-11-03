@@ -47,6 +47,7 @@ class GrupoCreate(BaseModel):
 
     zacarias_acceso: bool = False
     zacarias_con_comida: bool = False
+    zacarias_ultimo_dia: bool = False
 
     pool_acceso: bool
     pool_con_comida: bool

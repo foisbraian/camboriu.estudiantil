@@ -594,14 +594,14 @@ def get_asignaciones_pagadas(empresa_id: int, db: Session):
                 tipo = a.fecha_evento.evento.tipo
                 costo = 0
 
-                # Si es opcional vendida, costo según precio_disco_opcional
-                if getattr(a, "es_opcional", False):
+                # Si es disco opcional vendida, costo según precio_disco_opcional
+                if getattr(a, "es_opcional", False) and tipo == "DISCO":
                     pax_opc = calcular_pax_cobrar(g, config.disco_liberados_ratio, config.disco_padres_gratis, config.disco_guias_gratis)
                     pax_opc = _aplicar_pagantes_override(pax_opc, g, "disco_opcional")
                     p_opc = obtener_precio_servicio_grupo(g, "disco_opcional", getattr(config, "precio_disco_opcional", 0) or 0, config)
                     costo = pax_opc * p_opc
-                # Resolucion de combo
-                elif config.es_combo:
+                # Resolucion de combo (eventos incluidos en combo que no sean opcionales)
+                elif config.es_combo and not getattr(a, "es_opcional", False):
                     if tipo in combo_tipos:
                         # Evento incluido en el combo → costo proporcional
                         costo = combo_costo_por_evento

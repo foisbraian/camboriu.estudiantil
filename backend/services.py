@@ -1,8 +1,10 @@
+from datetime import timedelta
 from models import Asignacion
 
 
 def validar_estadia(grupo, fecha):
-    if not (grupo.fecha_entrada <= fecha < grupo.fecha_salida):
+    limite_salida = (grupo.fecha_salida + timedelta(days=1)) if getattr(grupo, 'zacarias_ultimo_dia', False) else grupo.fecha_salida
+    if not (grupo.fecha_entrada <= fecha < limite_salida):
         raise Exception("Grupo fuera de estadía")
 
 

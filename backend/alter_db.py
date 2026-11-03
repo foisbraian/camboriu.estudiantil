@@ -44,6 +44,7 @@ def upgrade_db():
             creado_en VARCHAR
         )""",
         "ALTER TABLE links_personalizados ADD COLUMN empresas_ids VARCHAR",
+        "ALTER TABLE grupos ADD COLUMN zacarias_ultimo_dia BOOLEAN DEFAULT FALSE",
     ]
     for sql in migraciones:
         try:

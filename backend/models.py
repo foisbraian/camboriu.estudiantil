@@ -78,6 +78,7 @@ class Grupo(Base):
     # zacarias
     zacarias_acceso = Column(Boolean, default=False)
     zacarias_con_comida = Column(Boolean, default=False)
+    zacarias_ultimo_dia = Column(Boolean, default=False)
 
     # pool
     pool_acceso = Column(Boolean, default=False)

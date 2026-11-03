@@ -139,6 +139,37 @@ def calendario(db: Session = Depends(get_db)):
         order_counter += 1
 
         for g in e.grupos:
+            asigs_por_tipo = defaultdict(int)
+            for a in g.asignaciones:
+                if a.fecha_evento and a.fecha_evento.evento:
+                    asigs_por_tipo[a.fecha_evento.evento.tipo] += 1
+
+            pendientes = []
+            total_discos = (g.discos_compradas or 0) + (getattr(g, "discos_opcionales", 0) or 0)
+            asignadas_disco = asigs_por_tipo["DISCO"]
+            if total_discos > 0 and asignadas_disco < total_discos:
+                pendientes.append(f"{total_discos - asignadas_disco} disco(s)")
+
+            servicios_check = [
+                ("ZACARIAS", "Zacarías", getattr(g, "zacarias_acceso", False) or getattr(g, "zacarias_ultimo_dia", False)),
+                ("PARQUE", "Parque", getattr(g, "parque_acceso", False)),
+                ("POOL", "Pool", getattr(g, "pool_acceso", False)),
+                ("HIELO", "Bar de Hielo", getattr(g, "bar_hielo", False)),
+                ("CENA", "Cena de Velas", getattr(g, "cena_velas", False)),
+                ("CAMPAMENTO", "Campamento", getattr(g, "campamento_acceso", False)),
+                ("SURF", "Surf", getattr(g, "surf_acceso", False)),
+                ("UNIPRAIAS", "Unipraias", getattr(g, "unipraias_acceso", False)),
+                ("BETO", "Beto Carrero", getattr(g, "beto_acceso", False)),
+                ("BARCO", "Barco", getattr(g, "barco_acceso", False)),
+                ("CRISTO", "Cristo Luz", getattr(g, "cristo_acceso", False)),
+                ("MULTIPARQUE", "Multiparque", getattr(g, "multiparque_acceso", False)),
+                ("PARADOR", "Parador", getattr(g, "parador_acceso", False)),
+            ]
+
+            for tipo_ev, nombre_ev, contratado in servicios_check:
+                if contratado and asigs_por_tipo[tipo_ev] == 0:
+                    pendientes.append(nombre_ev)
+
             resources.append({
                 "id": g.id,
                 "parentId": empresa_resource_id,
@@ -155,6 +186,9 @@ def calendario(db: Session = Depends(get_db)):
                     "discos_compradas": g.discos_compradas or 0,
                     "discos_opcionales": getattr(g, "discos_opcionales", 0) or 0,
                     "hoteles": hoteles_por_grupo.get(g.id, []),
+                    "zacarias_ultimo_dia": getattr(g, "zacarias_ultimo_dia", False),
+                    "quinta_comida_acceso": getattr(g, "quinta_comida_acceso", False),
+                    "actividades_pendientes": pendientes,
                 }
             })
             order_counter += 1
@@ -397,6 +431,8 @@ def calendario(db: Session = Depends(get_db)):
                 f"Alcohol: {alcohol_txt}\n"
                 f"Campamento: {campamento_txt}\n"
                 f"Zacarias: {zacarias_txt}\n"
+                f"Zacarías Último Día: {'SI' if getattr(g, 'zacarias_ultimo_dia', False) else 'NO'}\n"
+                f"Quinta Comida: {'SI' if getattr(g, 'quinta_comida_acceso', False) else 'NO'}\n"
                 f"Pool: {pool_txt}\n"
                 f"Cena de Velas: {'SI' if getattr(g, 'cena_velas', False) else 'NO'}\n"
                 f"Bar de hielo: {'SI' if g.bar_hielo else 'NO'}\n"
@@ -408,6 +444,8 @@ def calendario(db: Session = Depends(get_db)):
                 f"Multiparque: {'SI' if getattr(g, 'multiparque_acceso', False) else 'NO'}\n"
                 f"Parador: {'SI' if getattr(g, 'parador_acceso', False) else 'NO'}"
             )
+            if pendientes:
+                tooltip += f"\n----------------\n⚠️ Faltan asignar: {', '.join(pendientes)}"
 
             # Color del grupo según tipo de alcohol
             es_mix_g = getattr(g, 'es_mix_grupo', False)
@@ -428,7 +466,8 @@ def calendario(db: Session = Depends(get_db)):
 
             # Iterar dia por dia
             current_date = g.fecha_entrada
-            while current_date < g.fecha_salida:
+            fecha_fin = (g.fecha_salida + timedelta(days=1)) if getattr(g, 'zacarias_ultimo_dia', False) else g.fecha_salida
+            while current_date < fecha_fin:
                 next_date = current_date + timedelta(days=1)
                 
                 # Check si hay asignaciones (lista)
@@ -516,27 +555,29 @@ def calendario(db: Session = Depends(get_db)):
 
                 else:
                     # RENDERIZAR FRAGMENTO DE GRUPO (Solo si no hay NINGUNA asignacion)
-                    # OJO: Si queremos que se vea el fondo del grupo SIEMPRE detras, 
-                    # FullCalendar lo superpondria.
-                    # La logica original era: O asignacion O grupo.
-                    # Ahora: Si hay asignaciones, mostramos las asignaciones.
-                    # Si NO hay asignaciones, mostramos el placeholder del grupo.
-                    # (Si quisieramos ver ambos, deberiamos usar background events o similar, 
-                    # pero por ahora mantenemos la logica de "slot ocupado visualmente")
+                    es_salida_zac = (current_date == g.fecha_salida and getattr(g, 'zacarias_ultimo_dia', False))
+                    cell_title = f"{g.nombre} (Zacarías Salida)" if es_salida_zac else g.nombre
+                    cell_bg = "#bbf7d0" if es_salida_zac else bg_color_grupo
+                    cell_border = "#15803d" if es_salida_zac else bg_color_grupo
+                    cell_text = "#14532d" if es_salida_zac else text_color_grupo
                     
                     events.append({
                         "resourceId": g.id, # ID del Grupo
                         "start": current_date,
                         "end": next_date,
-                        "title": g.nombre,
-                        "backgroundColor": bg_color_grupo,
-                        "borderColor": bg_color_grupo,
-                        "textColor": text_color_grupo,
+                        "title": cell_title,
+                        "backgroundColor": cell_bg,
+                        "borderColor": cell_border,
+                        "textColor": cell_text,
                         "extendedProps": {
                             "tipo": "grupo",
                             "grupo_id": g.id,
                             "empresa_nombre": e.nombre,
-                            "tooltip": tooltip
+                            "tooltip": tooltip + ("\n🌲 Zacarías día de salida habilitado" if es_salida_zac else ""),
+                            "tiene_quinta_comida": bool(getattr(g, 'quinta_comida_acceso', False)),
+                            "zacarias_ultimo_dia": bool(getattr(g, 'zacarias_ultimo_dia', False)),
+                            "es_ultimo_dia_zacarias": es_salida_zac,
+                            "actividades_pendientes": pendientes,
                         }
                     })
 
@@ -954,7 +995,8 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                 )
 
             current_date = g.fecha_entrada
-            while current_date < g.fecha_salida:
+            fecha_fin = (g.fecha_salida + timedelta(days=1)) if getattr(g, 'zacarias_ultimo_dia', False) else g.fecha_salida
+            while current_date < fecha_fin:
                 next_date = current_date + timedelta(days=1)
                 asignaciones_dia = mapa_asignaciones.get(current_date, [])
 
@@ -1144,7 +1186,8 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
         raise HTTPException(404, "Grupo no encontrado")
     grupo = cast(Any, grupo_obj)
 
-    if not (grupo.fecha_entrada <= fecha < grupo.fecha_salida):
+    limite_salida = (grupo.fecha_salida + timedelta(days=1)) if getattr(grupo, 'zacarias_ultimo_dia', False) else grupo.fecha_salida
+    if not (grupo.fecha_entrada <= fecha < limite_salida):
         raise HTTPException(400, "Fuera de estadía")
 
     # Obtener evento a asignar
@@ -1202,7 +1245,7 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
             .join(models.Evento)\
             .filter(models.Asignacion.grupo_id == grupo_id)\
             .filter(models.FechaEvento.fecha >= grupo.fecha_entrada)\
-            .filter(models.FechaEvento.fecha < grupo.fecha_salida)\
+            .filter(models.FechaEvento.fecha < limite_salida)\
             .filter(models.Evento.tipo == "DISCO")\
             .scalar() or 0
 
@@ -1216,49 +1259,45 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
                  f"El grupo ya agotó sus discos: {discos_asignadas_count} asignadas de {total_discos_permitidas} ({discos_incluidas} incluidas + {discos_opcionales} opcionales)"
              )
 
+    # Validaciones de servicios contratados
+    # Si viene marcado como es_opcional, se permite vender/asignar como servicio opcional.
+    if not body.es_opcional:
+        if tipo_nuevo == "PARQUE" and not grupo.parque_acceso:
+            raise HTTPException(400, "El grupo no tiene acceso a PARQUE (marcar como opcional si fue vendida)")
 
-    # Validacion PARQUE
-    if tipo_nuevo == "PARQUE" and not grupo.parque_acceso:
-        raise HTTPException(400, "El grupo no tiene acceso a PARQUE")
+        if tipo_nuevo == "CENA" and not getattr(grupo, "cena_velas", False):
+            raise HTTPException(400, "El grupo no tiene Cena de Velas (marcar como opcional si fue vendida)")
 
-    # Validacion CENA DE VELAS
-    if tipo_nuevo == "CENA" and not getattr(grupo, "cena_velas", False):
-        raise HTTPException(400, "El grupo no tiene Cena de Velas")
+        if tipo_nuevo == "CAMPAMENTO" and not getattr(grupo, "campamento_acceso", False):
+            raise HTTPException(400, "El grupo no tiene acceso a CAMPAMENTO AMERICANO (marcar como opcional si fue vendida)")
 
-    # Validacion CAMPAMENTO
-    if tipo_nuevo == "CAMPAMENTO" and not getattr(grupo, "campamento_acceso", False):
-        raise HTTPException(400, "El grupo no tiene acceso a CAMPAMENTO AMERICANO")
+        if tipo_nuevo == "ZACARIAS":
+            tiene_acceso_zac = getattr(grupo, "zacarias_acceso", False) or (fecha == grupo.fecha_salida and getattr(grupo, "zacarias_ultimo_dia", False))
+            if not tiene_acceso_zac:
+                raise HTTPException(400, "El grupo no tiene acceso a ZACARIAS (marcar como opcional si fue vendida)")
 
-    # Validacion ZACARIAS
-    if tipo_nuevo == "ZACARIAS" and not getattr(grupo, "zacarias_acceso", False):
-        raise HTTPException(400, "El grupo no tiene acceso a ZACARIAS")
+        if tipo_nuevo == "POOL" and not grupo.pool_acceso:
+            raise HTTPException(400, "El grupo no tiene acceso a POOL (marcar como opcional si fue vendida)")
 
-    # Validacion POOL
-    if tipo_nuevo == "POOL" and not grupo.pool_acceso:
-        raise HTTPException(400, "El grupo no tiene acceso a POOL")
+        if tipo_nuevo == "SURF" and not getattr(grupo, "surf_acceso", False):
+            raise HTTPException(400, "El grupo no tiene acceso a SURF (marcar como opcional si fue vendida)")
+        if tipo_nuevo == "UNIPRAIAS" and not getattr(grupo, "unipraias_acceso", False):
+            raise HTTPException(400, "El grupo no tiene acceso a PARQUE UNIPRAIAS (marcar como opcional si fue vendida)")
+        if tipo_nuevo == "BETO" and not getattr(grupo, "beto_acceso", False):
+            raise HTTPException(400, "El grupo no tiene acceso a BETO CARRERO (marcar como opcional si fue vendida)")
+        if tipo_nuevo == "BARCO" and not getattr(grupo, "barco_acceso", False):
+            raise HTTPException(400, "El grupo no tiene acceso a BARCO PIRATA (marcar como opcional si fue vendida)")
+        if tipo_nuevo == "CRISTO" and not getattr(grupo, "cristo_acceso", False):
+            raise HTTPException(400, "El grupo no tiene acceso a CRISTO LUZ (marcar como opcional si fue vendida)")
+        if tipo_nuevo == "SUNSET" and not getattr(grupo, "sunset_acceso", False):
+            raise HTTPException(400, "El grupo no tiene acceso a SUNSET (marcar como opcional si fue vendida)")
+        if tipo_nuevo == "MULTIPARQUE" and not getattr(grupo, "multiparque_acceso", False):
+            raise HTTPException(400, "El grupo no tiene acceso a MULTIPARQUE (marcar como opcional si fue vendida)")
+        if tipo_nuevo == "PARADOR" and not getattr(grupo, "parador_acceso", False):
+            raise HTTPException(400, "El grupo no tiene acceso a PARADOR (marcar como opcional si fue vendida)")
 
-    # Validacion Nuevos Eventos
-    if tipo_nuevo == "SURF" and not getattr(grupo, "surf_acceso", False):
-        raise HTTPException(400, "El grupo no tiene acceso a SURF")
-    if tipo_nuevo == "UNIPRAIAS" and not getattr(grupo, "unipraias_acceso", False):
-        raise HTTPException(400, "El grupo no tiene acceso a PARQUE UNIPRAIAS")
-    if tipo_nuevo == "BETO" and not getattr(grupo, "beto_acceso", False):
-        raise HTTPException(400, "El grupo no tiene acceso a BETO CARRERO")
-    if tipo_nuevo == "BARCO" and not getattr(grupo, "barco_acceso", False):
-        raise HTTPException(400, "El grupo no tiene acceso a BARCO PIRATA")
-    if tipo_nuevo == "CRISTO" and not getattr(grupo, "cristo_acceso", False):
-        raise HTTPException(400, "El grupo no tiene acceso a CRISTO LUZ")
-    if tipo_nuevo == "SUNSET" and not getattr(grupo, "sunset_acceso", False):
-        raise HTTPException(400, "El grupo no tiene acceso a SUNSET")
-    if tipo_nuevo == "MULTIPARQUE" and not getattr(grupo, "multiparque_acceso", False):
-        raise HTTPException(400, "El grupo no tiene acceso a MULTIPARQUE")
-    if tipo_nuevo == "PARADOR" and not getattr(grupo, "parador_acceso", False):
-        raise HTTPException(400, "El grupo no tiene acceso a PARADOR")
-
-    # Validacion BAR DE HIELO
-    if tipo_nuevo == "HIELO":
-        if not grupo.bar_hielo:
-            raise HTTPException(400, "El grupo no tiene Bar de Hielo")
+        if tipo_nuevo == "HIELO" and not grupo.bar_hielo:
+            raise HTTPException(400, "El grupo no tiene Bar de Hielo (marcar como opcional si fue vendida)")
 
         existentes_hielo = db.query(models.Asignacion) \
             .join(models.FechaEvento) \
