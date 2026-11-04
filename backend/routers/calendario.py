@@ -27,6 +27,7 @@ class AsignarEventoBody(BaseModel):
     fecha: date
     fecha_evento_id: Optional[int] = None
     es_opcional: bool = False
+    horario: Optional[str] = None
 
 
 class EditarAsignacionBody(BaseModel):
@@ -68,6 +69,7 @@ def calendario(db: Session = Depends(get_db)):
     })
 
     tipos_servicios = [
+        ("BIENVENIDA", "Bienvenida"),
         ("ZACARIAS", "Zacarias"),
         ("POOL", "Cascata / Pool"),
         ("MULTIPARQUE", "Multiparque"),
@@ -81,7 +83,6 @@ def calendario(db: Session = Depends(get_db)):
         ("BARCO", "Barco Pirata"),
         ("CRISTO", "Cristo Luz"),
         # CAMPAMENTO: deprecated, oculto del calendario pero preservado en BD
-        # BIENVENIDA: es temática de disco, no servicio independiente
         # SUNSET: deprecated, oculto del calendario pero preservado en BD
     ]
 
@@ -99,6 +100,7 @@ def calendario(db: Session = Depends(get_db)):
 
     # Mapeo seguro grupo_id -> hoteles en un solo query sin lazy-loading
     hoteles_por_grupo = defaultdict(list)
+    pendientes_por_grupo = {}
     try:
         rows = (
             db.query(
@@ -152,11 +154,9 @@ def calendario(db: Session = Depends(get_db)):
 
             servicios_check = [
                 ("ZACARIAS", "Zacarías", getattr(g, "zacarias_acceso", False) or getattr(g, "zacarias_ultimo_dia", False)),
-                ("PARQUE", "Parque", getattr(g, "parque_acceso", False)),
                 ("POOL", "Pool", getattr(g, "pool_acceso", False)),
                 ("HIELO", "Bar de Hielo", getattr(g, "bar_hielo", False)),
                 ("CENA", "Cena de Velas", getattr(g, "cena_velas", False)),
-                ("CAMPAMENTO", "Campamento", getattr(g, "campamento_acceso", False)),
                 ("SURF", "Surf", getattr(g, "surf_acceso", False)),
                 ("UNIPRAIAS", "Unipraias", getattr(g, "unipraias_acceso", False)),
                 ("BETO", "Beto Carrero", getattr(g, "beto_acceso", False)),
@@ -169,6 +169,8 @@ def calendario(db: Session = Depends(get_db)):
             for tipo_ev, nombre_ev, contratado in servicios_check:
                 if contratado and asigs_por_tipo[tipo_ev] == 0:
                     pendientes.append(nombre_ev)
+
+            pendientes_por_grupo[g.id] = list(pendientes)
 
             resources.append({
                 "id": g.id,
@@ -278,12 +280,17 @@ def calendario(db: Session = Depends(get_db)):
         if f.evento.tipo == "HIELO":
             capacidad_turno = capacidad or 90
             titulo = f"{f.evento.nombre} (Turnos: {turnos} x {capacidad_turno})"
+        elif f.evento.tipo == "BIENVENIDA":
+            if capacidad:
+                titulo = f"🎉 {f.evento.nombre} ({ocupacion}/{capacidad})"
+            else:
+                titulo = f"🎉 {f.evento.nombre} ({ocupacion} PAX)"
         else:
             titulo = f"{f.evento.nombre} ({ocupacion}/{capacidad})"
         
         horario_val = getattr(f, "horario", None)
         if horario_val:
-            titulo += f" - {horario_val}"
+            titulo += f" - ⏰ {horario_val}"
 
         if f.tematica:
             titulo += f"\n{f.tematica.nombre}"
@@ -303,6 +310,15 @@ def calendario(db: Session = Depends(get_db)):
         if f.es_privado and f.empresa_privada:
             titulo_extra = f"\nPrivado: {f.empresa_privada.nombre}"
 
+        tooltip_global = f"{f.evento.nombre} ({f.evento.tipo})"
+        if horario_val:
+            tooltip_global += f"\n⏰ Horario: {horario_val}"
+        if getattr(f.evento, "complejo", None):
+            tooltip_global += f"\n📍 Lugar/Complejo: {f.evento.complejo}"
+        tooltip_global += f"\n👥 Ocupación: {ocupacion} PAX"
+        if capacidad:
+            tooltip_global += f" / {capacidad}"
+
         events.append({
             "id": f"id-{f.id}",
             "resourceId": f"servicio-{f.evento.tipo.upper()}",
@@ -312,6 +328,7 @@ def calendario(db: Session = Depends(get_db)):
             "backgroundColor": color,
             "textColor": text_color,
             "extendedProps": {
+                "tooltip": tooltip_global,
                 "evento_id": f.evento_id,
                 "evento_tipo": f.evento.tipo.upper(),
                 "evento_nombre": f.evento.nombre,
@@ -398,6 +415,7 @@ def calendario(db: Session = Depends(get_db)):
     # =====================================================
     for e in empresas:
         for g in e.grupos:
+            pendientes = pendientes_por_grupo.get(g.id, [])
 
             # info extra para tooltip
             alcohol_txt = "MIX (pulsera)" if getattr(g, 'es_mix_grupo', False) else ("SI" if g.permite_alcohol else "NO")
@@ -502,8 +520,25 @@ def calendario(db: Session = Depends(get_db)):
 
                         es_opc = bool(getattr(asignacion, "es_opcional", False))
                         titulo_asig = asignacion.fecha_evento.evento.nombre
+                        horario_asig = getattr(asignacion.fecha_evento, "horario", None)
+                        tipo_asig = asignacion.fecha_evento.evento.tipo.upper()
+
+                        if tipo_asig == "BIENVENIDA":
+                            titulo_asig = f"🎉 {titulo_asig}"
+                            if horario_asig:
+                                titulo_asig += f" ({horario_asig})"
                         if es_opc:
                             titulo_asig += "\nOpcional vendida"
+
+                        tooltip_asig = f"Asignado: {asignacion.fecha_evento.evento.nombre}"
+                        if tipo_asig == "BIENVENIDA":
+                            tooltip_asig = f"🎉 Bienvenida: {asignacion.fecha_evento.evento.nombre}"
+                            if horario_asig:
+                                tooltip_asig += f" - Horario: {horario_asig}"
+                        elif horario_asig:
+                            tooltip_asig += f" ({horario_asig})"
+                        if es_opc:
+                            tooltip_asig += " (Opcional vendida)"
 
                         events.append({
                             "resourceId": g.id, # ID del Grupo ahora es la fila
@@ -520,9 +555,11 @@ def calendario(db: Session = Depends(get_db)):
                                 "asignacion_id": asignacion.id,
                                 "nombre_evento": asignacion.fecha_evento.evento.nombre,
                                 "evento_id_num": asignacion.fecha_evento.evento.id,
+                                "evento_tipo": tipo_asig,
+                                "horario": horario_asig,
                                 "empresa_nombre": e.nombre,
                                 "es_opcional": es_opc,
-                                "tooltip": f"Asignado: {asignacion.fecha_evento.evento.nombre}" + (" (Opcional vendida)" if es_opc else "")
+                                "tooltip": tooltip_asig
                             }
                         })
 
@@ -1208,10 +1245,14 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
             fecha=fecha,
             con_alcohol=False,
             es_privado=False,
+            horario=body.horario.strip() if body.horario else None,
         )
         db.add(nuevo_evento_fecha)
         db.commit()
         db.refresh(nuevo_evento_fecha)
+    elif body.horario and not nuevo_evento_fecha.horario:
+        nuevo_evento_fecha.horario = body.horario.strip()
+        db.commit()
 
     if nuevo_evento_fecha.es_privado:
         if not nuevo_evento_fecha.empresa_privada_id:

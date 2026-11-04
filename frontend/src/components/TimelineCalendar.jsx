@@ -416,13 +416,12 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
   // =========================================================
   // HEADER CLICK → NUEVO EVENTO GLOBAL
   // =========================================================
-  const abrirNuevoGlobal = async (dateObj) => {
+  const abrirNuevoGlobal = async (dateObj, tipoSugerido = "") => {
     const fechaISO = dateObj.toISOString().slice(0, 10);
 
     setSelectedDate(fechaISO);
     setGrupoAsignando(null); // No es grupo
     setEditando(null);       // No es edición de existente
-    setEventoSeleccionado("");
     setTipoAlcohol("sin");
     setTematicaSeleccionada("");
     setEsPrivado(false);
@@ -434,7 +433,15 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
 
     // Para crear global, mostramos TODOS los eventos posibles para elegir
     const res = await api.get("/eventos/");
-    setEventosDisponibles(res.data);
+    const evList = res.data || [];
+    setEventosDisponibles(evList);
+
+    if (tipoSugerido) {
+      const match = evList.find(e => String(e.tipo).toUpperCase() === String(tipoSugerido).toUpperCase());
+      setEventoSeleccionado(match ? match.id : "");
+    } else {
+      setEventoSeleccionado("");
+    }
 
     setModalOpen(true);
   };
@@ -556,7 +563,8 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
       || resourceIdStr === "servicios-parent"
       || resourceIdStr === "eventos"
     ) {
-      abrirNuevoGlobal(info.date);
+      const tipoSugerido = resourceIdStr.startsWith("servicio-") ? resourceIdStr.replace("servicio-", "") : "";
+      abrirNuevoGlobal(info.date, tipoSugerido);
       return;
     }
 
@@ -594,7 +602,8 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           evento_id: seleccionadoObj ? seleccionadoObj.id : Number(eventoSeleccionado),
           fecha: selectedDate,
           fecha_evento_id: seleccionadoObj ? seleccionadoObj.fecha_evento_id : null,
-          es_opcional: Boolean(esOpcionalAsignar)
+          es_opcional: Boolean(esOpcionalAsignar),
+          horario: horario ? horario.trim() : null
         });
       }
 
@@ -1177,7 +1186,14 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
               <>
                 <select
                   value={eventoSeleccionado}
-                  onChange={(e) => setEventoSeleccionado(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setEventoSeleccionado(val);
+                    const match = eventosDisponibles.find(ev => (ev.fecha_evento_id || ev.id) === Number(val));
+                    if (match?.horario) {
+                      setHorario(match.horario);
+                    }
+                  }}
                   style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "0.9rem" }}
                 >
                   <option value="">-- Seleccionar evento o servicio --</option>
@@ -1379,19 +1395,34 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
                 })()}
 
                 {grupoAsignando && (
-                  <div style={{ marginTop: 12, padding: "10px", background: "#fef9c3", borderRadius: 8, border: "1px solid #fde68a" }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: "0.88rem", fontWeight: 700, color: "#854d0e" }}>
+                  <>
+                    <div style={{ marginTop: 10 }}>
+                      <label style={{ display: "block", marginBottom: 5, fontSize: "0.85rem", fontWeight: 600, color: "#475569" }}>
+                        ⏰ Horario del evento (opcional, ej: 20:30hs):
+                      </label>
                       <input
-                        type="checkbox"
-                        checked={esOpcionalAsignar}
-                        onChange={(e) => setEsOpcionalAsignar(e.target.checked)}
+                        type="text"
+                        placeholder="ej: 20:30hs"
+                        value={horario}
+                        onChange={(e) => setHorario(e.target.value)}
+                        style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.88rem" }}
                       />
-                      🌟 Marcar como Opcional vendida
-                    </label>
-                    <small style={{ display: "block", marginTop: 4, color: "#a16207", fontSize: "0.78rem" }}>
-                      Permite asignar cualquier servicio vendido extra (Zacarías, Hielo, Pool, etc.). Tendrá valor diferenciado en Finanzas y dirá "Opcional vendida" en el diagrama.
-                    </small>
-                  </div>
+                    </div>
+
+                    <div style={{ marginTop: 12, padding: "10px", background: "#fef9c3", borderRadius: 8, border: "1px solid #fde68a" }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: "0.88rem", fontWeight: 700, color: "#854d0e" }}>
+                        <input
+                          type="checkbox"
+                          checked={esOpcionalAsignar}
+                          onChange={(e) => setEsOpcionalAsignar(e.target.checked)}
+                        />
+                        🌟 Marcar como Opcional vendida
+                      </label>
+                      <small style={{ display: "block", marginTop: 4, color: "#a16207", fontSize: "0.78rem" }}>
+                        Permite asignar cualquier servicio vendido extra (Zacarías, Hielo, Pool, etc.). Tendrá valor diferenciado en Finanzas y dirá "Opcional vendida" en el diagrama.
+                      </small>
+                    </div>
+                  </>
                 )}
               </>
             )}

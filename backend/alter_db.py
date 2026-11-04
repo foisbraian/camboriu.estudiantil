@@ -68,5 +68,15 @@ def upgrade_db():
         except Exception as e:
             print(f"Aviso en update ({sql}): {e}")
 
+    # Sembrar evento base BIENVENIDA si no existe
+    try:
+        with engine.begin() as conn:
+            res = conn.execute(text("SELECT id FROM eventos WHERE UPPER(tipo) = 'BIENVENIDA' LIMIT 1")).fetchone()
+            if not res:
+                conn.execute(text("INSERT INTO eventos (nombre, tipo, capacidad_maxima) VALUES ('Bienvenida', 'BIENVENIDA', 2000)"))
+                print("OK: Evento base BIENVENIDA creado por defecto")
+    except Exception as e:
+        print(f"Aviso al verificar evento base BIENVENIDA: {e}")
+
 if __name__ == "__main__":
     upgrade_db()

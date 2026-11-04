@@ -10,6 +10,8 @@ router = APIRouter(prefix="/grupos", tags=["Grupos"])
 def crear_grupo(data: schemas.GrupoCreate, db: Session = Depends(get_db)):
     data_dict = data.dict()
     data_dict["sunset_acceso"] = False
+    if "parque_acceso" not in data_dict or data_dict["parque_acceso"] is None:
+        data_dict["parque_acceso"] = False
     g = models.Grupo(**data_dict)
     db.add(g)
     db.commit()

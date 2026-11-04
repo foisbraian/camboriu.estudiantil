@@ -72,7 +72,8 @@ export default function MobileDayView({ resources, events, loading, initialDate 
         const textColor = evt.textColor || props.textColor;
         return {
           id: evt.id || evt.start,
-          title: props.evento_nombre || evt.title || "Servicio",
+          title: evt.title || props.evento_nombre || "Servicio",
+          horario: props.horario,
           tematica: props.tematica_nombre,
           ocupacion: props.ocupacion,
           capacidad: props.capacidad,
@@ -106,13 +107,18 @@ export default function MobileDayView({ resources, events, loading, initialDate 
         const info = resourceInfo.get(String(evt.resourceId)) || {};
         const rawKey = evt.extendedProps?.asignacion_id ?? evt.id ?? `${evt.resourceId}-${evt.start}-${evt.extendedProps?.tipo}`;
         const uniqueKey = String(rawKey);
+        const props = evt.extendedProps || {};
+        let label = evt.title;
+        if (props.horario && !label.includes(props.horario)) {
+          label += ` (${props.horario})`;
+        }
         return {
           id: uniqueKey,
           company: info.company || "Empresa",
           group: info.group || "Grupo",
           pax: info.pax,
-          label: evt.title,
-          tipo: evt.extendedProps?.tipo,
+          label: label,
+          tipo: props.tipo,
           color: evt.backgroundColor,
         };
       })
@@ -270,7 +276,14 @@ export default function MobileDayView({ resources, events, loading, initialDate 
                       boxShadow: "0 8px 20px rgba(15,23,42,0.18)",
                     }}
                   >
-                    <div style={{ fontSize: "1rem", fontWeight: 700 }}>{evt.title}</div>
+                    <div style={{ fontSize: "1rem", fontWeight: 700, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 6 }}>
+                      <span>{evt.title}</span>
+                      {evt.horario && !evt.title.includes(evt.horario) && (
+                        <span style={{ fontSize: "0.85rem", fontWeight: 700, background: "rgba(0,0,0,0.25)", color: "white", padding: "2px 8px", borderRadius: 6, whiteSpace: "nowrap" }}>
+                          ⏰ {evt.horario}
+                        </span>
+                      )}
+                    </div>
                     {evt.tematica && <div style={{ marginTop: 2, fontSize: "0.85rem", opacity: 0.95 }}>{evt.tematica}</div>}
                     {(evt.show || evt.animador) && (
                       <div style={{ marginTop: 4, fontSize: "0.8rem", background: "rgba(0,0,0,0.3)", padding: "2px 6px", borderRadius: 4, display: "inline-flex", gap: 8, flexWrap: "wrap" }}>

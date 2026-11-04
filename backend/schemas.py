@@ -39,8 +39,8 @@ class GrupoCreate(BaseModel):
     permite_alcohol: bool
     es_mix_grupo: bool = False  # Mix (pulsera): acepta grupos con y sin alcohol
 
-    parque_acceso: bool
-    parque_con_comida: bool
+    parque_acceso: bool = False
+    parque_con_comida: bool = False
 
     campamento_acceso: bool = False
     campamento_con_comida: bool = False
