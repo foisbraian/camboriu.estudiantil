@@ -288,6 +288,14 @@ def calendario(db: Session = Depends(get_db)):
         else:
             titulo = f"{f.evento.nombre} ({ocupacion}/{capacidad})"
         
+        # Para ZACARIAS, contar grupos con campamento y agregar al título
+        if f.evento.tipo == "ZACARIAS":
+            grupos_con_campamento = sum(
+                1 for a in f.asignaciones if a.grupo and getattr(a.grupo, 'campamento_acceso', False)
+            )
+            if grupos_con_campamento > 0:
+                titulo += f"\n🏕️ {grupos_con_campamento} con campamento"
+
         horario_val = getattr(f, "horario", None)
         if horario_val:
             titulo += f" - ⏰ {horario_val}"
@@ -413,6 +421,22 @@ def calendario(db: Session = Depends(get_db)):
     # =====================================================
     # GRUPOS (LOGICA SPLIT)
     # =====================================================
+
+    # Pre-cargar horarios personalizados de Zacarías por empresa
+    horarios_zacarias = {}
+    try:
+        hz_rows = (
+            db.query(models.HorarioEmpresa)
+            .join(models.FechaEvento, models.HorarioEmpresa.fecha_evento_id == models.FechaEvento.id)
+            .join(models.Evento, models.FechaEvento.evento_id == models.Evento.id)
+            .filter(models.Evento.tipo == "ZACARIAS")
+            .all()
+        )
+        for hz in hz_rows:
+            horarios_zacarias[(hz.empresa_id, hz.fecha_evento_id)] = hz
+    except Exception as err:
+        print(f"Aviso al cargar horarios Zacarias: {err}")
+
     for e in empresas:
         for g in e.grupos:
             pendientes = pendientes_por_grupo.get(g.id, [])
@@ -527,6 +551,17 @@ def calendario(db: Session = Depends(get_db)):
                             titulo_asig = f"🎉 {titulo_asig}"
                             if horario_asig:
                                 titulo_asig += f" ({horario_asig})"
+                        # Agregar horario personalizado de empresa para Zacarías
+                        if tipo_asig == "ZACARIAS":
+                            hz_key = (e.id, asignacion.fecha_evento_id)
+                            hz = horarios_zacarias.get(hz_key)
+                            if hz:
+                                titulo_asig += f" ⏰ {hz.horario}"
+                                if hz.nota:
+                                    titulo_asig += f" ({hz.nota})"
+                        # Indicador campamento para grupos con campamento_acceso asignados a Zacarías
+                        if tipo_asig == "ZACARIAS" and getattr(g, 'campamento_acceso', False):
+                            titulo_asig += "\n🏕️ Camp."
                         if es_opc:
                             titulo_asig += "\nOpcional vendida"
 
@@ -909,6 +944,24 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
     # 2. EVENTS
     fechas_eventos_asignados_ids = set()
 
+    # Pre-cargar horarios personalizados de Zacarías por empresa para el portal
+    horarios_zacarias_portal = {}
+    try:
+        empresa_ids_portal = [emp.id for emp in empresas]
+        if empresa_ids_portal:
+            hz_rows_portal = (
+                db.query(models.HorarioEmpresa)
+                .join(models.FechaEvento, models.HorarioEmpresa.fecha_evento_id == models.FechaEvento.id)
+                .join(models.Evento, models.FechaEvento.evento_id == models.Evento.id)
+                .filter(models.Evento.tipo == "ZACARIAS")
+                .filter(models.HorarioEmpresa.empresa_id.in_(empresa_ids_portal))
+                .all()
+            )
+            for hz in hz_rows_portal:
+                horarios_zacarias_portal[(hz.empresa_id, hz.fecha_evento_id)] = hz
+    except Exception as err:
+        print(f"Aviso al cargar horarios Zacarias portal: {err}")
+
     for emp in empresas:
         grupos_a_mostrar = emp.grupos
         if grupos_permitidos_ids:
@@ -1054,6 +1107,15 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                         titulo_asig = f"{asignacion.fecha_evento.evento.nombre} ({pax_val} PAX)"
                         if tematica_nombre:
                             titulo_asig += f"\n{tematica_nombre}"
+                        # Agregar horario personalizado de empresa para Zacarías en el portal
+                        tipo_asig_portal = (asignacion.fecha_evento.evento.tipo or "").upper()
+                        if tipo_asig_portal == "ZACARIAS":
+                            hz_key_portal = (emp.id, asignacion.fecha_evento_id)
+                            hz_portal = horarios_zacarias_portal.get(hz_key_portal)
+                            if hz_portal:
+                                titulo_asig += f" ⏰ {hz_portal.horario}"
+                                if hz_portal.nota:
+                                    titulo_asig += f" ({hz_portal.nota})"
                         if es_opc:
                             titulo_asig += "\nOpcional vendida"
 
