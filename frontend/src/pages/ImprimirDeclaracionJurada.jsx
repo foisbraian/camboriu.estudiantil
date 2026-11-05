@@ -317,7 +317,27 @@ export default function ImprimirDeclaracionJurada() {
             size: A4; 
             margin: 15mm 12mm;
           }
+
+          /* Quitar el overflow:hidden del Layout para que el contenido fluya entre páginas */
+          body,
+          html,
+          #root,
+          #root > div,
+          #root > div > div:last-child {
+            height: auto !important;
+            overflow: visible !important;
+            position: static !important;
+          }
+
+          /* Ocultar el botón hamburguesa y el panel lateral del Layout */
+          #print-controls,
+          #root > div > div:first-child {
+            display: none !important;
+          }
+
+          /* Ocultar la barra de control de esta página */
           .no-print { display: none !important; }
+
           body { margin: 0; padding: 0; background: white; }
           table { break-inside: avoid; }
           div[style*="breakInside"] { break-inside: avoid; page-break-inside: avoid; }
