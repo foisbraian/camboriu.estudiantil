@@ -317,19 +317,8 @@ export default function ImprimirDeclaracionJurada() {
             size: A4; 
             margin: 15mm 12mm;
           }
-          body * { visibility: hidden !important; }
-          div[style*="max-width: 780px"], div[style*="max-width: 780px"] * {
-            visibility: visible !important;
-          }
           .no-print { display: none !important; }
           body { margin: 0; padding: 0; background: white; }
-          div[style*="max-width: 780px"] {
-            position: fixed !important;
-            top: 0; left: 0;
-            width: 100% !important;
-            padding: 0 !important;
-            max-width: 100% !important;
-          }
           table { break-inside: avoid; }
           div[style*="breakInside"] { break-inside: avoid; page-break-inside: avoid; }
         }
