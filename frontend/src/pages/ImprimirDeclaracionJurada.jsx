@@ -318,7 +318,7 @@ export default function ImprimirDeclaracionJurada() {
             margin: 15mm 12mm;
           }
 
-          /* Quitar el overflow:hidden del Layout para que el contenido fluya entre páginas */
+          /* 1. Destrancar el Layout para que el contenido pueda paginar */
           body,
           html,
           #root,
@@ -329,14 +329,16 @@ export default function ImprimirDeclaracionJurada() {
             position: static !important;
           }
 
-          /* Ocultar el botón hamburguesa y el panel lateral del Layout */
-          #print-controls,
-          #root > div > div:first-child {
-            display: none !important;
+          /* 2. Ocultar todo excepto el documento (el truco de visibility mantiene el diseño) */
+          body * { visibility: hidden !important; }
+          div[style*="max-width: 780px"],
+          div[style*="max-width: 780px"] * {
+            visibility: visible !important;
           }
 
-          /* Ocultar la barra de control de esta página */
+          /* 3. Ocultar controles */
           .no-print { display: none !important; }
+          #print-controls { display: none !important; }
 
           body { margin: 0; padding: 0; background: white; }
           table { break-inside: avoid; }
