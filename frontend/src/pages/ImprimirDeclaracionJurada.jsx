@@ -120,7 +120,7 @@ export default function ImprimirDeclaracionJurada() {
             Camboriu Estudiantil 2026
           </div>
           <h1 style={{ margin: "0 0 4px", fontSize: "1.5rem", fontWeight: 900, color: "#0f172a" }}>
-            DECLARACIÓN JURADA DE RECEPCIÓN DE VOUCHERS
+            DECLARACIÓN JURADA DE RECEPCIÓN DE VOUCHERS DIGITALES
           </h1>
           <div style={{ fontSize: "0.85rem", color: "#475569" }}>
             Fecha de emisión: {fechaHoy}
@@ -138,17 +138,39 @@ export default function ImprimirDeclaracionJurada() {
 
           <ol style={{ margin: "0 0 14px", paddingLeft: 20, lineHeight: 2 }}>
             <li>
-              He recibido en la oficina de <strong>Camboriu Estudiantil</strong>, en perfectas condiciones y listos para su uso,
-              la totalidad de los vouchers detallados a continuación, correspondientes al viaje de estudios <strong>Estudiantil 2026</strong>.
+              He tomado conocimiento y acepto que <strong>Camboriu Estudiantil</strong> emite sus vouchers de forma
+              exclusivamente <strong>digital</strong>, a través de un <strong>código QR único e intransferible</strong> por
+              servicio contratado. Dichos vouchers son enviados al representante de la empresa/institución y/o están
+              disponibles en el sistema de Camboriu Estudiantil.
             </li>
             <li>
-              Los vouchers recibidos son válidos únicamente para los grupos, fechas y servicios especificados en el presente documento.
+              Cada código QR es válido únicamente para el servicio, grupo, fecha y cantidad de personas especificados
+              en el presente documento. El QR no es físico ni impreso; su presentación se realiza mediante el
+              dispositivo móvil del titular (pantalla del teléfono o captura de pantalla del mismo).
             </li>
             <li>
-              Me comprometo a presentar dichos vouchers al momento de hacer uso de cada servicio, en la puerta del establecimiento correspondiente.
+              Al momento de hacer uso de cada servicio, el representante o responsable del grupo deberá exhibir
+              el código QR correspondiente. El personal de <strong>Camboriu Estudiantil</strong> procederá a
+              <strong> validar y quemar el QR</strong> mediante el sistema interno, dejando constancia digital
+              del uso efectivo del servicio. Una vez quemado, el código QR queda inhabilitado para usos posteriores.
             </li>
             <li>
-              El uso o no uso de los vouchers no exime a la empresa de abonar los servicios contratados, dado que los mismos fueron emitidos y entregados en tiempo y forma.
+              Declaro conocer que es posible <strong>agregar servicios adicionales</strong> al paquete contratado
+              en cualquier momento, los cuales serán incorporados al sistema y generarán nuevos códigos QR
+              independientes. La verificación y estado de todos los servicios contratados puede consultarse
+              en cualquier momento a través del <strong>sistema de Camboriu Estudiantil</strong>.
+            </li>
+            <li>
+              En cada ocasión en que se lleve a cabo un servicio, el representante del grupo
+              <strong> firmará una planilla de asistencia presencial</strong>, en la que se registrará la cantidad
+              de ingresos o consumiciones utilizadas en dicha jornada. Dicha planilla tiene validez como
+              comprobante complementario al QR digital, confirmando el uso efectivo del servicio.
+            </li>
+            <li>
+              Los vouchers digitales emitidos son válidos únicamente para los grupos, fechas y servicios
+              especificados. El uso o no uso de los mismos no exime a la empresa/institución de abonar
+              los servicios contratados, dado que los códigos QR fueron generados, entregados y/o notificados
+              en tiempo y forma.
             </li>
           </ol>
         </div>
@@ -156,7 +178,7 @@ export default function ImprimirDeclaracionJurada() {
         {/* Detalle de grupos y vouchers */}
         <div style={{ marginBottom: 20 }}>
           <h2 style={{ fontSize: "1rem", fontWeight: 800, borderBottom: "2px solid #e2e8f0", paddingBottom: 6, marginBottom: 12, color: "#0f172a" }}>
-            DETALLE DE VOUCHERS ENTREGADOS
+            DETALLE DE VOUCHERS DIGITALES (QR) EMITIDOS
           </h2>
 
           {grupos.map((g, idx) => (
@@ -233,7 +255,7 @@ export default function ImprimirDeclaracionJurada() {
               padding: "8px 20px", borderRadius: 6,
               fontWeight: 700, fontSize: "0.95rem"
             }}>
-              TOTAL VOUCHERS ENTREGADOS: {totalVouchers}
+              TOTAL VOUCHERS DIGITALES EMITIDOS: {totalVouchers}
             </div>
           </div>
         </div>
@@ -249,9 +271,11 @@ export default function ImprimirDeclaracionJurada() {
           color: "#78350f",
           lineHeight: 1.6,
         }}>
-          <strong>⚠️ Importante:</strong> La firma de esta declaración implica la conformidad con la cantidad y estado de los vouchers
-          recibidos, y el reconocimiento de la obligación de pago de los servicios contratados con Camboriu Estudiantil 2026,
-          independientemente del uso efectivo de los mismos.
+          <strong>⚠️ Importante:</strong> La firma de esta declaración implica la conformidad con el detalle de servicios
+          contratados y la aceptación del sistema de vouchers <strong>digitales (QR)</strong> utilizado por Camboriu Estudiantil 2026.
+          El firmante reconoce haber sido notificado de la modalidad de entrega digital, del procedimiento de validación y quemado
+          de QR en cada servicio, y de la obligatoriedad de firmar la planilla de asistencia presencial en cada ocasión.
+          El no uso de los vouchers digitales no exime a la empresa/institución de abonar los servicios contratados.
         </div>
 
         {/* Sección de firma */}
