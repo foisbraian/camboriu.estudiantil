@@ -29,7 +29,7 @@ def asignar(data: schemas.AsignacionCreate, db: Session = Depends(get_db)):
     tipo = (fecha_evento.evento.tipo or "").upper()
 
     try:
-        validar_estadia(grupo, fecha_evento.fecha)
+        validar_estadia(grupo, fecha_evento.fecha, fecha_evento.evento)
         validar_servicio(grupo, fecha_evento.evento)
     except Exception as e:
         raise HTTPException(400, str(e))

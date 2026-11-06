@@ -347,3 +347,137 @@ def run_migrations():
         raise HTTPException(status_code=500, detail=f"Error inesperado: {exc}") from exc
 
     return {"detail": "Migracion completada", "results": results}
+
+
+# =========================================================
+# DIAGNÓSTICO Y LIMPIEZA DE ASIGNACIONES FUERA DE ESTADÍA
+# =========================================================
+
+@router.get("/diagnostico-asignaciones", summary="Detectar asignaciones fantasmas o fuera de estadía")
+def diagnostico_asignaciones():
+    """Analiza todas las asignaciones de la base de datos y las clasifica:
+    1. Válidas normales (dentro de estadía)
+    2. Zacarías día de salida con zacarias_ultimo_dia (válidas, NO borrar)
+    3. Con vouchers generados (requiere revisar fechas del grupo antes de tocar)
+    4. Fantasmas / huérfanas (fuera de estadía, candidatas a borrado)
+    """
+    from database import SessionLocal
+    import models
+
+    db = SessionLocal()
+    try:
+        asigs = db.query(models.Asignacion).all()
+        total = len(asigs)
+
+        zacarias_salida_validas = []
+        con_vouchers = []
+        fantasmas_borrables = []
+        huerfanas = []
+
+        for a in asigs:
+            if not a.grupo or not a.fecha_evento:
+                huerfanas.append({
+                    "asignacion_id": a.id,
+                    "grupo_id": a.grupo_id,
+                    "fecha_evento_id": a.fecha_evento_id,
+                    "motivo": "Grupo o FechaEvento inexistente"
+                })
+                continue
+
+            g = a.grupo
+            fe = a.fecha_evento
+            ev = fe.evento
+            tipo_ev = (ev.tipo or "").upper() if ev else ""
+
+            # Caso Zacarías día de salida
+            es_zac_salida = (
+                tipo_ev == "ZACARIAS"
+                and bool(getattr(g, "zacarias_ultimo_dia", False))
+                and fe.fecha == g.fecha_salida
+            )
+
+            # En estadía normal
+            en_estadia = (g.fecha_entrada <= fe.fecha < g.fecha_salida)
+
+            if en_estadia:
+                continue
+
+            empresa_nom = g.empresa.nombre if g.empresa else "Sin Empresa"
+            ev_nom = ev.nombre if ev else "Sin Evento"
+            cant_vouchers = len(a.vouchers) if getattr(a, "vouchers", None) else 0
+
+            info = {
+                "asignacion_id": a.id,
+                "empresa": empresa_nom,
+                "grupo_id": g.id,
+                "grupo_nombre": g.nombre,
+                "evento_id": ev.id if ev else None,
+                "evento_nombre": ev_nom,
+                "evento_tipo": tipo_ev,
+                "fecha_evento": str(fe.fecha),
+                "fecha_entrada": str(g.fecha_entrada),
+                "fecha_salida": str(g.fecha_salida),
+                "zacarias_ultimo_dia": bool(getattr(g, "zacarias_ultimo_dia", False)),
+                "cant_vouchers": cant_vouchers,
+            }
+
+            if es_zac_salida:
+                zacarias_salida_validas.append(info)
+            elif cant_vouchers > 0:
+                con_vouchers.append(info)
+            else:
+                fantasmas_borrables.append(info)
+
+        return {
+            "total_asignaciones": total,
+            "resumen": {
+                "zacarias_salida_validas": len(zacarias_salida_validas),
+                "con_vouchers_requieren_revision": len(con_vouchers),
+                "fantasmas_borrables_sin_vouchers": len(fantasmas_borrables),
+                "huerfanas": len(huerfanas),
+            },
+            "detalle": {
+                "zacarias_salida_validas": zacarias_salida_validas,
+                "con_vouchers": con_vouchers,
+                "fantasmas_borrables": fantasmas_borrables,
+                "huerfanas": huerfanas,
+            }
+        }
+    finally:
+        db.close()
+
+
+@router.delete("/limpiar-asignacion/{asignacion_id}", summary="Eliminar una asignación y sus vouchers asociados")
+def limpiar_asignacion(asignacion_id: int):
+    """Elimina de forma segura y en cascada una asignación puntual y sus vouchers vinculados."""
+    from database import SessionLocal
+    import models
+
+    db = SessionLocal()
+    try:
+        asig = db.get(models.Asignacion, asignacion_id)
+        if not asig:
+            raise HTTPException(404, f"Asignación #{asignacion_id} no encontrada")
+
+        vouchers_borrados = 0
+        if getattr(asig, "vouchers", None):
+            vouchers_borrados = len(asig.vouchers)
+            for v in list(asig.vouchers):
+                db.delete(v)
+
+        ev_nom = asig.fecha_evento.evento.nombre if (asig.fecha_evento and asig.fecha_evento.evento) else "Evento"
+        g_nom = asig.grupo.nombre if asig.grupo else f"Grupo #{asig.grupo_id}"
+
+        db.delete(asig)
+        db.commit()
+
+        return {
+            "ok": True,
+            "asignacion_id": asignacion_id,
+            "grupo": g_nom,
+            "evento": ev_nom,
+            "vouchers_borrados": vouchers_borrados,
+            "mensaje": f"Asignación #{asignacion_id} ({g_nom} en {ev_nom}) eliminada correctamente."
+        }
+    finally:
+        db.close()

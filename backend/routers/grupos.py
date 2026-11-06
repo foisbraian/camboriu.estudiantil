@@ -31,6 +31,29 @@ def editar_grupo(grupo_id: int, data: schemas.GrupoUpdate, db: Session = Depends
         from fastapi import HTTPException
         raise HTTPException(404, "Grupo no encontrado")
 
+    # Si se modifican las fechas de estadía, validar que no queden asignaciones huérfanas/fantasmas
+    fechas_cambiaron = (grupo.fecha_entrada != data.fecha_entrada) or (grupo.fecha_salida != data.fecha_salida)
+    if fechas_cambiaron and grupo.asignaciones:
+        asignaciones_fuera = []
+        for a in grupo.asignaciones:
+            if not a.fecha_evento:
+                continue
+            f_asig = a.fecha_evento.fecha
+            tipo = (a.fecha_evento.evento.tipo or "").upper() if a.fecha_evento.evento else ""
+            es_zac_salida = (tipo == "ZACARIAS" and data.zacarias_ultimo_dia and f_asig == data.fecha_salida)
+            if not es_zac_salida and not (data.fecha_entrada <= f_asig < data.fecha_salida):
+                nom = a.fecha_evento.evento.nombre if a.fecha_evento.evento else f"Evento #{a.fecha_evento_id}"
+                asignaciones_fuera.append(f"{nom} ({f_asig})")
+
+        if asignaciones_fuera:
+            from fastapi import HTTPException
+            lista_preview = ", ".join(asignaciones_fuera[:4])
+            extra = f" y {len(asignaciones_fuera) - 4} más" if len(asignaciones_fuera) > 4 else ""
+            raise HTTPException(
+                400,
+                f"No se pueden cambiar las fechas del grupo porque tiene {len(asignaciones_fuera)} asignación(es) que quedarían fuera del nuevo rango: {lista_preview}{extra}. Modificá o quitá esas asignaciones primero."
+            )
+
     # Update fields
     grupo.nombre = data.nombre
     # grupo.empresa_id = data.empresa_id # No permitimos mover de empresa por ahora, o si? Mejor no tocarlo si no hace falta.

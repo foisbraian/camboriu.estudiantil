@@ -2,10 +2,20 @@ from datetime import timedelta
 from models import Asignacion
 
 
-def validar_estadia(grupo, fecha):
-    limite_salida = (grupo.fecha_salida + timedelta(days=1)) if getattr(grupo, 'zacarias_ultimo_dia', False) else grupo.fecha_salida
-    if not (grupo.fecha_entrada <= fecha < limite_salida):
-        raise Exception("Grupo fuera de estadía")
+def validar_estadia(grupo, fecha, evento=None):
+    tipo_evento = (getattr(evento, "tipo", None) or "").upper() if evento else ""
+    es_zacarias_salida = (
+        tipo_evento == "ZACARIAS"
+        and bool(getattr(grupo, "zacarias_ultimo_dia", False))
+        and fecha == grupo.fecha_salida
+    )
+
+    if es_zacarias_salida:
+        # Permitido exclusivamente Zacarías el día de la salida
+        return
+
+    if not (grupo.fecha_entrada <= fecha < grupo.fecha_salida):
+        raise Exception("Grupo fuera de estadía (la fecha debe estar entre entrada y salida del grupo)")
 
 
 def validar_servicio(grupo, evento):

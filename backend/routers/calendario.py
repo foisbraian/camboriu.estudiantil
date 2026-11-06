@@ -15,7 +15,22 @@ from collections import defaultdict
 
 router = APIRouter(prefix="/calendario", tags=["Calendario"])
 
-router = APIRouter(prefix="/calendario", tags=["Calendario"])
+
+def asignacion_valida_en_fecha(asig, fecha, evento=None) -> bool:
+    """Verifica que una asignación corresponda a la estadía del grupo.
+    Solo se permite fecha == grupo.fecha_salida si es Zacarías y el grupo tiene zacarias_ultimo_dia activo.
+    """
+    if not asig.grupo or not asig.grupo.fecha_entrada or not asig.grupo.fecha_salida:
+        return False
+    g = asig.grupo
+    if g.fecha_entrada <= fecha < g.fecha_salida:
+        return True
+    tipo = (getattr(evento, "tipo", None) or "").upper() if evento else (
+        (asig.fecha_evento.evento.tipo.upper()) if (asig.fecha_evento and asig.fecha_evento.evento) else ""
+    )
+    if tipo == "ZACARIAS" and bool(getattr(g, "zacarias_ultimo_dia", False)) and fecha == g.fecha_salida:
+        return True
+    return False
 
 
 # =========================================================
@@ -143,7 +158,7 @@ def calendario(db: Session = Depends(get_db)):
         for g in e.grupos:
             asigs_por_tipo = defaultdict(int)
             for a in g.asignaciones:
-                if a.fecha_evento and a.fecha_evento.evento:
+                if a.fecha_evento and a.fecha_evento.evento and asignacion_valida_en_fecha(a, a.fecha_evento.fecha, a.fecha_evento.evento):
                     asigs_por_tipo[a.fecha_evento.evento.tipo] += 1
 
             pendientes = []
@@ -245,18 +260,21 @@ def calendario(db: Session = Depends(get_db)):
         ocupacion = 0
         turnos = 0
 
+        # Solo computar asignaciones válidas (dentro de la estadía del grupo, ignorando fantasmas fuera de fecha)
+        asignaciones_validas = [a for a in f.asignaciones if asignacion_valida_en_fecha(a, f.fecha, f.evento)]
+
         if f.evento.tipo == "HIELO":
-            turnos = len(f.asignaciones)
-            for a in f.asignaciones:
+            turnos = len(asignaciones_validas)
+            for a in asignaciones_validas:
                 if a.pax_asignados is not None:
                     ocupacion += a.pax_asignados
                 elif a.grupo:
                     ocupacion += a.grupo.cantidad_pax
         else:
-            # Calcular ocupación base (Sumar PAX de las asignaciones explícitas)
+            # Calcular ocupación base (Sumar PAX de las asignaciones explícitas válidas)
             ocupacion = sum(
                 (a.pax_asignados if getattr(a, "pax_asignados", None) is not None else a.grupo.cantidad_pax)
-                for a in f.asignaciones if a.grupo
+                for a in asignaciones_validas if a.grupo
             )
 
         # Desglose Comida
@@ -264,17 +282,17 @@ def calendario(db: Session = Depends(get_db)):
         sin_comida = 0
         
         if f.evento.tipo == "PARQUE":
-            con_comida = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo and a.grupo.parque_con_comida)
-            sin_comida = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo and not a.grupo.parque_con_comida)
+            con_comida = sum(a.grupo.cantidad_pax for a in asignaciones_validas if a.grupo and a.grupo.parque_con_comida)
+            sin_comida = sum(a.grupo.cantidad_pax for a in asignaciones_validas if a.grupo and not a.grupo.parque_con_comida)
         elif f.evento.tipo == "CAMPAMENTO":
-            con_comida = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo and getattr(a.grupo, "campamento_con_comida", False))
-            sin_comida = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo and not getattr(a.grupo, "campamento_con_comida", False))
+            con_comida = sum(a.grupo.cantidad_pax for a in asignaciones_validas if a.grupo and getattr(a.grupo, "campamento_con_comida", False))
+            sin_comida = sum(a.grupo.cantidad_pax for a in asignaciones_validas if a.grupo and not getattr(a.grupo, "campamento_con_comida", False))
         elif f.evento.tipo == "ZACARIAS":
-            con_comida = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo and getattr(a.grupo, "zacarias_con_comida", False))
-            sin_comida = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo and not getattr(a.grupo, "zacarias_con_comida", False))
+            con_comida = sum(a.grupo.cantidad_pax for a in asignaciones_validas if a.grupo and getattr(a.grupo, "zacarias_con_comida", False))
+            sin_comida = sum(a.grupo.cantidad_pax for a in asignaciones_validas if a.grupo and not getattr(a.grupo, "zacarias_con_comida", False))
         elif f.evento.tipo == "POOL":
-            con_comida = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo and a.grupo.pool_con_comida)
-            sin_comida = sum(a.grupo.cantidad_pax for a in f.asignaciones if a.grupo and not a.grupo.pool_con_comida)
+            con_comida = sum(a.grupo.cantidad_pax for a in asignaciones_validas if a.grupo and a.grupo.pool_con_comida)
+            sin_comida = sum(a.grupo.cantidad_pax for a in asignaciones_validas if a.grupo and not a.grupo.pool_con_comida)
 
         # Título con temática si existe
         if f.evento.tipo == "HIELO":
@@ -291,7 +309,7 @@ def calendario(db: Session = Depends(get_db)):
         # Para ZACARIAS, contar grupos con campamento y agregar al título
         if f.evento.tipo == "ZACARIAS":
             grupos_con_campamento = sum(
-                1 for a in f.asignaciones if a.grupo and getattr(a.grupo, 'campamento_acceso', False)
+                1 for a in asignaciones_validas if a.grupo and getattr(a.grupo, 'campamento_acceso', False)
             )
             if grupos_con_campamento > 0:
                 titulo += f"\n🏕️ {grupos_con_campamento} con campamento"
@@ -504,7 +522,8 @@ def calendario(db: Session = Depends(get_db)):
             # Mapa de asignaciones por fecha (lista para soportar multiples)
             mapa_asignaciones = defaultdict(list)
             for a in g.asignaciones:
-                mapa_asignaciones[a.fecha_evento.fecha].append(a)
+                if a.fecha_evento and asignacion_valida_en_fecha(a, a.fecha_evento.fecha, a.fecha_evento.evento):
+                    mapa_asignaciones[a.fecha_evento.fecha].append(a)
 
             # Iterar dia por dia
             current_date = g.fecha_entrada
@@ -775,7 +794,8 @@ def calendario_resumen(db: Session = Depends(get_db)):
                 pax = grupo.cantidad_pax
                 asigs_hoy = [
                     a for a in grupo.asignaciones
-                    if a.fecha_evento.fecha == current_date
+                    if a.fecha_evento and a.fecha_evento.fecha == current_date
+                    and asignacion_valida_en_fecha(a, current_date, a.fecha_evento.evento)
                 ]
                 for a in asigs_hoy:
                     nombre_ev = a.fecha_evento.evento.nombre
@@ -1285,23 +1305,39 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
         raise HTTPException(404, "Grupo no encontrado")
     grupo = cast(Any, grupo_obj)
 
-    limite_salida = (grupo.fecha_salida + timedelta(days=1)) if getattr(grupo, 'zacarias_ultimo_dia', False) else grupo.fecha_salida
-    if not (grupo.fecha_entrada <= fecha < limite_salida):
-        raise HTTPException(400, "Fuera de estadía")
-
     # Obtener evento a asignar
     if body.fecha_evento_id:
         nuevo_evento_fecha = db.get(models.FechaEvento, body.fecha_evento_id)
     else:
         nuevo_evento_fecha = db.query(models.FechaEvento) \
             .filter_by(evento_id=evento_id, fecha=fecha).first()
-            
+
+    base_evento = None
     if not nuevo_evento_fecha:
         # Si no existe la fecha de evento global, la creamos automáticamente para facilitar el flujo
         base_evento = db.get(models.Evento, evento_id)
         if not base_evento:
             raise HTTPException(400, "El tipo de evento base no existe")
-        
+
+    tipo_nuevo = (
+        (nuevo_evento_fecha.evento.tipo if nuevo_evento_fecha and nuevo_evento_fecha.evento else (base_evento.tipo if base_evento else "")) or ""
+    ).upper()
+
+    # Validación de estadía estricta:
+    # Solo Zacarías puede asignarse el día de salida si el grupo tiene zacarias_ultimo_dia habilitado.
+    es_zacarias_salida = (
+        tipo_nuevo == "ZACARIAS"
+        and bool(getattr(grupo, 'zacarias_ultimo_dia', False))
+        and fecha == grupo.fecha_salida
+    )
+
+    if not es_zacarias_salida and not (grupo.fecha_entrada <= fecha < grupo.fecha_salida):
+        raise HTTPException(
+            400,
+            f"Fuera de estadía: la fecha {fecha} no corresponde a la estadía del grupo ({grupo.fecha_entrada} a {grupo.fecha_salida})"
+        )
+
+    if not nuevo_evento_fecha:
         nuevo_evento_fecha = models.FechaEvento(
             evento_id=evento_id,
             fecha=fecha,
@@ -1720,30 +1756,7 @@ def editar_fecha_evento(fecha_evento_id: int, body: EditarFechaEventoBody, db: S
 
 
 # =========================================================
-# EDITAR / ELIMINAR ASIGNACIÓN DIRECTA
-# =========================================================
-@router.put("/asignacion/{asignacion_id}")
-def actualizar_asignacion(asignacion_id: int, body: EditarAsignacionBody, db: Session = Depends(get_db)):
-    asig = db.get(models.Asignacion, asignacion_id)
-    if not asig:
-        raise HTTPException(404, "Asignación no encontrada")
-    asig.es_opcional = bool(body.es_opcional)
-    db.commit()
-    db.refresh(asig)
-    return {"ok": True, "asignacion_id": asig.id, "es_opcional": asig.es_opcional}
-
-
-@router.delete("/asignacion/{asignacion_id}")
-def eliminar_asignacion_por_id(asignacion_id: int, db: Session = Depends(get_db)):
-    asig = db.get(models.Asignacion, asignacion_id)
-    if not asig:
-        raise HTTPException(404, "Asignación no encontrada")
-    db.delete(asig)
-    db.commit()
-    return {"ok": True}
-
-
-
+# ELIMINAR FECHA EVENTO GLOBAL
 # =========================================================
 @router.delete("/fecha/{fecha_evento_id}")
 def eliminar_fecha_evento_global(fecha_evento_id: int, db: Session = Depends(get_db)):
@@ -1774,30 +1787,6 @@ def eliminar_fecha_evento_global(fecha_evento_id: int, db: Session = Depends(get
     except Exception as e:
         print(f"Error notificando: {e}")
 
-    return {"ok": True}
-
-
-# =========================================================
-# EDITAR / ELIMINAR ASIGNACIÓN DIRECTA
-# =========================================================
-@router.put("/asignacion/{asignacion_id}")
-def actualizar_asignacion(asignacion_id: int, body: EditarAsignacionBody, db: Session = Depends(get_db)):
-    asig = db.get(models.Asignacion, asignacion_id)
-    if not asig:
-        raise HTTPException(404, "Asignación no encontrada")
-    asig.es_opcional = bool(body.es_opcional)
-    db.commit()
-    db.refresh(asig)
-    return {"ok": True, "asignacion_id": asig.id, "es_opcional": asig.es_opcional}
-
-
-@router.delete("/asignacion/{asignacion_id}")
-def eliminar_asignacion_por_id(asignacion_id: int, db: Session = Depends(get_db)):
-    asig = db.get(models.Asignacion, asignacion_id)
-    if not asig:
-        raise HTTPException(404, "Asignación no encontrada")
-    db.delete(asig)
-    db.commit()
     return {"ok": True}
 
 
@@ -1870,30 +1859,6 @@ def crear_horario_empresa(fecha_evento_id: int, body: HorarioEmpresaBody, db: Se
     return {"ok": True}
 
 
-# =========================================================
-# EDITAR / ELIMINAR ASIGNACIÓN DIRECTA
-# =========================================================
-@router.put("/asignacion/{asignacion_id}")
-def actualizar_asignacion(asignacion_id: int, body: EditarAsignacionBody, db: Session = Depends(get_db)):
-    asig = db.get(models.Asignacion, asignacion_id)
-    if not asig:
-        raise HTTPException(404, "Asignación no encontrada")
-    asig.es_opcional = bool(body.es_opcional)
-    db.commit()
-    db.refresh(asig)
-    return {"ok": True, "asignacion_id": asig.id, "es_opcional": asig.es_opcional}
-
-
-@router.delete("/asignacion/{asignacion_id}")
-def eliminar_asignacion_por_id(asignacion_id: int, db: Session = Depends(get_db)):
-    asig = db.get(models.Asignacion, asignacion_id)
-    if not asig:
-        raise HTTPException(404, "Asignación no encontrada")
-    db.delete(asig)
-    db.commit()
-    return {"ok": True}
-
-
 @router.delete("/horario-empresa/{horario_id}")
 def eliminar_horario_empresa(horario_id: int, db: Session = Depends(get_db)):
     """Elimina un horario individual de empresa."""
@@ -1901,30 +1866,6 @@ def eliminar_horario_empresa(horario_id: int, db: Session = Depends(get_db)):
     if not h:
         raise HTTPException(404, "Horario no encontrado")
     db.delete(h)
-    db.commit()
-    return {"ok": True}
-
-
-# =========================================================
-# EDITAR / ELIMINAR ASIGNACIÓN DIRECTA
-# =========================================================
-@router.put("/asignacion/{asignacion_id}")
-def actualizar_asignacion(asignacion_id: int, body: EditarAsignacionBody, db: Session = Depends(get_db)):
-    asig = db.get(models.Asignacion, asignacion_id)
-    if not asig:
-        raise HTTPException(404, "Asignación no encontrada")
-    asig.es_opcional = bool(body.es_opcional)
-    db.commit()
-    db.refresh(asig)
-    return {"ok": True, "asignacion_id": asig.id, "es_opcional": asig.es_opcional}
-
-
-@router.delete("/asignacion/{asignacion_id}")
-def eliminar_asignacion_por_id(asignacion_id: int, db: Session = Depends(get_db)):
-    asig = db.get(models.Asignacion, asignacion_id)
-    if not asig:
-        raise HTTPException(404, "Asignación no encontrada")
-    db.delete(asig)
     db.commit()
     return {"ok": True}
 
