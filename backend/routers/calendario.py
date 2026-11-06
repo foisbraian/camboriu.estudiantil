@@ -1305,6 +1305,8 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
         raise HTTPException(404, "Grupo no encontrado")
     grupo = cast(Any, grupo_obj)
 
+    limite_salida = (grupo.fecha_salida + timedelta(days=1)) if getattr(grupo, 'zacarias_ultimo_dia', False) else grupo.fecha_salida
+
     # Obtener evento a asignar
     if body.fecha_evento_id:
         nuevo_evento_fecha = db.get(models.FechaEvento, body.fecha_evento_id)
@@ -1378,13 +1380,13 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
                 raise HTTPException(400, "El grupo con alcohol debe asistir a eventos con alcohol")
             
         # NUEVA VALIDACION: Capacidad de compras DISCO (incluye opcionales)
-        # Contar cuantas asignaciones de tipo DISCO tiene ya el grupo
+        # Contar cuantas asignaciones de tipo DISCO tiene ya el grupo dentro de su estadía
         discos_asignadas_count = db.query(func.count(func.distinct(models.Asignacion.id)))\
             .join(models.FechaEvento)\
             .join(models.Evento)\
             .filter(models.Asignacion.grupo_id == grupo_id)\
             .filter(models.FechaEvento.fecha >= grupo.fecha_entrada)\
-            .filter(models.FechaEvento.fecha < limite_salida)\
+            .filter(models.FechaEvento.fecha < grupo.fecha_salida)\
             .filter(models.Evento.tipo == "DISCO")\
             .scalar() or 0
 
