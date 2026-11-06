@@ -20,7 +20,7 @@ function iso(date) {
   return `${y}-${m}-${d}`;
 }
 
-export default function MobileDayView({ resources, events, loading, initialDate = null }) {
+export default function MobileDayView({ resources, events, loading, initialDate = null, filtroServicio = "todos" }) {
   const [currentDate, setCurrentDate] = useState(() => initialDate || today());
 
   useEffect(() => {
@@ -103,6 +103,15 @@ export default function MobileDayView({ resources, events, loading, initialDate 
           || tipo === "grupo_readonly"
         );
       })
+      // Filtro por servicio: si está activo, solo incluir asignaciones que coincidan
+      .filter((evt) => {
+        if (filtroServicio === "todos") return true;
+        const tipo = evt.extendedProps?.tipo;
+        // Para eventos tipo grupo (sin asignación), excluirlos si hay filtro activo
+        if (tipo === "grupo" || tipo === "grupo_readonly") return false;
+        const nombre = (evt.title || "").replace(/\s*\(.*?\)\s*$/, "").trim();
+        return nombre === filtroServicio;
+      })
       .map((evt) => {
         const info = resourceInfo.get(String(evt.resourceId)) || {};
         const rawKey = evt.extendedProps?.asignacion_id ?? evt.id ?? `${evt.resourceId}-${evt.start}-${evt.extendedProps?.tipo}`;
@@ -134,7 +143,7 @@ export default function MobileDayView({ resources, events, loading, initialDate 
       }
       return a.company.localeCompare(b.company);
     });
-  }, [events, matchesCurrentDate, resourceInfo]);
+  }, [events, matchesCurrentDate, resourceInfo, filtroServicio]);
 
   const monthOptions = useMemo(() => {
     const validDates = events

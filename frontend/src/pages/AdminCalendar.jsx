@@ -47,6 +47,7 @@ export default function AdminCalendar() {
   const [anioSeleccionado, setAnioSeleccionado] = useState(() => targetDate ? targetDate.getFullYear() : now.getFullYear());
   const [filtroAlcohol, setFiltroAlcohol] = useState("global");
   const [filtroEmpresa, setFiltroEmpresa] = useState("todas");
+  const [filtroServicio, setFiltroServicio] = useState("todos");
   const [showFiltros, setShowFiltros] = useState(true);
 
   const aniosDisponibles = useMemo(() => {
@@ -95,18 +96,59 @@ export default function AdminCalendar() {
       });
   }, [resources]);
 
+  // Lista de servicios/lugares únicos derivada de los eventos de asignación
+  const serviciosDisponibles = useMemo(() => {
+    const set = new Set();
+    events.forEach(evt => {
+      const tipo = evt.extendedProps?.tipo;
+      if ((tipo === "asignacion" || tipo === "asignacion_readonly") && evt.title) {
+        // Limpiar el nombre quitando horario entre paréntesis al final
+        const nombre = evt.title.replace(/\s*\(.*?\)\s*$/, "").trim();
+        if (nombre) set.add(nombre);
+      }
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
+  }, [events]);
+
   // Filtrado de recursos (empresas y grupos)
   const filteredResources = useMemo(() => {
+    // IDs de resources (grupos) que tienen al menos una asignación del servicio filtrado
+    const resourcesConServicio = filtroServicio !== "todos"
+      ? new Set(
+          events
+            .filter(evt => {
+              const tipo = evt.extendedProps?.tipo;
+              if (tipo !== "asignacion" && tipo !== "asignacion_readonly") return false;
+              const nombre = (evt.title || "").replace(/\s*\(.*?\)\s*$/, "").trim();
+              return nombre === filtroServicio;
+            })
+            .map(evt => String(evt.resourceId))
+        )
+      : null;
+
     return resources.filter(res => {
       // Siempre mantener la fila de eventos globales
       if (res.id === "servicios-parent" || String(res.id).startsWith("servicio-")) return true;
 
+      // Filtro por servicio: mantener solo empresas/grupos con ese servicio asignado
+      if (resourcesConServicio !== null) {
+        if (res.extendedProps?.esEmpresa) {
+          // Mantener la empresa solo si alguno de sus grupos tiene el servicio
+          const empresaResourceId = res.id;
+          const tieneGrupoConServicio = resources.some(child =>
+            child.parentId === empresaResourceId && resourcesConServicio.has(String(child.id))
+          );
+          if (!tieneGrupoConServicio) return false;
+        } else if (res.parentId) {
+          // Mantener el grupo solo si tiene el servicio
+          if (!resourcesConServicio.has(String(res.id))) return false;
+        }
+      }
+
       // Filtro por empresa
       if (filtroEmpresa !== "todas") {
         const empresaResourceId = `empresa-${filtroEmpresa}`;
-        // Ocultar otras empresas
         if (res.extendedProps?.esEmpresa && res.id !== empresaResourceId) return false;
-        // Ocultar grupos de otras empresas
         if (res.parentId && res.parentId !== empresaResourceId) return false;
       }
 
@@ -131,7 +173,7 @@ export default function AdminCalendar() {
 
       return true;
     });
-  }, [resources, filtroAlcohol, filtroEmpresa]);
+  }, [resources, events, filtroAlcohol, filtroEmpresa, filtroServicio]);
 
   useEffect(() => {
     cargar();
@@ -308,6 +350,49 @@ export default function AdminCalendar() {
             {/* Separador */}
             <div style={{ width: 1, height: 20, background: "#cbd5e1" }} />
 
+            {/* Filtro por servicio/lugar */}
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#475569" }}>Servicio:</label>
+              <select
+                value={filtroServicio}
+                onChange={(e) => setFiltroServicio(e.target.value)}
+                style={{
+                  fontSize: "0.82rem",
+                  padding: "4px 8px",
+                  borderRadius: "6px",
+                  border: "1px solid #cbd5e1",
+                  outline: "none",
+                  maxWidth: "160px",
+                  background: filtroServicio !== "todos" ? "#fef3c7" : "white",
+                  color: filtroServicio !== "todos" ? "#92400e" : "#334155",
+                  fontWeight: filtroServicio !== "todos" ? 700 : 400,
+                }}
+              >
+                <option value="todos">Todos</option>
+                {serviciosDisponibles.map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+              {filtroServicio !== "todos" && (
+                <button
+                  onClick={() => setFiltroServicio("todos")}
+                  title="Quitar filtro de servicio"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: "0.8rem",
+                    color: "#94a3b8",
+                    padding: "0 2px",
+                    lineHeight: 1,
+                  }}
+                >✕</button>
+              )}
+            </div>
+
+            {/* Separador */}
+            <div style={{ width: 1, height: 20, background: "#cbd5e1" }} />
+
             {/* Filtro alcohol */}
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#475569" }}>Alcohol:</label>
@@ -383,6 +468,7 @@ export default function AdminCalendar() {
           events={events} 
           loading={loading} 
           initialDate={targetDate}
+          filtroServicio={filtroServicio}
         />
       ) : (
         <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
