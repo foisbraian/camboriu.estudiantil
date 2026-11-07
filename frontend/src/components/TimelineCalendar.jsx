@@ -312,7 +312,10 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
   // =========================================================
   const eventsFetcher = useCallback(async (info, success, failure) => {
     try {
-      const res = await api.get("/calendario/");
+      // Mantener el mismo rango de carga que el padre (mes actual en adelante)
+      const hoy = new Date();
+      const fechaDesde = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-01`;
+      const res = await api.get(`/calendario/?fecha_desde=${fechaDesde}`);
       setLocalEvents(res.data.events); // mantener localEvents para el modal
       success(res.data.events);
     } catch (e) {
@@ -329,9 +332,9 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
   // =========================================================
   const cargarEventosDelDia = async (fechaISO) => {
     try {
-      // Obtener lo que está "abierto" ese día desde el calendario y todos los eventos base
+      // Para el modal de asignación, sólo necesitamos los servicios abiertos en esa fecha específica
       const [calRes, eventosBaseRes] = await Promise.all([
-        api.get("/calendario"),
+        api.get(`/calendario/?fecha_desde=${fechaISO}&fecha_hasta=${fechaISO}`),
         api.get("/eventos/")
       ]);
 

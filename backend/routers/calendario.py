@@ -67,10 +67,18 @@ class EditarFechaEventoBody(BaseModel):
 # GET CALENDARIO
 # =========================================================
 @router.get("/")
-def calendario(db: Session = Depends(get_db)):
+def calendario(
+    db: Session = Depends(get_db),
+    fecha_desde: Optional[date] = None,
+    fecha_hasta: Optional[date] = None,
+):
 
     resources = []
     events = []
+
+    # Si no se especifica fecha_desde, cargar sólo desde el inicio del mes actual (optimización)
+    # fecha_hasta: sin límite superior por defecto (carga todo el futuro)
+    # Esto permite carga lazy: el frontend pide el pasado bajo demanda.
 
     # Fila superior para servicios/eventos globales
     resources.append({
@@ -213,7 +221,12 @@ def calendario(db: Session = Depends(get_db)):
     # =====================================================
     # EVENTOS GLOBALES
     # =====================================================
-    fechas = db.query(models.FechaEvento).all()
+    fechas_query = db.query(models.FechaEvento)
+    if fecha_desde:
+        fechas_query = fechas_query.filter(models.FechaEvento.fecha >= fecha_desde)
+    if fecha_hasta:
+        fechas_query = fechas_query.filter(models.FechaEvento.fecha <= fecha_hasta)
+    fechas = fechas_query.all()
 
     for f in fechas:
 
@@ -405,6 +418,12 @@ def calendario(db: Session = Depends(get_db)):
 
             current_date = grupo.fecha_entrada
             while current_date < grupo.fecha_salida:
+                # Aplicar filtro de rango si está presente
+                if fecha_desde and current_date < fecha_desde:
+                    current_date = current_date + timedelta(days=1)
+                    continue
+                if fecha_hasta and current_date > fecha_hasta:
+                    break
                 resumen_discos[current_date][bucket]["total"] += total
                 current_date = current_date + timedelta(days=1)
 
@@ -530,6 +549,11 @@ def calendario(db: Session = Depends(get_db)):
             # Iterar dia por dia
             current_date = g.fecha_entrada
             fecha_fin = (g.fecha_salida + timedelta(days=1)) if getattr(g, 'zacarias_ultimo_dia', False) else g.fecha_salida
+            # Aplicar filtro de rango de fechas para limitar los eventos generados
+            if fecha_desde and current_date < fecha_desde:
+                current_date = fecha_desde
+            if fecha_hasta and fecha_fin > fecha_hasta + timedelta(days=1):
+                fecha_fin = fecha_hasta + timedelta(days=1)
             while current_date < fecha_fin:
                 next_date = current_date + timedelta(days=1)
                 
@@ -678,7 +702,7 @@ def calendario(db: Session = Depends(get_db)):
 
                 current_date = next_date
 
-    return {"resources": resources, "events": events}
+    return {"resources": resources, "events": events, "fecha_desde": fecha_desde, "fecha_hasta": fecha_hasta}
 
 
 # =========================================================

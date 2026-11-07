@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import TimelineCalendar from "../components/TimelineCalendar";
 import MobileDayView from "../components/MobileDayView";
@@ -38,6 +38,13 @@ export default function AdminCalendar() {
   const [calendarApi, setCalendarApi] = useState(null);
   const role = localStorage.getItem("auth_role");
   const readOnly = role === "calendar" || role === "equipo";
+
+  // Lazy loading: registrar desde qué fecha se cargó el historial
+  // null = nunca se cargó historial (sólo datos actuales+futuro)
+  const [historialCargadoDesde, setHistorialCargadoDesde] = useState(null);
+  const [cargandoHistorial, setCargandoHistorial] = useState(false);
+  // Ref para acceder al estado actual en closures (evitar stale state)
+  const historialCargadoRef = useRef(null);
 
   const handleRegisterRef = useCallback((api) => {
     setCalendarApi(api);
@@ -165,6 +172,17 @@ export default function AdminCalendar() {
     cargar();
   }, []);
 
+  // Si hay una fecha objetivo en el pasado (via URL param), cargar historial automáticamente
+  useEffect(() => {
+    if (!targetDate) return;
+    const hoy = new Date();
+    const inicioMesActual = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    if (targetDate < inicioMesActual && historialCargadoDesde === null && !cargandoHistorial) {
+      cargarHistorial();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetDate]);
+
   useEffect(() => {
     const detect = () => {
       if (typeof window === "undefined") return;
@@ -201,11 +219,57 @@ export default function AdminCalendar() {
   async function cargar() {
     try {
       setLoading(true);
-      const res = await api.get("/calendario/");
+      // Carga optimizada: sólo desde el 1° del mes actual en adelante.
+      // El historial anterior se carga bajo demanda con cargarHistorial().
+      const hoy = new Date();
+      const fechaDesde = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-01`;
+      const res = await api.get(`/calendario/?fecha_desde=${fechaDesde}`);
       setResources(res.data.resources);
-      setEvents(res.data.events);
+
+      // Si el historial ya estaba cargado, preservarlo fusionando con los datos actualizados
+      if (historialCargadoRef.current !== null) {
+        // Recargar historial también para mantener consistencia
+        const resHist = await api.get(`/calendario/?fecha_hasta=${fechaDesde}`);
+        const idsNuevos = new Set((res.data.events || []).map((e) => e.id).filter(Boolean));
+        const eventosHistorial = (resHist.data.events || []).filter(
+          (e) => !e.id || !idsNuevos.has(e.id)
+        );
+        setEvents([...eventosHistorial, ...res.data.events]);
+      } else {
+        setEvents(res.data.events);
+        setHistorialCargadoDesde(null);
+      }
     } finally {
       setLoading(false);
+    }
+  }
+
+  // Carga el historial anterior (meses pasados) y lo fusiona con los datos actuales.
+  // Funciona como los bancos: sólo se pide si el usuario lo solicita.
+  async function cargarHistorial() {
+    try {
+      setCargandoHistorial(true);
+      const hoy = new Date();
+      // Cargar todo lo anterior al mes actual
+      const fechaHasta = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-01`;
+      const res = await api.get(`/calendario/?fecha_hasta=${fechaHasta}`);
+      // Fusionar eventos pasados con los actuales (evitar duplicados por id)
+      setEvents((prev) => {
+        const idsActuales = new Set(
+          prev.map((e) => e.id).filter(Boolean)
+        );
+        const nuevos = (res.data.events || []).filter(
+          (e) => !e.id || !idsActuales.has(e.id)
+        );
+        return [...prev, ...nuevos];
+      });
+      // Los resources ya están cargados (siempre se devuelven todos)
+      setHistorialCargadoDesde("inicio"); // marcamos que ya cargamos el historial
+      historialCargadoRef.current = "inicio";
+    } catch (e) {
+      console.error("Error cargando historial", e);
+    } finally {
+      setCargandoHistorial(false);
     }
   }
 
@@ -286,6 +350,45 @@ export default function AdminCalendar() {
               >
                 Hoy
               </button>
+
+              {/* Botón lazy-load historial: carga meses anteriores bajo demanda */}
+              {historialCargadoDesde === null ? (
+                <button
+                  onClick={cargarHistorial}
+                  disabled={cargandoHistorial}
+                  title="Cargar eventos de meses anteriores (historial)"
+                  style={{
+                    fontSize: "0.8rem",
+                    fontWeight: 600,
+                    color: cargandoHistorial ? "#94a3b8" : "#7c3aed",
+                    background: cargandoHistorial ? "#f8fafc" : "#f5f3ff",
+                    border: "1px solid #ddd6fe",
+                    borderRadius: "6px",
+                    padding: "4px 10px",
+                    cursor: cargandoHistorial ? "not-allowed" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                >
+                  {cargandoHistorial ? "⏳ Cargando..." : "📂 Cargar historial"}
+                </button>
+              ) : (
+                <span
+                  title="Historial completo cargado"
+                  style={{
+                    fontSize: "0.78rem",
+                    color: "#15803d",
+                    fontWeight: 600,
+                    padding: "4px 8px",
+                    background: "#f0fdf4",
+                    border: "1px solid #bbf7d0",
+                    borderRadius: "6px",
+                  }}
+                >
+                  ✓ Historial cargado
+                </span>
+              )}
             </div>
 
             {/* Separador */}
