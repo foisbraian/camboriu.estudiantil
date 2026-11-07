@@ -20,9 +20,22 @@ if DATABASE_URL.startswith("postgres://") or DATABASE_URL.startswith("postgresql
 is_sqlite = DATABASE_URL.startswith("sqlite")
 connect_args = {"check_same_thread": False} if is_sqlite else {}
 
+engine_kwargs = {
+    "connect_args": connect_args,
+    "pool_pre_ping": True,
+}
+
+if not is_sqlite:
+    engine_kwargs.update({
+        "pool_size": 20,
+        "max_overflow": 20,
+        "pool_recycle": 1800,
+        "pool_timeout": 30,
+    })
+
 engine = create_engine(
     DATABASE_URL,
-    connect_args=connect_args
+    **engine_kwargs
 )
 
 print(f"CONECTADO A: {DATABASE_URL.split('://')[0]}://*** (Persistence: {'OK' if not is_sqlite else 'NO - Ephemeral'})")

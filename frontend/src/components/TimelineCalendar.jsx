@@ -213,7 +213,6 @@ export default function TimelineCalendar({
   // =========================================================
   useEffect(() => {
     setLocalEvents(events);
-    calendarRef.current?.getApi()?.refetchEvents();
   }, [events]);
 
   useEffect(() => {
@@ -223,7 +222,7 @@ export default function TimelineCalendar({
   useEffect(() => {
     const cargarEmpresas = async () => {
       try {
-        const res = await api.get("/empresas");
+        const res = await api.get("/empresas/");
         setEmpresas(res.data);
       } catch (e) {
         console.error("Error cargando empresas", e);
@@ -341,21 +340,8 @@ export default function TimelineCalendar({
   // =========================================================
   // REFRESH
   // =========================================================
-  const eventsFetcher = useCallback(async (info, success, failure) => {
-    try {
-      const hoy = new Date();
-      const fechaDesde = historialCargado ? null : `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-01`;
-      const url = fechaDesde ? `/calendario/?fecha_desde=${fechaDesde}` : "/calendario/";
-      const res = await api.get(url);
-      setLocalEvents(res.data.events); // mantener localEvents para el modal
-      success(res.data.events);
-    } catch (e) {
-      failure(e);
-    }
-  }, [historialCargado]);
-
   const refresh = () => {
-    calendarRef.current?.getApi()?.refetchEvents();
+    onRecargar?.();
   };
 
   // =========================================================
@@ -806,7 +792,7 @@ export default function TimelineCalendar({
           }}
           headerToolbar={false}
           resources={resources}
-          events={readOnly ? localEvents : eventsFetcher}
+          events={localEvents}
           locale="es"
           resourceOrder="order"
           slotMinWidth={slotWidth}
