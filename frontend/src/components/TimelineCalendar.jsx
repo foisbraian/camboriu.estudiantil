@@ -779,10 +779,18 @@ export default function TimelineCalendar({
         <FullCalendar
           ref={calendarRef}
           plugins={[resourceTimelinePlugin, interactionPlugin]}
-          initialView="resourceTimelineYear"
+          initialView="timelineGlobal"
           initialDate={initialDate}
           visibleRange={visibleRange}
           views={{
+            timelineGlobal: {
+              type: "resourceTimeline",
+              visibleRange: visibleRange,
+              slotLabelFormat: [
+                { month: "long", year: "numeric" },
+                { weekday: "short", day: "numeric" }
+              ]
+            },
             resourceTimelineMonth: {
               slotLabelFormat: [
                 { month: "long", year: "numeric" },
