@@ -237,6 +237,12 @@ export default function AdminCalendar() {
       if (historialCargadoRef.current !== null) {
         // Recargar historial también para mantener consistencia
         const resHist = await api.get(`/calendario/?fecha_hasta=${fechaDesde}`);
+        const idsRes = new Set((res.data.resources || []).map((r) => String(r.id)));
+        const resHistorial = (resHist.data.resources || []).filter(
+          (r) => !idsRes.has(String(r.id))
+        );
+        setResources([...(res.data.resources || []), ...resHistorial]);
+
         const idsNuevos = new Set((res.data.events || []).map((e) => e.id).filter(Boolean));
         const eventosHistorial = (resHist.data.events || []).filter(
           (e) => !e.id || !idsNuevos.has(e.id)
@@ -260,6 +266,12 @@ export default function AdminCalendar() {
       // Cargar todo lo anterior al mes actual
       const fechaHasta = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-01`;
       const res = await api.get(`/calendario/?fecha_hasta=${fechaHasta}`);
+      // Fusionar recursos pasados con los actuales
+      setResources((prev) => {
+        const ids = new Set(prev.map((r) => String(r.id)));
+        const nuevos = (res.data.resources || []).filter((r) => !ids.has(String(r.id)));
+        return [...prev, ...nuevos];
+      });
       // Fusionar eventos pasados con los actuales (evitar duplicados por id)
       setEvents((prev) => {
         const idsActuales = new Set(
@@ -270,7 +282,6 @@ export default function AdminCalendar() {
         );
         return [...prev, ...nuevos];
       });
-      // Los resources ya están cargados (siempre se devuelven todos)
       setHistorialCargadoDesde("inicio"); // marcamos que ya cargamos el historial
       historialCargadoRef.current = "inicio";
     } catch (e) {

@@ -150,6 +150,24 @@ def calendario(
 
     order_counter = 1
     for e in empresas:
+        grupos_candidatos = e.grupos
+        if fecha_desde:
+            grupos_candidatos = [
+                g for g in grupos_candidatos
+                if (g.fecha_salida and g.fecha_salida >= fecha_desde)
+                or (g.fecha_entrada and g.fecha_entrada >= fecha_desde)
+            ]
+        if fecha_hasta:
+            grupos_candidatos = [
+                g for g in grupos_candidatos
+                if (g.fecha_entrada and g.fecha_entrada <= fecha_hasta)
+                or (g.fecha_salida and g.fecha_salida <= fecha_hasta)
+            ]
+
+        # Si no hay grupos activos para esta empresa en el rango, no agregar filas vacías
+        if not grupos_candidatos:
+            continue
+
         empresa_resource_id = f"empresa-{e.id}"
         resources.append({
             "id": empresa_resource_id,
@@ -163,7 +181,7 @@ def calendario(
         })
         order_counter += 1
 
-        for g in e.grupos:
+        for g in grupos_candidatos:
             asigs_por_tipo = defaultdict(int)
             for a in g.asignaciones:
                 if a.fecha_evento and a.fecha_evento.evento and asignacion_valida_en_fecha(a, a.fecha_evento.fecha, a.fecha_evento.evento):
@@ -477,7 +495,20 @@ def calendario(
         print(f"Aviso al cargar horarios Zacarias: {err}")
 
     for e in empresas:
-        for g in e.grupos:
+        grupos_candidatos = e.grupos
+        if fecha_desde:
+            grupos_candidatos = [
+                g for g in grupos_candidatos
+                if (g.fecha_salida and g.fecha_salida >= fecha_desde)
+                or (g.fecha_entrada and g.fecha_entrada >= fecha_desde)
+            ]
+        if fecha_hasta:
+            grupos_candidatos = [
+                g for g in grupos_candidatos
+                if (g.fecha_entrada and g.fecha_entrada <= fecha_hasta)
+                or (g.fecha_salida and g.fecha_salida <= fecha_hasta)
+            ]
+        for g in grupos_candidatos:
             pendientes = pendientes_por_grupo.get(g.id, [])
 
             # info extra para tooltip

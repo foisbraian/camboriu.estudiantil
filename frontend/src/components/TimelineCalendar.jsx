@@ -31,13 +31,13 @@ export default function TimelineCalendar({
     if (historialCargado) {
       return {
         start: `${anioActual}-01-01`,
-        end: `${anioActual + 2}-01-01`,
+        end: `${anioActual + 1}-06-01`,
       };
     }
 
     return {
       start: `${anioActual}-${mesActual}-01`,
-      end: `${anioActual + 2}-01-01`,
+      end: `${anioActual + 1}-06-01`,
     };
   }, [historialCargado]);
 
