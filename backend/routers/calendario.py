@@ -156,12 +156,14 @@ def calendario(
                 g for g in grupos_candidatos
                 if (g.fecha_salida and g.fecha_salida >= fecha_desde)
                 or (g.fecha_entrada and g.fecha_entrada >= fecha_desde)
+                or (not g.fecha_entrada and not g.fecha_salida)
             ]
         if fecha_hasta:
             grupos_candidatos = [
                 g for g in grupos_candidatos
                 if (g.fecha_entrada and g.fecha_entrada <= fecha_hasta)
                 or (g.fecha_salida and g.fecha_salida <= fecha_hasta)
+                or (not g.fecha_entrada and not g.fecha_salida)
             ]
 
         # Si no hay grupos activos para esta empresa en el rango, no agregar filas vacías
@@ -501,12 +503,14 @@ def calendario(
                 g for g in grupos_candidatos
                 if (g.fecha_salida and g.fecha_salida >= fecha_desde)
                 or (g.fecha_entrada and g.fecha_entrada >= fecha_desde)
+                or (not g.fecha_entrada and not g.fecha_salida)
             ]
         if fecha_hasta:
             grupos_candidatos = [
                 g for g in grupos_candidatos
                 if (g.fecha_entrada and g.fecha_entrada <= fecha_hasta)
                 or (g.fecha_salida and g.fecha_salida <= fecha_hasta)
+                or (not g.fecha_entrada and not g.fecha_salida)
             ]
         for g in grupos_candidatos:
             pendientes = pendientes_por_grupo.get(g.id, [])

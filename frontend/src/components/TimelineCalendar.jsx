@@ -41,6 +41,26 @@ export default function TimelineCalendar({
     };
   }, [historialCargado]);
 
+  // Preservación y restauración de scroll al agregar/editar eventos o grupos
+  const savedScrollPos = useRef({ left: null, top: null });
+  const lastInteractedDate = useRef(null);
+  const isRestoringScroll = useRef(false);
+
+  const captureCurrentScroll = useCallback((explicitDate = null) => {
+    const rootEl = calendarRef.current?.el;
+    if (!rootEl) return;
+    const scroller = rootEl.querySelector(".fc-timeline-body .fc-scroller");
+    if (scroller && (scroller.scrollLeft > 0 || scroller.scrollTop > 0)) {
+      savedScrollPos.current = {
+        left: scroller.scrollLeft,
+        top: scroller.scrollTop,
+      };
+    }
+    if (explicitDate) {
+      lastInteractedDate.current = explicitDate;
+    }
+  }, []);
+
   const centerDate = useCallback((dateToCenter) => {
     const rootEl = calendarRef.current?.el;
     if (!rootEl) return false;
@@ -52,11 +72,14 @@ export default function TimelineCalendar({
       rootEl.querySelector(`.fc-timeline-slot[data-date="${dateISO}"]`)
       || rootEl.querySelector(`.fc-col-header-cell[data-date="${dateISO}"]`);
     const scroller =
-      rootEl.querySelector(".fc-scroller-harness .fc-scroller")
-      || rootEl.querySelector(".fc-timeline-body .fc-scroller");
+      rootEl.querySelector(".fc-timeline-body .fc-scroller")
+      || rootEl.querySelector(".fc-scroller-harness .fc-scroller");
     if (slot && scroller) {
-      const offset = slot.offsetLeft - scroller.clientWidth / 2 + slot.clientWidth / 2;
+      const offset = Math.max(0, slot.offsetLeft - scroller.clientWidth / 2 + slot.clientWidth / 2);
       scroller.scrollLeft = offset;
+      const headerScroller = rootEl.querySelector(".fc-timeline-header .fc-scroller");
+      if (headerScroller) headerScroller.scrollLeft = offset;
+      savedScrollPos.current = { left: offset, top: scroller.scrollTop };
       return true;
     }
     if (slot?.scrollIntoView) {
@@ -74,17 +97,21 @@ export default function TimelineCalendar({
           const api = calendarRef.current?.getApi();
           if (!api) return;
           api.changeView("resourceTimelineMonth", fecha);
+          const fechaISO = fecha instanceof Date ? fecha.toISOString().slice(0, 10) : String(fecha).slice(0, 10);
+          captureCurrentScroll(fechaISO);
         },
         irAFecha(fecha) {
           const api = calendarRef.current?.getApi();
           if (!api) return;
           api.gotoDate(fecha);
+          const fechaISO = fecha instanceof Date ? fecha.toISOString().slice(0, 10) : String(fecha).slice(0, 10);
+          captureCurrentScroll(fechaISO);
           setTimeout(() => centerDate(fecha), 80);
           setTimeout(() => centerDate(fecha), 250);
         }
       });
     }
-  }, [onRegisterRef, centerDate]);
+  }, [onRegisterRef, centerDate, captureCurrentScroll]);
 
   // =========================================================
   // STATE
@@ -93,6 +120,33 @@ export default function TimelineCalendar({
   const [localEvents, setLocalEvents] = useState(events);
   const hasCenteredInitial = useRef(false);
 
+  // Escuchar scroll del timeline para recordar la posición en todo momento
+  useEffect(() => {
+    const rootEl = calendarRef.current?.el;
+    if (!rootEl) return;
+
+    const handleScrollCapture = (e) => {
+      if (isRestoringScroll.current) return;
+      const target = e.target;
+      if (!target || !target.classList) return;
+      if (target.classList.contains("fc-scroller")) {
+        const isTimelineBody = target.closest(".fc-timeline-body") !== null;
+        if (isTimelineBody && target.scrollWidth > target.clientWidth) {
+          savedScrollPos.current = {
+            left: target.scrollLeft,
+            top: target.scrollTop,
+          };
+        }
+      }
+    };
+
+    rootEl.addEventListener("scroll", handleScrollCapture, { capture: true, passive: true });
+    return () => {
+      rootEl.removeEventListener("scroll", handleScrollCapture, { capture: true });
+    };
+  }, []);
+
+  // Centrado inicial en la fecha de hoy o targetDate
   useEffect(() => {
     if (hasCenteredInitial.current) return;
     const api = calendarRef.current?.getApi();
@@ -106,6 +160,11 @@ export default function TimelineCalendar({
     const tryCenter = () => {
       if (centerDate(dateToCenter)) {
         hasCenteredInitial.current = true;
+        const rootEl = calendarRef.current?.el;
+        const scroller = rootEl?.querySelector(".fc-timeline-body .fc-scroller");
+        if (scroller && scroller.scrollLeft > 0) {
+          savedScrollPos.current = { left: scroller.scrollLeft, top: scroller.scrollTop };
+        }
         return;
       }
       if (attempts >= maxAttempts) return;
@@ -118,6 +177,61 @@ export default function TimelineCalendar({
       cancelAnimationFrame(raf);
     };
   }, [centerDate, events, initialDate, targetDate]);
+
+  // Restaurar posición de scroll tras recargar datos (agregar/actualizar grupo o evento)
+  useEffect(() => {
+    if (!hasCenteredInitial.current) return;
+
+    const targetLeft = savedScrollPos.current.left;
+    const targetTop = savedScrollPos.current.top;
+    const anchorDate = lastInteractedDate.current;
+
+    if (targetLeft === null && !anchorDate) return;
+
+    isRestoringScroll.current = true;
+
+    const restore = () => {
+      const rootEl = calendarRef.current?.el;
+      if (!rootEl) return false;
+
+      const timelineScroller = rootEl.querySelector(".fc-timeline-body .fc-scroller");
+      const headerScroller = rootEl.querySelector(".fc-timeline-header .fc-scroller");
+      const datagridScroller = rootEl.querySelector(".fc-datagrid-body .fc-scroller");
+
+      if (!timelineScroller) return false;
+
+      if (timelineScroller.scrollWidth <= timelineScroller.clientWidth) {
+        return false;
+      }
+
+      let ok = false;
+      if (targetLeft !== null && targetLeft > 0) {
+        timelineScroller.scrollLeft = targetLeft;
+        if (headerScroller) headerScroller.scrollLeft = targetLeft;
+        if (targetTop !== null) {
+          timelineScroller.scrollTop = targetTop;
+          if (datagridScroller) datagridScroller.scrollTop = targetTop;
+        }
+        ok = true;
+      } else if (anchorDate) {
+        ok = centerDate(anchorDate);
+      }
+
+      return ok;
+    };
+
+    const delays = [30, 80, 180, 350, 650, 1100];
+    const timers = delays.map((d) => setTimeout(restore, d));
+
+    const unlockTimer = setTimeout(() => {
+      isRestoringScroll.current = false;
+    }, 1300);
+
+    return () => {
+      timers.forEach(clearTimeout);
+      clearTimeout(unlockTimer);
+    };
+  }, [events, resources, centerDate]);
 
   // Si cambia targetDate dinámicamente
   useEffect(() => {
@@ -190,6 +304,7 @@ export default function TimelineCalendar({
       e.stopPropagation();
 
       const props = res.extendedProps || {};
+      captureCurrentScroll(props.fechaEntrada || props.fechaSalida || null);
       setAnotacionGrupo({
         grupoId: res.id,
         grupoNombre: props.grupoNombre || res.title,
@@ -201,7 +316,7 @@ export default function TimelineCalendar({
 
     document.addEventListener('contextmenu', handleContextMenu, true);
     return () => document.removeEventListener('contextmenu', handleContextMenu, true);
-  }, [resources]);
+  }, [resources, captureCurrentScroll]);
 
   // Horarios individuales por empresa (para eventos globales)
   const [horariosEmpresa, setHorariosEmpresa] = useState([]); // lista de { empresa_id, empresa_nombre, horario, nota, id? }
@@ -336,13 +451,6 @@ export default function TimelineCalendar({
     );
     return () => timers.forEach(clearTimeout);
   }, [events, resources, applyStickyEventosRow]);
-
-  // =========================================================
-  // REFRESH
-  // =========================================================
-  const refresh = () => {
-    onRecargar?.();
-  };
 
   // =========================================================
   // EVENTOS DEL DIA Y SERVICIOS DISPONIBLES
@@ -482,6 +590,7 @@ export default function TimelineCalendar({
     if (props.tipo === "resumen_servicios") return;
     if (props.tipo === "asignacion_hielo_resumen") return;
     const fechaISO = info.event.startStr.slice(0, 10);
+    captureCurrentScroll(fechaISO);
 
     // ---------------------------------------------------------
     // B. CLICK EN ASIGNACION (Evento en fila de grupo) → ELIMINAR
@@ -582,6 +691,7 @@ export default function TimelineCalendar({
     }
 
     const fechaISO = info.dateStr;
+    captureCurrentScroll(fechaISO);
 
     // A. CLIC EN FILA DE EVENTOS GLOBAL (No debería pasar mucho si está lleno, pero por si acaso)
     if (
@@ -614,6 +724,7 @@ export default function TimelineCalendar({
   // =========================================================
   const guardar = async () => {
     try {
+      captureCurrentScroll(selectedDate);
       if (!eventoSeleccionado && !editando) return;
       if (!grupoAsignando && esPrivado && !empresaPrivadaId) {
         alert("Seleccioná la empresa para el evento privado");
@@ -684,6 +795,7 @@ export default function TimelineCalendar({
   // =========================================================
   const eliminar = async () => {
     if (!editando) return;
+    captureCurrentScroll(selectedDate);
 
     if (!window.confirm("¿Estás seguro de eliminar?")) return;
 
@@ -752,6 +864,7 @@ export default function TimelineCalendar({
   };
 
   const cerrar = () => {
+    captureCurrentScroll(selectedDate);
     setModalOpen(false);
     setEditando(null);
     setGrupoAsignando(null);
@@ -762,7 +875,6 @@ export default function TimelineCalendar({
     setAnimador("");
     setHorariosEmpresa([]);
     setFechaEventoIdActual(null);
-    refresh();
     onRecargar?.();
   };
 
@@ -1215,9 +1327,10 @@ export default function TimelineCalendar({
                       onChange={async (e) => {
                         const newVal = e.target.checked;
                         try {
+                          captureCurrentScroll(editando?.fecha || selectedDate);
                           await api.put(`/calendario/asignacion/${editando.id}`, { es_opcional: newVal });
                           setEditando(prev => ({ ...prev, es_opcional: newVal }));
-                          refresh();
+                          onRecargar?.();
                         } catch {
                           alert("Error al actualizar");
                         }
@@ -1523,10 +1636,12 @@ export default function TimelineCalendar({
           fechaEntrada={anotacionGrupo.fechaEntrada}
           fechaSalida={anotacionGrupo.fechaSalida}
           onClose={() => {
+            captureCurrentScroll(anotacionGrupo.fechaEntrada || anotacionGrupo.fechaSalida || null);
             setAnotacionGrupo(null);
             if (onRecargar) onRecargar();
           }}
           onActualizado={() => {
+            captureCurrentScroll(anotacionGrupo.fechaEntrada || anotacionGrupo.fechaSalida || null);
             if (onRecargar) onRecargar();
           }}
         />

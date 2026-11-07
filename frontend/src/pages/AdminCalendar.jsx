@@ -231,7 +231,6 @@ export default function AdminCalendar() {
       const hoy = new Date();
       const fechaDesde = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-01`;
       const res = await api.get(`/calendario/?fecha_desde=${fechaDesde}`);
-      setResources(res.data.resources);
 
       // Si el historial ya estaba cargado, preservarlo fusionando con los datos actualizados
       if (historialCargadoRef.current !== null) {
@@ -249,6 +248,7 @@ export default function AdminCalendar() {
         );
         setEvents([...eventosHistorial, ...res.data.events]);
       } else {
+        setResources(res.data.resources);
         setEvents(res.data.events);
         setHistorialCargadoDesde(null);
       }
