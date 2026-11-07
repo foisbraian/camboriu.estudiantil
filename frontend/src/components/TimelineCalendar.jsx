@@ -102,7 +102,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
 
   // Si cambia filtroServicio, re-renderizar estilos de eventos en FullCalendar
   useEffect(() => {
-    calendarRef.current?.getApi()?.rerenderEvents();
+    calendarRef.current?.getApi()?.render();
   }, [filtroServicio]);
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -1072,6 +1072,21 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
             // Renderizado por defecto
             return { html: `<div style="padding: 2px 4px;">${title}</div>` };
           }}
+          eventClassNames={(arg) => {
+            const props = arg.event?.extendedProps || {};
+            if (filtroServicio && filtroServicio !== "todos") {
+              const esAsig =
+                props.tipo === "asignacion" ||
+                props.tipo === "asignacion_readonly" ||
+                props.tipo === "asignacion_hielo_resumen";
+              if (esAsig) {
+                return isEventoMatch(arg.event, filtroServicio)
+                  ? ["fc-filtro-match"]
+                  : ["fc-filtro-dimmed"];
+              }
+            }
+            return [];
+          }}
           eventDidMount={(info) => {
             const props = info.event.extendedProps || {};
             const tip = props.tooltip;
@@ -1083,19 +1098,6 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
               info.el.style.borderWidth = "1px";
               info.el.style.borderStyle = "dashed";
               info.el.style.borderColor = "#cbd5f5";
-            }
-
-            if (filtroServicio && filtroServicio !== "todos") {
-              const esAsig = props.tipo === "asignacion" || props.tipo === "asignacion_readonly" || props.tipo === "asignacion_hielo_resumen";
-              if (esAsig) {
-                if (isEventoMatch(info.event, filtroServicio)) {
-                  info.el.style.opacity = "1";
-                  info.el.style.boxShadow = "0 0 0 2px #2563eb";
-                  info.el.style.zIndex = "5";
-                } else {
-                  info.el.style.opacity = "0.35";
-                }
-              }
             }
 
             // CRITICAL: Al ser 'background', el evento no bloquea clicks. 

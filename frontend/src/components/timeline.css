@@ -327,3 +327,15 @@ button {
     display: none !important;
   }
 }
+
+/* --- Filtro de Servicios en Eventos --- */
+.fc-filtro-match {
+  opacity: 1 !important;
+  box-shadow: 0 0 0 2px #2563eb !important;
+  z-index: 5 !important;
+}
+
+.fc-filtro-dimmed {
+  opacity: 0.35 !important;
+  filter: grayscale(20%);
+}
