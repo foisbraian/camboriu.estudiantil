@@ -85,7 +85,14 @@ export default function AdminCalendar() {
   const navegarAlMes = (mes, anio) => {
     setMesSeleccionado(mes);
     setAnioSeleccionado(anio);
-    calendarApi?.navegarAMes(new Date(anio, mes, 1));
+    const hoy = new Date();
+    const fechaDestino = new Date(anio, mes, 1);
+    const inicioMesActual = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    // Si navega al pasado y el historial no está cargado, cargarlo automáticamente
+    if (fechaDestino < inicioMesActual && historialCargadoRef.current === null && !cargandoHistorial) {
+      cargarHistorial();
+    }
+    calendarApi?.navegarAMes(fechaDestino);
   };
 
   const volverAHoy = () => {
@@ -575,6 +582,7 @@ export default function AdminCalendar() {
             onRecargar={cargar}
             targetDate={targetDate}
             filtroServicio={filtroServicio}
+            historialCargado={historialCargadoDesde !== null}
           />
         </div>
       )}

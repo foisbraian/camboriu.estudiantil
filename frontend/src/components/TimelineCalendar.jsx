@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import FullCalendar from "@fullcalendar/react";
 import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
 import interactionPlugin from "@fullcalendar/interaction";
@@ -7,9 +7,39 @@ import "./timeline.css";
 import AnotacionGrupoPanel from "./AnotacionGrupoPanel";
 import { isEventoMatch } from "../utils/eventUtils";
 
-export default function TimelineCalendar({ resources, events, readOnly = false, onRegisterRef, onRecargar, targetDate = null, filtroServicio = "todos" }) {
+export default function TimelineCalendar({
+  resources,
+  events,
+  readOnly = false,
+  onRegisterRef,
+  onRecargar,
+  targetDate = null,
+  filtroServicio = "todos",
+  historialCargado = false,
+}) {
   const calendarRef = useRef(null);
   const [initialDate] = useState(() => targetDate || new Date());
+
+  // Rango visible del timeline:
+  // - Por defecto (historialCargado = false): inicia visualmente en el 1° del mes actual
+  // - Con historial (historialCargado = true): expande hacia el pasado (enero del año actual)
+  const visibleRange = useMemo(() => {
+    const hoy = new Date();
+    const anioActual = hoy.getFullYear();
+    const mesActual = String(hoy.getMonth() + 1).padStart(2, "0");
+
+    if (historialCargado) {
+      return {
+        start: `${anioActual}-01-01`,
+        end: `${anioActual + 2}-01-01`,
+      };
+    }
+
+    return {
+      start: `${anioActual}-${mesActual}-01`,
+      end: `${anioActual + 2}-01-01`,
+    };
+  }, [historialCargado]);
 
   const centerDate = useCallback((dateToCenter) => {
     const rootEl = calendarRef.current?.el;
@@ -183,6 +213,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
   // =========================================================
   useEffect(() => {
     setLocalEvents(events);
+    calendarRef.current?.getApi()?.refetchEvents();
   }, [events]);
 
   useEffect(() => {
@@ -312,16 +343,16 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
   // =========================================================
   const eventsFetcher = useCallback(async (info, success, failure) => {
     try {
-      // Mantener el mismo rango de carga que el padre (mes actual en adelante)
       const hoy = new Date();
-      const fechaDesde = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-01`;
-      const res = await api.get(`/calendario/?fecha_desde=${fechaDesde}`);
+      const fechaDesde = historialCargado ? null : `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-01`;
+      const url = fechaDesde ? `/calendario/?fecha_desde=${fechaDesde}` : "/calendario/";
+      const res = await api.get(url);
       setLocalEvents(res.data.events); // mantener localEvents para el modal
       success(res.data.events);
     } catch (e) {
       failure(e);
     }
-  }, []);
+  }, [historialCargado]);
 
   const refresh = () => {
     calendarRef.current?.getApi()?.refetchEvents();
@@ -746,6 +777,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
     setHorariosEmpresa([]);
     setFechaEventoIdActual(null);
     refresh();
+    onRecargar?.();
   };
 
   return (
@@ -763,6 +795,7 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
           plugins={[resourceTimelinePlugin, interactionPlugin]}
           initialView="resourceTimelineYear"
           initialDate={initialDate}
+          visibleRange={visibleRange}
           views={{
             resourceTimelineMonth: {
               slotLabelFormat: [
