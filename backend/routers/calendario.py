@@ -358,6 +358,8 @@ def calendario(db: Session = Depends(get_db)):
                 "evento_id": f.evento_id,
                 "evento_tipo": f.evento.tipo.upper(),
                 "evento_nombre": f.evento.nombre,
+                "nombre_evento": f.evento.nombre,
+                "tipo": "servicio_global",
                 "con_alcohol": f.con_alcohol,
                 "es_mix_evento": getattr(f, 'es_mix_evento', False),
                 "horario": getattr(f, "horario", None),
@@ -639,6 +641,8 @@ def calendario(db: Session = Depends(get_db)):
                                 "grupo_id": g.id,
                                 "fecha": current_date,
                                 "turnos": turnos,
+                                "nombre_evento": nombre_base,
+                                "evento_tipo": "HIELO",
                                 "empresa_nombre": e.nombre,
                                 "tooltip": f"{nombre_base}: {turnos} TURNOS"
                             }
@@ -1151,7 +1155,10 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                                 "tipo": "asignacion",
                                 "tooltip": f"{emp.nombre} - Asignado: {asignacion.fecha_evento.evento.nombre}" + (" (Opcional vendida)" if es_opc else ""),
                                 "pax": pax_val,
-                                "es_opcional": es_opc
+                                "es_opcional": es_opc,
+                                "nombre_evento": asignacion.fecha_evento.evento.nombre,
+                                "evento_id_num": asignacion.fecha_evento.evento.id,
+                                "evento_tipo": tipo_asig_portal
                             } 
                         })
                     if asignaciones_hielo:
@@ -1179,7 +1186,9 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                             "extendedProps": {
                                 "tipo": "asignacion",
                                 "tooltip": f"{emp.nombre} - {nombre_base}: {turnos} TURNOS",
-                                "pax": pax_total_hielo
+                                "pax": pax_total_hielo,
+                                "nombre_evento": nombre_base,
+                                "evento_tipo": "HIELO"
                             }
                         })
                 else:
@@ -1270,7 +1279,11 @@ def calendario_portal(codigo_acceso: str, db: Session = Depends(get_db)):
                 "title": titulo_portal + titulo_extra, 
                 "backgroundColor": color,
                 "textColor": text_color,
-                "extendedProps": {"tipo": "global_readonly"}
+                "extendedProps": {
+                    "tipo": "global_readonly",
+                    "nombre_evento": f.evento.nombre,
+                    "evento_tipo": f.evento.tipo.upper()
+                }
             })
 
     nombre_empresa_display = empresas[0].nombre if len(empresas) == 1 else ("Todas las empresas" if (link_personalizado and link_personalizado.empresas_ids == "*") else f"{len(empresas)} Empresas")

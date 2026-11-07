@@ -5,8 +5,9 @@ import interactionPlugin from "@fullcalendar/interaction";
 import api from "../api";
 import "./timeline.css";
 import AnotacionGrupoPanel from "./AnotacionGrupoPanel";
+import { isEventoMatch } from "../utils/eventUtils";
 
-export default function TimelineCalendar({ resources, events, readOnly = false, onRegisterRef, onRecargar, targetDate = null }) {
+export default function TimelineCalendar({ resources, events, readOnly = false, onRegisterRef, onRecargar, targetDate = null, filtroServicio = "todos" }) {
   const calendarRef = useRef(null);
   const [initialDate] = useState(() => targetDate || new Date());
 
@@ -98,6 +99,11 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
       setTimeout(() => centerDate(targetDate), 300);
     }
   }, [targetDate, centerDate]);
+
+  // Si cambia filtroServicio, re-renderizar estilos de eventos en FullCalendar
+  useEffect(() => {
+    calendarRef.current?.getApi()?.rerenderEvents();
+  }, [filtroServicio]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -1077,6 +1083,19 @@ export default function TimelineCalendar({ resources, events, readOnly = false, 
               info.el.style.borderWidth = "1px";
               info.el.style.borderStyle = "dashed";
               info.el.style.borderColor = "#cbd5f5";
+            }
+
+            if (filtroServicio && filtroServicio !== "todos") {
+              const esAsig = props.tipo === "asignacion" || props.tipo === "asignacion_readonly" || props.tipo === "asignacion_hielo_resumen";
+              if (esAsig) {
+                if (isEventoMatch(info.event, filtroServicio)) {
+                  info.el.style.opacity = "1";
+                  info.el.style.boxShadow = "0 0 0 2px #2563eb";
+                  info.el.style.zIndex = "5";
+                } else {
+                  info.el.style.opacity = "0.35";
+                }
+              }
             }
 
             // CRITICAL: Al ser 'background', el evento no bloquea clicks. 

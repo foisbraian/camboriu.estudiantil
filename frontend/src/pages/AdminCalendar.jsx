@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import TimelineCalendar from "../components/TimelineCalendar";
 import MobileDayView from "../components/MobileDayView";
 import api from "../api";
+import { getServiciosDisponibles, isEventoMatch } from "../utils/eventUtils";
 
 const MESES = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -96,18 +97,9 @@ export default function AdminCalendar() {
       });
   }, [resources]);
 
-  // Lista de servicios/lugares únicos derivada de los eventos de asignación
+  // Lista de servicios/lugares únicos derivada de los eventos
   const serviciosDisponibles = useMemo(() => {
-    const set = new Set();
-    events.forEach(evt => {
-      const tipo = evt.extendedProps?.tipo;
-      if ((tipo === "asignacion" || tipo === "asignacion_readonly") && evt.title) {
-        // Limpiar el nombre quitando horario entre paréntesis al final
-        const nombre = evt.title.replace(/\s*\(.*?\)\s*$/, "").trim();
-        if (nombre) set.add(nombre);
-      }
-    });
-    return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
+    return getServiciosDisponibles(events);
   }, [events]);
 
   // Filtrado de recursos (empresas y grupos)
@@ -116,59 +108,53 @@ export default function AdminCalendar() {
     const resourcesConServicio = filtroServicio !== "todos"
       ? new Set(
           events
-            .filter(evt => {
-              const tipo = evt.extendedProps?.tipo;
-              if (tipo !== "asignacion" && tipo !== "asignacion_readonly") return false;
-              const nombre = (evt.title || "").replace(/\s*\(.*?\)\s*$/, "").trim();
-              return nombre === filtroServicio;
-            })
+            .filter(evt => isEventoMatch(evt, filtroServicio))
             .map(evt => String(evt.resourceId))
         )
       : null;
+
+    // Grupos que cumplen con TODOS los filtros activos
+    const validGroupIds = new Set();
+    resources.forEach(res => {
+      if (!res.parentId) return; // Solo grupos (hijos de empresas)
+
+      // 1. Filtro por empresa
+      if (filtroEmpresa !== "todas") {
+        const empresaResourceId = `empresa-${filtroEmpresa}`;
+        if (res.parentId !== empresaResourceId) return;
+      }
+
+      // 2. Filtro alcohol
+      if (filtroAlcohol !== "global") {
+        if (filtroAlcohol === "con-alcohol" && (!res.extendedProps?.permite_alcohol || res.extendedProps?.es_mix_grupo)) return;
+        if (filtroAlcohol === "sin-alcohol" && (res.extendedProps?.permite_alcohol || res.extendedProps?.es_mix_grupo)) return;
+        if (filtroAlcohol === "mix-alcohol" && !res.extendedProps?.es_mix_grupo) return;
+      }
+
+      // 3. Filtro por servicio/evento (muestra grupos con y sin campamento, con horario, etc.)
+      if (resourcesConServicio !== null) {
+        if (!resourcesConServicio.has(String(res.id))) return;
+      }
+
+      validGroupIds.add(String(res.id));
+    });
 
     return resources.filter(res => {
       // Siempre mantener la fila de eventos globales
       if (res.id === "servicios-parent" || String(res.id).startsWith("servicio-")) return true;
 
-      // Filtro por servicio: mantener solo empresas/grupos con ese servicio asignado
-      if (resourcesConServicio !== null) {
-        if (res.extendedProps?.esEmpresa) {
-          // Mantener la empresa solo si alguno de sus grupos tiene el servicio
-          const empresaResourceId = res.id;
-          const tieneGrupoConServicio = resources.some(child =>
-            child.parentId === empresaResourceId && resourcesConServicio.has(String(child.id))
-          );
-          if (!tieneGrupoConServicio) return false;
-        } else if (res.parentId) {
-          // Mantener el grupo solo si tiene el servicio
-          if (!resourcesConServicio.has(String(res.id))) return false;
-        }
+      // Si es grupo: verificar si quedó como válido
+      if (res.parentId) {
+        return validGroupIds.has(String(res.id));
       }
 
-      // Filtro por empresa
-      if (filtroEmpresa !== "todas") {
-        const empresaResourceId = `empresa-${filtroEmpresa}`;
-        if (res.extendedProps?.esEmpresa && res.id !== empresaResourceId) return false;
-        if (res.parentId && res.parentId !== empresaResourceId) return false;
-      }
-
-      // Filtro alcohol (sobre los grupos que quedaron)
-      if (filtroAlcohol !== "global") {
-        if (res.parentId) {
-          if (filtroAlcohol === "con-alcohol") return res.extendedProps?.permite_alcohol === true && !res.extendedProps?.es_mix_grupo;
-          if (filtroAlcohol === "sin-alcohol") return res.extendedProps?.permite_alcohol === false && !res.extendedProps?.es_mix_grupo;
-          if (filtroAlcohol === "mix-alcohol") return res.extendedProps?.es_mix_grupo === true;
-        }
-        if (res.extendedProps?.esEmpresa) {
-          const empresaResourceId = res.id;
-          const hasChildren = resources.some(child =>
-            child.parentId === empresaResourceId &&
-            ((filtroAlcohol === "con-alcohol" && child.extendedProps?.permite_alcohol === true && !child.extendedProps?.es_mix_grupo) ||
-             (filtroAlcohol === "sin-alcohol" && child.extendedProps?.permite_alcohol === false && !child.extendedProps?.es_mix_grupo) ||
-             (filtroAlcohol === "mix-alcohol" && child.extendedProps?.es_mix_grupo === true))
-          );
-          return hasChildren;
-        }
+      // Si es empresa: verificar si tiene al menos un grupo válido que coincida con todos los filtros
+      if (res.extendedProps?.esEmpresa) {
+        if (filtroEmpresa !== "todas" && res.id !== `empresa-${filtroEmpresa}`) return false;
+        const empresaResourceId = res.id;
+        return resources.some(child =>
+          child.parentId === empresaResourceId && validGroupIds.has(String(child.id))
+        );
       }
 
       return true;
@@ -352,7 +338,7 @@ export default function AdminCalendar() {
 
             {/* Filtro por servicio/lugar */}
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#475569" }}>Servicio:</label>
+              <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#475569" }}>Evento:</label>
               <select
                 value={filtroServicio}
                 onChange={(e) => setFiltroServicio(e.target.value)}
@@ -362,13 +348,13 @@ export default function AdminCalendar() {
                   borderRadius: "6px",
                   border: "1px solid #cbd5e1",
                   outline: "none",
-                  maxWidth: "160px",
+                  maxWidth: "180px",
                   background: filtroServicio !== "todos" ? "#fef3c7" : "white",
                   color: filtroServicio !== "todos" ? "#92400e" : "#334155",
                   fontWeight: filtroServicio !== "todos" ? 700 : 400,
                 }}
               >
-                <option value="todos">Todos</option>
+                <option value="todos">Todos los eventos</option>
                 {serviciosDisponibles.map(s => (
                   <option key={s} value={s}>{s}</option>
                 ))}
@@ -376,7 +362,7 @@ export default function AdminCalendar() {
               {filtroServicio !== "todos" && (
                 <button
                   onClick={() => setFiltroServicio("todos")}
-                  title="Quitar filtro de servicio"
+                  title="Quitar filtro de evento"
                   style={{
                     background: "none",
                     border: "none",
@@ -485,6 +471,7 @@ export default function AdminCalendar() {
             readOnly={readOnly}
             onRecargar={cargar}
             targetDate={targetDate}
+            filtroServicio={filtroServicio}
           />
         </div>
       )}

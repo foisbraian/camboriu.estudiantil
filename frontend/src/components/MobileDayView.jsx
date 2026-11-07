@@ -1,4 +1,5 @@
 import { useMemo, useState, useCallback, useEffect } from "react";
+import { isEventoMatch } from "../utils/eventUtils";
 
 const DAY_NAMES = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 const SHORT_MONTHS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
@@ -109,8 +110,7 @@ export default function MobileDayView({ resources, events, loading, initialDate 
         const tipo = evt.extendedProps?.tipo;
         // Para eventos tipo grupo (sin asignación), excluirlos si hay filtro activo
         if (tipo === "grupo" || tipo === "grupo_readonly") return false;
-        const nombre = (evt.title || "").replace(/\s*\(.*?\)\s*$/, "").trim();
-        return nombre === filtroServicio;
+        return isEventoMatch(evt, filtroServicio);
       })
       .map((evt) => {
         const info = resourceInfo.get(String(evt.resourceId)) || {};
