@@ -79,6 +79,7 @@ export default function Eventos() {
         <option value="POOL">Cascata / Pool</option>
         <option value="MULTIPARQUE">Multiparque</option>
         <option value="PARADOR">Parador</option>
+        <option value="CABRAL">Cabral</option>
         <option value="HIELO">Bar de Hielo</option>
         <option value="CENA">Cena de Velas</option>
         <option value="CAMPAMENTO">Campamento Americano</option>

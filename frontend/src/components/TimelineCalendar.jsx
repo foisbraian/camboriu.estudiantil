@@ -1426,9 +1426,25 @@ export default function TimelineCalendar({
                 </select>
 
                 {!grupoAsignando && (() => {
-                  // Determinar si el evento seleccionado es tipo DISCO
+                  // Determinar tipo de evento
                   const eventoObj = eventosDisponibles.find(ev => ev.id === Number(eventoSeleccionado));
-                  const esDisco = eventoObj?.tipo === "DISCO";
+                  const tipoEv = (eventoObj?.tipo || editando?.evento_tipo || "").toUpperCase();
+                  const nomEv = (eventoObj?.nombre || editando?.evento_nombre || "").toUpperCase();
+                  const esDisco = tipoEv === "DISCO" || nomEv.includes("DISCO") || nomEv.includes("BOLICHE");
+
+                  // Permitir Show y Animador / DJ para Boliches, Cascata Carolina, Zacarías, Cabral y Parador
+                  const permiteShowAnimador =
+                    esDisco ||
+                    tipoEv === "ZACARIAS" ||
+                    tipoEv === "PARADOR" ||
+                    tipoEv === "POOL" ||
+                    tipoEv === "CABRAL" ||
+                    nomEv.includes("ZACARIAS") ||
+                    nomEv.includes("PARADOR") ||
+                    nomEv.includes("CASCATA") ||
+                    nomEv.includes("CAROLINA") ||
+                    nomEv.includes("CABRAL");
+
                   const bloqueoEmpresaPrivada = Boolean(editando?.tipo === "global" && (editando?.ocupacion || 0) > 0);
 
                   return (
@@ -1470,7 +1486,7 @@ export default function TimelineCalendar({
                         </div>
                       )}
 
-                      {esDisco && (
+                      {permiteShowAnimador && (
                         <div style={{ marginTop: 12, padding: "10px 12px", background: "#f8fafc", borderRadius: 8, border: "1px dashed #94a3b8" }}>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                             <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "#1e293b" }}>

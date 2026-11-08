@@ -314,6 +314,16 @@ MIGRATIONS = [
         "sqlite": "ALTER TABLE grupos ADD COLUMN pagantes_finales_zacarias_p INTEGER",
         "postgres": "ALTER TABLE grupos ADD COLUMN IF NOT EXISTS pagantes_finales_zacarias_p INTEGER",
     },
+    {
+        "name": "fechas_evento.show",
+        "sqlite": "ALTER TABLE fechas_evento ADD COLUMN show VARCHAR",
+        "postgres": "ALTER TABLE fechas_evento ADD COLUMN IF NOT EXISTS show VARCHAR",
+    },
+    {
+        "name": "fechas_evento.animador",
+        "sqlite": "ALTER TABLE fechas_evento ADD COLUMN animador VARCHAR",
+        "postgres": "ALTER TABLE fechas_evento ADD COLUMN IF NOT EXISTS animador VARCHAR",
+    },
 ]
 
 

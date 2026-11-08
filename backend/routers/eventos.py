@@ -55,6 +55,10 @@ def crear_fecha_evento(data: schemas.FechaEventoCreate, db: Session = Depends(ge
             detalles.append(f"Horario: {f.horario}")
         if f.tematica:
             detalles.append(f"Temática: {f.tematica.nombre}")
+        if getattr(f, "show", None):
+            detalles.append(f"Show: {f.show}")
+        if getattr(f, "animador", None):
+            detalles.append(f"Animador/DJ: {f.animador}")
         if getattr(f, "es_mix_evento", False):
             detalles.append("Mix (pulsera)")
         elif f.con_alcohol:
