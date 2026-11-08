@@ -31,6 +31,9 @@ def upgrade_db():
         "ALTER TABLE finanzas_empresa ADD COLUMN precio_disco_opcional FLOAT DEFAULT 0",
         "ALTER TABLE fechas_evento ADD COLUMN show VARCHAR",
         "ALTER TABLE fechas_evento ADD COLUMN animador VARCHAR",
+        "ALTER TABLE fechas_evento ADD COLUMN cantidad_cajas INTEGER",
+        "ALTER TABLE fechas_evento ADD COLUMN cantidad_seguridad INTEGER",
+        "ALTER TABLE fechas_evento ADD COLUMN cantidad_limpieza INTEGER",
         """CREATE TABLE IF NOT EXISTS links_personalizados (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             token VARCHAR UNIQUE,
