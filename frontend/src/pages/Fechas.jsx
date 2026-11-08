@@ -8,6 +8,9 @@ export default function Fechas() {
   const [tipoAlcohol, setTipoAlcohol] = useState("sin");
   const [show, setShow] = useState("");
   const [animador, setAnimador] = useState("");
+  const [cantidadCajas, setCantidadCajas] = useState("");
+  const [cantidadSeguridad, setCantidadSeguridad] = useState("");
+  const [cantidadLimpieza, setCantidadLimpieza] = useState("");
 
   // Cargar eventos al montar el componente
   useEffect(() => {
@@ -65,6 +68,9 @@ export default function Fechas() {
         es_mix_evento: tipoAlcohol === "mix",
         show: show.trim() || null,
         animador: animador.trim() || null,
+        cantidad_cajas: cantidadCajas !== "" ? Number(cantidadCajas) : null,
+        cantidad_seguridad: cantidadSeguridad !== "" ? Number(cantidadSeguridad) : null,
+        cantidad_limpieza: cantidadLimpieza !== "" ? Number(cantidadLimpieza) : null,
       });
 
       alert("Fecha creada");
@@ -74,6 +80,9 @@ export default function Fechas() {
       setTipoAlcohol("sin");
       setShow("");
       setAnimador("");
+      setCantidadCajas("");
+      setCantidadSeguridad("");
+      setCantidadLimpieza("");
     } catch (error) {
       console.error("Error creando fecha:", error);
       alert("Error al crear fecha");
@@ -154,6 +163,50 @@ export default function Fechas() {
               />
             </div>
           </div>
+
+          {esDisco && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginTop: 10 }}>
+              <div>
+                <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
+                  💵 Cajas:
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="ej: 4"
+                  value={cantidadCajas}
+                  onChange={(e) => setCantidadCajas(e.target.value)}
+                  style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
+                  🛡️ Seguridad:
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="ej: 12"
+                  value={cantidadSeguridad}
+                  onChange={(e) => setCantidadSeguridad(e.target.value)}
+                  style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
+                  🧹 Limpieza:
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="ej: 6"
+                  value={cantidadLimpieza}
+                  onChange={(e) => setCantidadLimpieza(e.target.value)}
+                  style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -140,6 +140,9 @@ class FechaEventoCreate(BaseModel):
     tematica_id: Union[int, None] = None  # opcional, solo para discos
     show: Union[str, None] = None          # notas internas admin/equipo
     animador: Union[str, None] = None      # notas internas admin/equipo
+    cantidad_cajas: Union[int, None] = None
+    cantidad_seguridad: Union[int, None] = None
+    cantidad_limpieza: Union[int, None] = None
     es_privado: bool = False
     empresa_privada_id: Union[int, None] = None
 

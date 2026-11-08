@@ -265,6 +265,9 @@ export default function TimelineCalendar({
   const [horario, setHorario] = useState("");
   const [show, setShow] = useState("");
   const [animador, setAnimador] = useState("");
+  const [cantidadCajas, setCantidadCajas] = useState("");
+  const [cantidadSeguridad, setCantidadSeguridad] = useState("");
+  const [cantidadLimpieza, setCantidadLimpieza] = useState("");
   const [esOpcionalAsignar, setEsOpcionalAsignar] = useState(false);
 
   const [editando, setEditando] = useState(null);
@@ -563,6 +566,9 @@ export default function TimelineCalendar({
     setHorario("");
     setShow("");
     setAnimador("");
+    setCantidadCajas("");
+    setCantidadSeguridad("");
+    setCantidadLimpieza("");
     setEsOpcionalAsignar(false);
 
     // Para crear global, mostramos TODOS los eventos posibles para elegir
@@ -639,6 +645,9 @@ export default function TimelineCalendar({
       setHorario(props.horario || "");
       setShow(props.show || "");
       setAnimador(props.animador || "");
+      setCantidadCajas(props.cantidad_cajas != null ? String(props.cantidad_cajas) : "");
+      setCantidadSeguridad(props.cantidad_seguridad != null ? String(props.cantidad_seguridad) : "");
+      setCantidadLimpieza(props.cantidad_limpieza != null ? String(props.cantidad_limpieza) : "");
 
       // CRITICAL FIX: Do NOT spread info.event directly. It's a complex object.
       // Extract what we need.
@@ -757,6 +766,9 @@ export default function TimelineCalendar({
           horario: horario || null,
           show: show.trim() || null,
           animador: animador.trim() || null,
+          cantidad_cajas: cantidadCajas !== "" ? Number(cantidadCajas) : null,
+          cantidad_seguridad: cantidadSeguridad !== "" ? Number(cantidadSeguridad) : null,
+          cantidad_limpieza: cantidadLimpieza !== "" ? Number(cantidadLimpieza) : null,
         });
       }
 
@@ -773,6 +785,9 @@ export default function TimelineCalendar({
           horario: horario || null,
           show: show.trim() || null,
           animador: animador.trim() || null,
+          cantidad_cajas: cantidadCajas !== "" ? Number(cantidadCajas) : null,
+          cantidad_seguridad: cantidadSeguridad !== "" ? Number(cantidadSeguridad) : null,
+          cantidad_limpieza: cantidadLimpieza !== "" ? Number(cantidadLimpieza) : null,
         });
       }
 
@@ -873,6 +888,9 @@ export default function TimelineCalendar({
     setEsOpcionalAsignar(false);
     setShow("");
     setAnimador("");
+    setCantidadCajas("");
+    setCantidadSeguridad("");
+    setCantidadLimpieza("");
     setHorariosEmpresa([]);
     setFechaEventoIdActual(null);
     onRecargar?.();
@@ -1522,6 +1540,50 @@ export default function TimelineCalendar({
                               />
                             </div>
                           </div>
+
+                          {esDisco && (
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginTop: 10 }}>
+                              <div>
+                                <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
+                                  💵 Cajas:
+                                </label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  placeholder="ej: 4"
+                                  value={cantidadCajas}
+                                  onChange={(e) => setCantidadCajas(e.target.value)}
+                                  style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+                                />
+                              </div>
+                              <div>
+                                <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
+                                  🛡️ Seguridad:
+                                </label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  placeholder="ej: 12"
+                                  value={cantidadSeguridad}
+                                  onChange={(e) => setCantidadSeguridad(e.target.value)}
+                                  style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+                                />
+                              </div>
+                              <div>
+                                <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
+                                  🧹 Limpieza:
+                                </label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  placeholder="ej: 6"
+                                  value={cantidadLimpieza}
+                                  onChange={(e) => setCantidadLimpieza(e.target.value)}
+                                  style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+                                />
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
 

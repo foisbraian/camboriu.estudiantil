@@ -324,6 +324,21 @@ MIGRATIONS = [
         "sqlite": "ALTER TABLE fechas_evento ADD COLUMN animador VARCHAR",
         "postgres": "ALTER TABLE fechas_evento ADD COLUMN IF NOT EXISTS animador VARCHAR",
     },
+    {
+        "name": "fechas_evento.cantidad_cajas",
+        "sqlite": "ALTER TABLE fechas_evento ADD COLUMN cantidad_cajas INTEGER",
+        "postgres": "ALTER TABLE fechas_evento ADD COLUMN IF NOT EXISTS cantidad_cajas INTEGER",
+    },
+    {
+        "name": "fechas_evento.cantidad_seguridad",
+        "sqlite": "ALTER TABLE fechas_evento ADD COLUMN cantidad_seguridad INTEGER",
+        "postgres": "ALTER TABLE fechas_evento ADD COLUMN IF NOT EXISTS cantidad_seguridad INTEGER",
+    },
+    {
+        "name": "fechas_evento.cantidad_limpieza",
+        "sqlite": "ALTER TABLE fechas_evento ADD COLUMN cantidad_limpieza INTEGER",
+        "postgres": "ALTER TABLE fechas_evento ADD COLUMN IF NOT EXISTS cantidad_limpieza INTEGER",
+    },
 ]
 
 

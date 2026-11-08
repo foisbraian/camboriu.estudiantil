@@ -61,6 +61,9 @@ class EditarFechaEventoBody(BaseModel):
     horario: Optional[str] = None
     show: Optional[str] = None
     animador: Optional[str] = None
+    cantidad_cajas: Optional[int] = None
+    cantidad_seguridad: Optional[int] = None
+    cantidad_limpieza: Optional[int] = None
 
 
 # =========================================================
@@ -356,14 +359,23 @@ def calendario(
         if f.tematica:
             titulo += f"\n{f.tematica.nombre}"
         
-        # Anotaciones internas exclusivas para admin y equipo (Show y Animador en boliches)
+        # Anotaciones internas exclusivas para admin y equipo (Show, Animador, Cajas y Seguridad en boliches)
         show_val = (getattr(f, "show", None) or "").strip()
         animador_val = (getattr(f, "animador", None) or "").strip()
+        cajas_val = getattr(f, "cantidad_cajas", None)
+        seguridad_val = getattr(f, "cantidad_seguridad", None)
+        limpieza_val = getattr(f, "cantidad_limpieza", None)
         detalles_internos = []
         if show_val:
             detalles_internos.append(f"🎤 {show_val}")
         if animador_val:
             detalles_internos.append(f"🎧 {animador_val}")
+        if cajas_val is not None:
+            detalles_internos.append(f"💵 {cajas_val} Cajas")
+        if seguridad_val is not None:
+            detalles_internos.append(f"🛡️ {seguridad_val} Seg.")
+        if limpieza_val is not None:
+            detalles_internos.append(f"🧹 {limpieza_val} Limp.")
         if detalles_internos:
             titulo += f"\n{' | '.join(detalles_internos)}"
 
@@ -383,6 +395,12 @@ def calendario(
             tooltip_global += f"\n🎤 Show: {show_val}"
         if animador_val:
             tooltip_global += f"\n🎧 Animador / DJ: {animador_val}"
+        if cajas_val is not None:
+            tooltip_global += f"\n💵 Cajas: {cajas_val}"
+        if seguridad_val is not None:
+            tooltip_global += f"\n🛡️ Seguridad: {seguridad_val}"
+        if limpieza_val is not None:
+            tooltip_global += f"\n🧹 Limpieza: {limpieza_val}"
 
         events.append({
             "id": f"id-{f.id}",
@@ -415,7 +433,10 @@ def calendario(
                 "empresa_privada_nombre": f.empresa_privada.nombre if f.empresa_privada else None,
                 "empresa_privada": f.empresa_privada.nombre if f.empresa_privada else None,
                 "show": getattr(f, "show", None),
-                "animador": getattr(f, "animador", None)
+                "animador": getattr(f, "animador", None),
+                "cantidad_cajas": getattr(f, "cantidad_cajas", None),
+                "cantidad_seguridad": getattr(f, "cantidad_seguridad", None),
+                "cantidad_limpieza": getattr(f, "cantidad_limpieza", None)
             }
         })
 
@@ -1742,6 +1763,9 @@ def editar_fecha_evento(fecha_evento_id: int, body: EditarFechaEventoBody, db: S
     setattr(f, "horario", body.horario)
     setattr(f, "show", body.show)
     setattr(f, "animador", body.animador)
+    setattr(f, "cantidad_cajas", body.cantidad_cajas)
+    setattr(f, "cantidad_seguridad", body.cantidad_seguridad)
+    setattr(f, "cantidad_limpieza", body.cantidad_limpieza)
 
     # Solo cambiar es_privado/empresa_privada_id si hay un cambio real
     # NO borrar asignaciones al marcar como privado
