@@ -46,6 +46,25 @@ export default function TimelineCalendar({
   const lastInteractedDate = useRef(null);
   const isRestoringScroll = useRef(false);
 
+  // Obtener fecha del slot actualmente visible más a la izquierda
+  const getVisibleDateFromScroll = useCallback(() => {
+    const rootEl = calendarRef.current?.el;
+    if (!rootEl) return null;
+    const scroller = rootEl.querySelector(".fc-timeline-body .fc-scroller");
+    if (!scroller) return null;
+    const currentLeft = scroller.scrollLeft;
+    const slots = rootEl.querySelectorAll(".fc-timeline-slot[data-date]");
+    if (!slots || slots.length === 0) return null;
+
+    for (let i = 0; i < slots.length; i++) {
+      const slot = slots[i];
+      if (slot.offsetLeft + slot.offsetWidth > currentLeft + 15) {
+        return slot.getAttribute("data-date");
+      }
+    }
+    return null;
+  }, []);
+
   const captureCurrentScroll = useCallback((explicitDate = null) => {
     const rootEl = calendarRef.current?.el;
     if (!rootEl) return;
@@ -57,9 +76,17 @@ export default function TimelineCalendar({
       };
     }
     if (explicitDate) {
-      lastInteractedDate.current = explicitDate;
+      const dStr = explicitDate instanceof Date
+        ? `${explicitDate.getFullYear()}-${String(explicitDate.getMonth() + 1).padStart(2, '0')}-${String(explicitDate.getDate()).padStart(2, '0')}`
+        : String(explicitDate).slice(0, 10);
+      lastInteractedDate.current = dStr;
+    } else {
+      const vis = getVisibleDateFromScroll();
+      if (vis) {
+        lastInteractedDate.current = vis;
+      }
     }
-  }, []);
+  }, [getVisibleDateFromScroll]);
 
   const centerDate = useCallback((dateToCenter) => {
     const rootEl = calendarRef.current?.el;
@@ -125,6 +152,8 @@ export default function TimelineCalendar({
     const rootEl = calendarRef.current?.el;
     if (!rootEl) return;
 
+    let debounceTimer = null;
+
     const handleScrollCapture = (e) => {
       if (isRestoringScroll.current) return;
       const target = e.target;
@@ -132,19 +161,34 @@ export default function TimelineCalendar({
       if (target.classList.contains("fc-scroller")) {
         const isTimelineBody = target.closest(".fc-timeline-body") !== null;
         if (isTimelineBody && target.scrollWidth > target.clientWidth) {
+          // Si FullCalendar resetea temporalmente a 0 durante renderizado interno, ignorar
+          if (target.scrollLeft === 0 && savedScrollPos.current.left && savedScrollPos.current.left > 30) {
+            return;
+          }
           savedScrollPos.current = {
             left: target.scrollLeft,
             top: target.scrollTop,
           };
+
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            if (!isRestoringScroll.current) {
+              const visDate = getVisibleDateFromScroll();
+              if (visDate) {
+                lastInteractedDate.current = visDate;
+              }
+            }
+          }, 250);
         }
       }
     };
 
     rootEl.addEventListener("scroll", handleScrollCapture, { capture: true, passive: true });
     return () => {
+      clearTimeout(debounceTimer);
       rootEl.removeEventListener("scroll", handleScrollCapture, { capture: true });
     };
-  }, []);
+  }, [getVisibleDateFromScroll]);
 
   // Centrado inicial en la fecha de hoy o targetDate
   useEffect(() => {
@@ -190,6 +234,14 @@ export default function TimelineCalendar({
 
     isRestoringScroll.current = true;
 
+    // Sincronizar fecha interna de FullCalendar para evitar que regrese a initialDate
+    const api = calendarRef.current?.getApi();
+    if (api && anchorDate) {
+      try {
+        api.gotoDate(anchorDate);
+      } catch (e) {}
+    }
+
     const restore = () => {
       const rootEl = calendarRef.current?.el;
       if (!rootEl) return false;
@@ -212,20 +264,36 @@ export default function TimelineCalendar({
           timelineScroller.scrollTop = targetTop;
           if (datagridScroller) datagridScroller.scrollTop = targetTop;
         }
-        ok = true;
-      } else if (anchorDate) {
-        ok = centerDate(anchorDate);
+        ok = Math.abs(timelineScroller.scrollLeft - targetLeft) < 10;
+      }
+
+      if (!ok && anchorDate) {
+        const slot = rootEl.querySelector(`.fc-timeline-slot[data-date="${anchorDate}"]`)
+          || rootEl.querySelector(`.fc-col-header-cell[data-date="${anchorDate}"]`);
+        if (slot) {
+          timelineScroller.scrollLeft = slot.offsetLeft;
+          if (headerScroller) headerScroller.scrollLeft = slot.offsetLeft;
+          if (targetTop !== null) {
+            timelineScroller.scrollTop = targetTop;
+            if (datagridScroller) datagridScroller.scrollTop = targetTop;
+          }
+          ok = true;
+        } else {
+          ok = centerDate(anchorDate);
+        }
       }
 
       return ok;
     };
 
-    const delays = [30, 80, 180, 350, 650, 1100];
+    restore();
+    requestAnimationFrame(restore);
+    const delays = [30, 80, 160, 300, 550, 900, 1400];
     const timers = delays.map((d) => setTimeout(restore, d));
 
     const unlockTimer = setTimeout(() => {
       isRestoringScroll.current = false;
-    }, 1300);
+    }, 1600);
 
     return () => {
       timers.forEach(clearTimeout);
@@ -270,6 +338,7 @@ export default function TimelineCalendar({
   const [cantidadLimpieza, setCantidadLimpieza] = useState("");
   const [esOpcionalAsignar, setEsOpcionalAsignar] = useState(false);
   const [paxOpcional, setPaxOpcional] = useState(""); // PAX que compraron el servicio opcional
+  const [paxGuardadoFeedback, setPaxGuardadoFeedback] = useState(null);
 
   const [editando, setEditando] = useState(null);
   const [grupoAsignando, setGrupoAsignando] = useState(null);
@@ -745,6 +814,7 @@ export default function TimelineCalendar({
   const guardar = async () => {
     try {
       captureCurrentScroll(selectedDate);
+      isRestoringScroll.current = true;
       if (!eventoSeleccionado && !editando) return;
       if (!grupoAsignando && esPrivado && !empresaPrivadaId) {
         alert("Seleccioná la empresa para el evento privado");
@@ -824,8 +894,12 @@ export default function TimelineCalendar({
   const eliminar = async () => {
     if (!editando) return;
     captureCurrentScroll(selectedDate);
+    isRestoringScroll.current = true;
 
-    if (!window.confirm("¿Estás seguro de eliminar?")) return;
+    if (!window.confirm("¿Estás seguro de eliminar?")) {
+      isRestoringScroll.current = false;
+      return;
+    }
 
     try {
       // A. Eliminar Asignación
@@ -893,6 +967,7 @@ export default function TimelineCalendar({
 
   const cerrar = () => {
     captureCurrentScroll(selectedDate);
+    isRestoringScroll.current = true;
     setModalOpen(false);
     setEditando(null);
     setGrupoAsignando(null);
@@ -900,6 +975,7 @@ export default function TimelineCalendar({
     setEmpresaPrivadaId("");
     setEsOpcionalAsignar(false);
     setPaxOpcional("");
+    setPaxGuardadoFeedback(null);
     setShow("");
     setAnimador("");
     setCantidadCajas("");
@@ -1365,6 +1441,7 @@ export default function TimelineCalendar({
                         const newVal = e.target.checked;
                         try {
                           captureCurrentScroll(editando?.fecha || selectedDate);
+                          isRestoringScroll.current = true;
                           const paxVal = paxOpcional !== "" ? parseInt(paxOpcional, 10) : null;
                           await api.put(`/calendario/asignacion/${editando.id}`, {
                             es_opcional: newVal,
@@ -1389,7 +1466,7 @@ export default function TimelineCalendar({
                         <label style={{ display: "block", marginBottom: 5, fontWeight: 700, fontSize: "0.85rem", color: "#7c2d12" }}>
                           🎟️ ¿Cuántos PAX compraron este servicio opcional?
                         </label>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                           <input
                             type="number"
                             min="0"
@@ -1418,6 +1495,7 @@ export default function TimelineCalendar({
                             onClick={async () => {
                               try {
                                 captureCurrentScroll(editando?.fecha || selectedDate);
+                                isRestoringScroll.current = true;
                                 const paxVal = paxOpcional !== "" ? parseInt(paxOpcional, 10) : null;
                                 await api.put(`/calendario/asignacion/${editando.id}`, {
                                   es_opcional: true,
@@ -1425,9 +1503,11 @@ export default function TimelineCalendar({
                                 });
                                 setEditando(prev => ({ ...prev, pax_opcional: paxVal }));
                                 onRecargar?.();
-                                alert(`✅ Guardado: ${paxVal ?? "sin especificar"} PAX opcionales`);
+                                setPaxGuardadoFeedback(`✅ Guardado (${paxVal ?? "0"} PAX)`);
+                                setTimeout(() => setPaxGuardadoFeedback(null), 3000);
                               } catch {
-                                alert("Error al guardar los PAX opcionales");
+                                setPaxGuardadoFeedback("❌ Error al guardar");
+                                setTimeout(() => setPaxGuardadoFeedback(null), 3000);
                               }
                             }}
                             style={{
@@ -1443,6 +1523,15 @@ export default function TimelineCalendar({
                           >
                             💾 Guardar PAX
                           </button>
+                          {paxGuardadoFeedback && (
+                            <span style={{
+                              fontSize: "0.82rem",
+                              fontWeight: 700,
+                              color: paxGuardadoFeedback.includes("✅") ? "#15803d" : "#ef4444"
+                            }}>
+                              {paxGuardadoFeedback}
+                            </span>
+                          )}
                         </div>
                         <p style={{ margin: "6px 0 0", fontSize: "0.76rem", color: "#7c2d12" }}>
                           Este valor se usará en Finanzas como "pagantes finales" para este servicio en el grupo.
