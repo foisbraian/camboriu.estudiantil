@@ -667,14 +667,13 @@ export default function TimelineCalendar({
 
     const props = info.event.extendedProps || {};
     if (props.tipo === "resumen_servicios") return;
-    if (props.tipo === "asignacion_hielo_resumen") return;
     const fechaISO = info.event.startStr.slice(0, 10);
     captureCurrentScroll(fechaISO);
 
     // ---------------------------------------------------------
-    // B. CLICK EN ASIGNACION (Evento en fila de grupo) → ELIMINAR
+    // B. CLICK EN ASIGNACION (Evento en fila de grupo) → ELIMINAR O EDITAR
     // ---------------------------------------------------------
-    if (props.tipo === "asignacion") {
+    if (props.tipo === "asignacion" || props.tipo === "asignacion_hielo_resumen") {
       // Queremos ver/eliminar esta asignación
       setSelectedDate(props.fecha);
       setGrupoAsignando(props.grupo_id);
@@ -691,6 +690,7 @@ export default function TimelineCalendar({
         pax_opcional: props.pax_opcional ?? null,
         grupo_pax_total: props.grupo_pax_total ?? null,
         evento_tipo: props.evento_tipo || "",
+        turnos: props.turnos || 1,
       });
 
       // Pre-cargar el campo de PAX opcional si ya tenía valor guardado
@@ -1428,7 +1428,14 @@ export default function TimelineCalendar({
 
             {editando?.tipo === "asignacion" ? (
               <div style={{ margin: "10px 0" }}>
-                <p><b>Evento:</b> {editando.nombre}</p>
+                <p>
+                  <b>Evento:</b> {editando.nombre}
+                  {editando.turnos > 1 && (
+                    <span style={{ marginLeft: 8, fontSize: "0.82rem", background: "#e0f2fe", color: "#0369a1", padding: "2px 7px", borderRadius: 4, fontWeight: 700 }}>
+                      🕒 {editando.turnos} turnos
+                    </span>
+                  )}
+                </p>
                 {editando.grupo_pax_total != null && (
                   <p style={{ fontSize: "0.82rem", color: "#64748b", marginBottom: 8 }}>
                     👥 PAX total del grupo: <strong>{editando.grupo_pax_total}</strong>

@@ -752,7 +752,30 @@ def calendario(
                         text_color_asig = "black"
                         turnos = len(asignaciones_hielo)
                         nombre_base = asignaciones_hielo[0].fecha_evento.evento.nombre
+
+                        # Datos opcionales y PAX
+                        pax_opcional_guardado = getattr(g, "pagantes_finales_hielo", None)
+                        es_opc = any(bool(getattr(a, "es_opcional", False)) for a in asignaciones_hielo)
+
+                        pax_total_hielo = 0
+                        for a_hielo in asignaciones_hielo:
+                            pax_asig = getattr(a_hielo, "pax_asignados", None)
+                            pax_total_hielo += pax_asig if pax_asig is not None else (g.cantidad_pax or 0)
+
                         titulo = f"{nombre_base} {turnos} TURNOS" if turnos > 1 else nombre_base
+                        if es_opc:
+                            if pax_opcional_guardado is not None:
+                                titulo += f"\nOpcional: {pax_opcional_guardado} PAX"
+                            else:
+                                titulo += "\nOpcional vendida"
+
+                        tooltip_hielo = f"Asignado: {nombre_base} ({turnos} TURNOS - {pax_total_hielo} PAX)" if turnos > 1 else f"Asignado: {nombre_base} ({pax_total_hielo} PAX)"
+                        if es_opc:
+                            if pax_opcional_guardado is not None:
+                                tooltip_hielo += f" (Opcional: {pax_opcional_guardado} PAX)"
+                            else:
+                                tooltip_hielo += " (Opcional vendida)"
+
                         events.append({
                             "resourceId": g.id,
                             "start": current_date,
@@ -762,14 +785,19 @@ def calendario(
                             "borderColor": "transparent",
                             "textColor": text_color_asig,
                             "extendedProps": {
-                                "tipo": "asignacion_hielo_resumen",
+                                "tipo": "asignacion",
                                 "grupo_id": g.id,
                                 "fecha": current_date,
-                                "turnos": turnos,
+                                "asignacion_id": asignaciones_hielo[0].id,
                                 "nombre_evento": nombre_base,
+                                "evento_id_num": asignaciones_hielo[0].fecha_evento.evento.id,
                                 "evento_tipo": "HIELO",
                                 "empresa_nombre": e.nombre,
-                                "tooltip": f"{nombre_base}: {turnos} TURNOS"
+                                "es_opcional": es_opc,
+                                "pax_opcional": pax_opcional_guardado,
+                                "grupo_pax_total": g.cantidad_pax,
+                                "turnos": turnos,
+                                "tooltip": tooltip_hielo
                             }
                         })
 
@@ -1701,74 +1729,6 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
 
 
 # =========================================================
-# EDITAR / ELIMINAR ASIGNACIÓN DIRECTA
-# =========================================================
-@router.put("/asignacion/{asignacion_id}")
-def actualizar_asignacion(asignacion_id: int, body: EditarAsignacionBody, db: Session = Depends(get_db)):
-    asig = db.get(models.Asignacion, asignacion_id)
-    if not asig:
-        raise HTTPException(404, "Asignación no encontrada")
-    asig.es_opcional = bool(body.es_opcional)
-
-    if not body.es_opcional:
-        asig.pax_asignados = None
-    elif body.pax_opcional is not None:
-        asig.pax_asignados = body.pax_opcional if body.pax_opcional > 0 else None
-
-    # Si se envía una cantidad de PAX opcional, actualizarla en el grupo
-    # según el tipo de servicio de esta asignación.
-    if body.pax_opcional is not None and asig.grupo and asig.fecha_evento and asig.fecha_evento.evento:
-        tipo = (asig.fecha_evento.evento.tipo or "").upper()
-        grupo = asig.grupo
-
-        # Mapa tipo de evento → campo pagantes_finales del grupo
-        TIPO_A_CAMPO = {
-            "HIELO":       "pagantes_finales_hielo",
-            "CENA":        "pagantes_finales_cena",
-            "POOL":        "pagantes_finales_pool",
-            "ZACARIAS":    "pagantes_finales_zacarias",
-            "PARQUE":      "pagantes_finales_parque",
-            "CAMPAMENTO":  "pagantes_finales_campamento",
-            "SURF":        "pagantes_finales_surf",
-            "UNIPRAIAS":   "pagantes_finales_unipraias",
-            "BETO":        "pagantes_finales_beto",
-            "BARCO":       "pagantes_finales_barco",
-            "CRISTO":      "pagantes_finales_cristo",
-            "SUNSET":      "pagantes_finales_sunset",
-            "QUINTA_COMIDA": "pagantes_finales_quinta_comida",
-            "MULTIPARQUE": "pagantes_finales_multiparque",
-            "DISCO":       "pagantes_finales_disco_opcional",  # disco opcional
-        }
-
-        campo = TIPO_A_CAMPO.get(tipo)
-        if campo and hasattr(grupo, campo):
-            # Si se pone 0 o no es_opcional, limpiar el override
-            if not body.es_opcional or body.pax_opcional == 0:
-                setattr(grupo, campo, None)
-            else:
-                setattr(grupo, campo, body.pax_opcional)
-
-    db.commit()
-    db.refresh(asig)
-    return {
-        "ok": True,
-        "asignacion_id": asig.id,
-        "es_opcional": asig.es_opcional,
-        "pax_opcional": asig.pax_asignados,
-    }
-
-
-@router.delete("/asignacion/{asignacion_id}")
-def eliminar_asignacion_por_id(asignacion_id: int, db: Session = Depends(get_db)):
-    asig = db.get(models.Asignacion, asignacion_id)
-    if not asig:
-        raise HTTPException(404, "Asignación no encontrada")
-    db.delete(asig)
-    db.commit()
-    return {"ok": True}
-
-
-# =========================================================
 # ELIMINAR ASIGNACION DE GRUPO
 # =========================================================
 @router.delete("/grupo/{grupo_id}/asignar")
@@ -1793,6 +1753,19 @@ def eliminar_asignacion(grupo_id: int, body: AsignarEventoBody, db: Session = De
 
     for asig in asignaciones:
         db.delete(asig)
+
+    # Si era Bar de Hielo opcional, limpiar también pagantes_finales_hielo del grupo si no le quedan otras asignaciones de hielo
+    if fecha_evt.evento and (fecha_evt.evento.tipo or "").upper() == "HIELO":
+        grupo = db.get(models.Grupo, grupo_id)
+        if grupo:
+            otras_asig_hielo = db.query(models.Asignacion).join(models.FechaEvento).join(models.Evento).filter(
+                models.Asignacion.grupo_id == grupo_id,
+                models.Evento.tipo == "HIELO",
+                models.Asignacion.fecha_evento_id != fecha_evt.id
+            ).first()
+            if not otras_asig_hielo:
+                grupo.pagantes_finales_hielo = None
+
     db.commit()
 
     # NOTIFICACIÓN DESACTIVADA TEMPORALMENTE (Asignaciones individuales a grupos)
@@ -1821,6 +1794,58 @@ def actualizar_asignacion(asignacion_id: int, body: EditarAsignacionBody, db: Se
     asig = db.get(models.Asignacion, asignacion_id)
     if not asig:
         raise HTTPException(404, "Asignación no encontrada")
+
+    tipo = (asig.fecha_evento.evento.tipo or "").upper() if (asig.fecha_evento and asig.fecha_evento.evento) else ""
+    grupo = asig.grupo
+
+    # Tratamiento especial para Bar de Hielo (maneja turnos por capacidad)
+    if tipo == "HIELO":
+        fecha_evento_id = asig.fecha_evento_id
+        capacidad_turno = (asig.fecha_evento.evento.capacidad_maxima or 90) if (asig.fecha_evento and asig.fecha_evento.evento) else 90
+
+        if body.es_opcional and body.pax_opcional and body.pax_opcional > 0:
+            pax_total = body.pax_opcional
+            if grupo:
+                grupo.pagantes_finales_hielo = body.pax_opcional
+        else:
+            pax_total = (grupo.cantidad_pax or 0) if grupo else (asig.pax_asignados or 0)
+            if grupo and (not body.es_opcional or body.pax_opcional == 0):
+                grupo.pagantes_finales_hielo = None
+
+        turnos_necesarios = max(1, math.ceil(pax_total / capacidad_turno)) if pax_total > 0 else 1
+
+        # Reemplazar asignaciones existentes de hielo de este grupo en esta fecha_evento
+        db.query(models.Asignacion).filter_by(
+            grupo_id=asig.grupo_id,
+            fecha_evento_id=fecha_evento_id
+        ).delete()
+
+        restante = pax_total
+        primera_asig = None
+        for _ in range(turnos_necesarios):
+            pax_turno = min(capacidad_turno, restante)
+            restante -= pax_turno
+            nueva_asig = models.Asignacion(
+                grupo_id=asig.grupo_id,
+                fecha_evento_id=fecha_evento_id,
+                pax_asignados=pax_turno if body.es_opcional else None,
+                es_opcional=bool(body.es_opcional)
+            )
+            db.add(nueva_asig)
+            if primera_asig is None:
+                primera_asig = nueva_asig
+
+        db.commit()
+        if primera_asig:
+            db.refresh(primera_asig)
+            return {
+                "ok": True,
+                "asignacion_id": primera_asig.id,
+                "es_opcional": primera_asig.es_opcional,
+                "pax_opcional": primera_asig.pax_asignados,
+            }
+        return {"ok": True}
+
     asig.es_opcional = bool(body.es_opcional)
 
     if not body.es_opcional:
