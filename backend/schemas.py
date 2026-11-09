@@ -143,6 +143,7 @@ class FechaEventoCreate(BaseModel):
     cantidad_cajas: Union[int, None] = None
     cantidad_seguridad: Union[int, None] = None
     cantidad_limpieza: Union[int, None] = None
+    cantidad_ambulancias: Union[int, None] = None
     es_privado: bool = False
     empresa_privada_id: Union[int, None] = None
 

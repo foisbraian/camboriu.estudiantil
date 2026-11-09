@@ -89,6 +89,7 @@ export default function MobileDayView({ resources, events, loading, initialDate 
           cantidadCajas: props.cantidad_cajas,
           cantidadSeguridad: props.cantidad_seguridad,
           cantidadLimpieza: props.cantidad_limpieza,
+          cantidadAmbulancias: props.cantidad_ambulancias,
         };
       });
   }, [events, matchesCurrentDate]);
@@ -297,13 +298,14 @@ export default function MobileDayView({ resources, events, loading, initialDate 
                       )}
                     </div>
                     {evt.tematica && <div style={{ marginTop: 2, fontSize: "0.85rem", opacity: 0.95 }}>{evt.tematica}</div>}
-                    {(evt.show || evt.animador || evt.cantidadCajas != null || evt.cantidadSeguridad != null || evt.cantidadLimpieza != null) && (
+                    {(evt.show || evt.animador || evt.cantidadCajas != null || evt.cantidadSeguridad != null || evt.cantidadLimpieza != null || evt.cantidadAmbulancias != null) && (
                       <div style={{ marginTop: 4, fontSize: "0.8rem", background: "rgba(0,0,0,0.3)", padding: "2px 6px", borderRadius: 4, display: "inline-flex", gap: 8, flexWrap: "wrap" }}>
                         {evt.show && <span>🎤 Show: <b>{evt.show}</b></span>}
                         {evt.animador && <span>🎧 Animador: <b>{evt.animador}</b></span>}
                         {evt.cantidadCajas != null && <span>💵 Cajas: <b>{evt.cantidadCajas}</b></span>}
                         {evt.cantidadSeguridad != null && <span>🛡️ Seguridad: <b>{evt.cantidadSeguridad}</b></span>}
                         {evt.cantidadLimpieza != null && <span>🧹 Limpieza: <b>{evt.cantidadLimpieza}</b></span>}
+                        {evt.cantidadAmbulancias != null && <span>🚑 Ambulancias: <b>{evt.cantidadAmbulancias}</b></span>}
                       </div>
                     )}
                     <div style={{ marginTop: 6, fontSize: "0.85rem", opacity: 0.9 }}>

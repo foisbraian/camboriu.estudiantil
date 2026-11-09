@@ -181,6 +181,7 @@ class FechaEvento(Base):
     cantidad_cajas = Column(Integer, nullable=True)
     cantidad_seguridad = Column(Integer, nullable=True)
     cantidad_limpieza = Column(Integer, nullable=True)
+    cantidad_ambulancias = Column(Integer, nullable=True)
 
     es_privado = Column(Boolean, default=False)
     empresa_privada_id = Column(Integer, ForeignKey("empresas.id"), nullable=True)

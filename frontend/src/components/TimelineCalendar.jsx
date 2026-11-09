@@ -336,6 +336,7 @@ export default function TimelineCalendar({
   const [cantidadCajas, setCantidadCajas] = useState("");
   const [cantidadSeguridad, setCantidadSeguridad] = useState("");
   const [cantidadLimpieza, setCantidadLimpieza] = useState("");
+  const [cantidadAmbulancias, setCantidadAmbulancias] = useState("");
   const [esOpcionalAsignar, setEsOpcionalAsignar] = useState(false);
   const [paxOpcional, setPaxOpcional] = useState(""); // PAX que compraron el servicio opcional
   const [paxGuardadoFeedback, setPaxGuardadoFeedback] = useState(null);
@@ -639,6 +640,7 @@ export default function TimelineCalendar({
     setCantidadCajas("");
     setCantidadSeguridad("");
     setCantidadLimpieza("");
+    setCantidadAmbulancias("");
     setEsOpcionalAsignar(false);
     setPaxOpcional("");
 
@@ -725,6 +727,7 @@ export default function TimelineCalendar({
       setCantidadCajas(props.cantidad_cajas != null ? String(props.cantidad_cajas) : "");
       setCantidadSeguridad(props.cantidad_seguridad != null ? String(props.cantidad_seguridad) : "");
       setCantidadLimpieza(props.cantidad_limpieza != null ? String(props.cantidad_limpieza) : "");
+      setCantidadAmbulancias(props.cantidad_ambulancias != null ? String(props.cantidad_ambulancias) : "");
 
       // CRITICAL FIX: Do NOT spread info.event directly. It's a complex object.
       // Extract what we need.
@@ -852,6 +855,7 @@ export default function TimelineCalendar({
           cantidad_cajas: cantidadCajas !== "" ? Number(cantidadCajas) : null,
           cantidad_seguridad: cantidadSeguridad !== "" ? Number(cantidadSeguridad) : null,
           cantidad_limpieza: cantidadLimpieza !== "" ? Number(cantidadLimpieza) : null,
+          cantidad_ambulancias: cantidadAmbulancias !== "" ? Number(cantidadAmbulancias) : null,
         });
       }
 
@@ -871,6 +875,7 @@ export default function TimelineCalendar({
           cantidad_cajas: cantidadCajas !== "" ? Number(cantidadCajas) : null,
           cantidad_seguridad: cantidadSeguridad !== "" ? Number(cantidadSeguridad) : null,
           cantidad_limpieza: cantidadLimpieza !== "" ? Number(cantidadLimpieza) : null,
+          cantidad_ambulancias: cantidadAmbulancias !== "" ? Number(cantidadAmbulancias) : null,
         });
       }
 
@@ -981,6 +986,7 @@ export default function TimelineCalendar({
     setCantidadCajas("");
     setCantidadSeguridad("");
     setCantidadLimpieza("");
+    setCantidadAmbulancias("");
     setHorariosEmpresa([]);
     setFechaEventoIdActual(null);
     onRecargar?.();
@@ -1641,6 +1647,13 @@ export default function TimelineCalendar({
                     nomEv.includes("CAROLINA") ||
                     nomEv.includes("CABRAL");
 
+                  const permiteAmbulancias =
+                    esDisco ||
+                    tipoEv === "ZACARIAS" ||
+                    tipoEv === "PARADOR" ||
+                    nomEv.includes("ZACARIAS") ||
+                    nomEv.includes("PARADOR");
+
                   const bloqueoEmpresaPrivada = Boolean(editando?.tipo === "global" && (editando?.ocupacion || 0) > 0);
 
                   return (
@@ -1719,47 +1732,66 @@ export default function TimelineCalendar({
                             </div>
                           </div>
 
-                          {esDisco && (
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginTop: 10 }}>
-                              <div>
-                                <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
-                                  💵 Cajas:
-                                </label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  placeholder="ej: 4"
-                                  value={cantidadCajas}
-                                  onChange={(e) => setCantidadCajas(e.target.value)}
-                                  style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
-                                />
-                              </div>
-                              <div>
-                                <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
-                                  🛡️ Seguridad:
-                                </label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  placeholder="ej: 12"
-                                  value={cantidadSeguridad}
-                                  onChange={(e) => setCantidadSeguridad(e.target.value)}
-                                  style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
-                                />
-                              </div>
-                              <div>
-                                <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
-                                  🧹 Limpieza:
-                                </label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  placeholder="ej: 6"
-                                  value={cantidadLimpieza}
-                                  onChange={(e) => setCantidadLimpieza(e.target.value)}
-                                  style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
-                                />
-                              </div>
+                          {(esDisco || permiteAmbulancias) && (
+                            <div style={{ display: "grid", gridTemplateColumns: esDisco ? "repeat(auto-fit, minmax(100px, 1fr))" : "1fr", gap: 10, marginTop: 10 }}>
+                              {esDisco && (
+                                <>
+                                  <div>
+                                    <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
+                                      💵 Cajas:
+                                    </label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      placeholder="ej: 4"
+                                      value={cantidadCajas}
+                                      onChange={(e) => setCantidadCajas(e.target.value)}
+                                      style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+                                    />
+                                  </div>
+                                  <div>
+                                    <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
+                                      🛡️ Seguridad:
+                                    </label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      placeholder="ej: 12"
+                                      value={cantidadSeguridad}
+                                      onChange={(e) => setCantidadSeguridad(e.target.value)}
+                                      style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+                                    />
+                                  </div>
+                                  <div>
+                                    <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
+                                      🧹 Limpieza:
+                                    </label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      placeholder="ej: 6"
+                                      value={cantidadLimpieza}
+                                      onChange={(e) => setCantidadLimpieza(e.target.value)}
+                                      style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+                                    />
+                                  </div>
+                                </>
+                              )}
+                              {permiteAmbulancias && (
+                                <div>
+                                  <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
+                                    🚑 Ambulancias:
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    placeholder="ej: 1"
+                                    value={cantidadAmbulancias}
+                                    onChange={(e) => setCantidadAmbulancias(e.target.value)}
+                                    style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+                                  />
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>

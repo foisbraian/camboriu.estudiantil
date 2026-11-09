@@ -339,6 +339,11 @@ MIGRATIONS = [
         "sqlite": "ALTER TABLE fechas_evento ADD COLUMN cantidad_limpieza INTEGER",
         "postgres": "ALTER TABLE fechas_evento ADD COLUMN IF NOT EXISTS cantidad_limpieza INTEGER",
     },
+    {
+        "name": "fechas_evento.cantidad_ambulancias",
+        "sqlite": "ALTER TABLE fechas_evento ADD COLUMN cantidad_ambulancias INTEGER",
+        "postgres": "ALTER TABLE fechas_evento ADD COLUMN IF NOT EXISTS cantidad_ambulancias INTEGER",
+    },
 ]
 
 

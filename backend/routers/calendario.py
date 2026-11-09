@@ -66,6 +66,7 @@ class EditarFechaEventoBody(BaseModel):
     cantidad_cajas: Optional[int] = None
     cantidad_seguridad: Optional[int] = None
     cantidad_limpieza: Optional[int] = None
+    cantidad_ambulancias: Optional[int] = None
 
 
 # =========================================================
@@ -367,6 +368,7 @@ def calendario(
         cajas_val = getattr(f, "cantidad_cajas", None)
         seguridad_val = getattr(f, "cantidad_seguridad", None)
         limpieza_val = getattr(f, "cantidad_limpieza", None)
+        ambulancias_val = getattr(f, "cantidad_ambulancias", None)
         detalles_internos = []
         if show_val:
             detalles_internos.append(f"🎤 {show_val}")
@@ -378,6 +380,8 @@ def calendario(
             detalles_internos.append(f"🛡️ {seguridad_val} Seg.")
         if limpieza_val is not None:
             detalles_internos.append(f"🧹 {limpieza_val} Limp.")
+        if ambulancias_val is not None:
+            detalles_internos.append(f"🚑 {ambulancias_val} Amb.")
         if detalles_internos:
             titulo += f"\n{' | '.join(detalles_internos)}"
 
@@ -403,6 +407,8 @@ def calendario(
             tooltip_global += f"\n🛡️ Seguridad: {seguridad_val}"
         if limpieza_val is not None:
             tooltip_global += f"\n🧹 Limpieza: {limpieza_val}"
+        if ambulancias_val is not None:
+            tooltip_global += f"\n🚑 Ambulancias: {ambulancias_val}"
 
         events.append({
             "id": f"id-{f.id}",
@@ -438,7 +444,8 @@ def calendario(
                 "animador": getattr(f, "animador", None),
                 "cantidad_cajas": getattr(f, "cantidad_cajas", None),
                 "cantidad_seguridad": getattr(f, "cantidad_seguridad", None),
-                "cantidad_limpieza": getattr(f, "cantidad_limpieza", None)
+                "cantidad_limpieza": getattr(f, "cantidad_limpieza", None),
+                "cantidad_ambulancias": getattr(f, "cantidad_ambulancias", None)
             }
         })
 
@@ -1907,6 +1914,7 @@ def editar_fecha_evento(fecha_evento_id: int, body: EditarFechaEventoBody, db: S
     setattr(f, "cantidad_cajas", body.cantidad_cajas)
     setattr(f, "cantidad_seguridad", body.cantidad_seguridad)
     setattr(f, "cantidad_limpieza", body.cantidad_limpieza)
+    setattr(f, "cantidad_ambulancias", body.cantidad_ambulancias)
 
     # Solo cambiar es_privado/empresa_privada_id si hay un cambio real
     # NO borrar asignaciones al marcar como privado

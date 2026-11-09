@@ -34,6 +34,7 @@ def upgrade_db():
         "ALTER TABLE fechas_evento ADD COLUMN cantidad_cajas INTEGER",
         "ALTER TABLE fechas_evento ADD COLUMN cantidad_seguridad INTEGER",
         "ALTER TABLE fechas_evento ADD COLUMN cantidad_limpieza INTEGER",
+        "ALTER TABLE fechas_evento ADD COLUMN cantidad_ambulancias INTEGER",
         """CREATE TABLE IF NOT EXISTS links_personalizados (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             token VARCHAR UNIQUE,

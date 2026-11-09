@@ -11,6 +11,7 @@ export default function Fechas() {
   const [cantidadCajas, setCantidadCajas] = useState("");
   const [cantidadSeguridad, setCantidadSeguridad] = useState("");
   const [cantidadLimpieza, setCantidadLimpieza] = useState("");
+  const [cantidadAmbulancias, setCantidadAmbulancias] = useState("");
 
   // Cargar eventos al montar el componente
   useEffect(() => {
@@ -49,6 +50,13 @@ export default function Fechas() {
     nomEv.includes("CAROLINA") ||
     nomEv.includes("CABRAL");
 
+  const permiteAmbulancias =
+    esDisco ||
+    tipoEv === "ZACARIAS" ||
+    tipoEv === "PARADOR" ||
+    nomEv.includes("ZACARIAS") ||
+    nomEv.includes("PARADOR");
+
   async function crear() {
     if (!evento_id) {
       alert("Selecciona un evento");
@@ -71,6 +79,7 @@ export default function Fechas() {
         cantidad_cajas: cantidadCajas !== "" ? Number(cantidadCajas) : null,
         cantidad_seguridad: cantidadSeguridad !== "" ? Number(cantidadSeguridad) : null,
         cantidad_limpieza: cantidadLimpieza !== "" ? Number(cantidadLimpieza) : null,
+        cantidad_ambulancias: cantidadAmbulancias !== "" ? Number(cantidadAmbulancias) : null,
       });
 
       alert("Fecha creada");
@@ -83,6 +92,7 @@ export default function Fechas() {
       setCantidadCajas("");
       setCantidadSeguridad("");
       setCantidadLimpieza("");
+      setCantidadAmbulancias("");
     } catch (error) {
       console.error("Error creando fecha:", error);
       alert("Error al crear fecha");
@@ -164,47 +174,66 @@ export default function Fechas() {
             </div>
           </div>
 
-          {esDisco && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginTop: 10 }}>
-              <div>
-                <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
-                  💵 Cajas:
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="ej: 4"
-                  value={cantidadCajas}
-                  onChange={(e) => setCantidadCajas(e.target.value)}
-                  style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
-                />
-              </div>
-              <div>
-                <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
-                  🛡️ Seguridad:
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="ej: 12"
-                  value={cantidadSeguridad}
-                  onChange={(e) => setCantidadSeguridad(e.target.value)}
-                  style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
-                />
-              </div>
-              <div>
-                <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
-                  🧹 Limpieza:
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="ej: 6"
-                  value={cantidadLimpieza}
-                  onChange={(e) => setCantidadLimpieza(e.target.value)}
-                  style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
-                />
-              </div>
+          {(esDisco || permiteAmbulancias) && (
+            <div style={{ display: "grid", gridTemplateColumns: esDisco ? "repeat(auto-fit, minmax(100px, 1fr))" : "1fr", gap: 10, marginTop: 10 }}>
+              {esDisco && (
+                <>
+                  <div>
+                    <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
+                      💵 Cajas:
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="ej: 4"
+                      value={cantidadCajas}
+                      onChange={(e) => setCantidadCajas(e.target.value)}
+                      style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
+                      🛡️ Seguridad:
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="ej: 12"
+                      value={cantidadSeguridad}
+                      onChange={(e) => setCantidadSeguridad(e.target.value)}
+                      style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
+                      🧹 Limpieza:
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="ej: 6"
+                      value={cantidadLimpieza}
+                      onChange={(e) => setCantidadLimpieza(e.target.value)}
+                      style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+                    />
+                  </div>
+                </>
+              )}
+              {permiteAmbulancias && (
+                <div>
+                  <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
+                    🚑 Ambulancias:
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="ej: 1"
+                    value={cantidadAmbulancias}
+                    onChange={(e) => setCantidadAmbulancias(e.target.value)}
+                    style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>
