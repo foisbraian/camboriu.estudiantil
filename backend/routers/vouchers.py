@@ -106,6 +106,50 @@ def generate_unique_token(db: Optional[Session] = None):
         if not exists:
             return token
 
+
+def obtener_pax_voucher(asignacion: models.Asignacion) -> int:
+    """Retorna la cantidad exacta de PAX que corresponde a este voucher.
+    Si la asignación tiene pax_asignados explícitos (ej: opcional vendido para 30 pax),
+    retorna esa cantidad. Si no, busca el pagantes_finales del grupo para ese servicio.
+    Por defecto retorna grupo.cantidad_pax.
+    """
+    if asignacion.pax_asignados and asignacion.pax_asignados > 0:
+        return asignacion.pax_asignados
+
+    grupo = asignacion.grupo
+    if not grupo:
+        return 0
+
+    if getattr(asignacion, "es_opcional", False):
+        tipo = ""
+        if asignacion.fecha_evento and asignacion.fecha_evento.evento:
+            tipo = (asignacion.fecha_evento.evento.tipo or "").upper()
+
+        TIPO_A_CAMPO_PAX = {
+            "HIELO":         "pagantes_finales_hielo",
+            "CENA":          "pagantes_finales_cena",
+            "POOL":          "pagantes_finales_pool",
+            "ZACARIAS":      "pagantes_finales_zacarias",
+            "PARQUE":        "pagantes_finales_parque",
+            "CAMPAMENTO":    "pagantes_finales_campamento",
+            "SURF":          "pagantes_finales_surf",
+            "UNIPRAIAS":     "pagantes_finales_unipraias",
+            "BETO":          "pagantes_finales_beto",
+            "BARCO":         "pagantes_finales_barco",
+            "CRISTO":        "pagantes_finales_cristo",
+            "SUNSET":        "pagantes_finales_sunset",
+            "QUINTA_COMIDA": "pagantes_finales_quinta_comida",
+            "MULTIPARQUE":   "pagantes_finales_multiparque",
+            "DISCO":         "pagantes_finales_disco_opcional",
+        }
+        campo = TIPO_A_CAMPO_PAX.get(tipo)
+        if campo:
+            val = getattr(grupo, campo, None)
+            if val is not None and val > 0:
+                return val
+
+    return grupo.cantidad_pax or 0
+
 # =========================================================
 # GET VOUCHERS POR EMPRESA (portal publico por codigo)
 # =========================================================
@@ -224,6 +268,8 @@ def vouchers_por_empresa(codigo_acceso: str, db: Session = Depends(get_db)):
                 elif tipo_upper in {"POOL", "CASCATA"} or "cascata" in nombre_lower:
                     comida_label = "Con comida" if grupo.pool_con_comida else "Sin comida"
 
+                pax_voucher = obtener_pax_voucher(asig)
+
                 resultado.append({
                     "asignacion_id": asig.id,
                     "token": voucher.token,
@@ -237,7 +283,8 @@ def vouchers_por_empresa(codigo_acceso: str, db: Session = Depends(get_db)):
                     "con_alcohol": fecha_evento.con_alcohol,
                     "empresa": emp.nombre,
                     "grupo": grupo.nombre,
-                    "pax": grupo.cantidad_pax,
+                    "pax": pax_voucher,
+                    "es_opcional": bool(getattr(asig, "es_opcional", False)),
                     "comida": comida_label,
                 })
 
@@ -359,6 +406,9 @@ def generate_voucher(asignacion_id: int, db: Session = Depends(get_db)):
     elif tipo_upper in {"POOL", "CASCATA"} or "cascata" in nombre_lower:
         comida_label = "CON COMIDA" if grupo.pool_con_comida else "SIN COMIDA"
 
+    pax_voucher = obtener_pax_voucher(asignacion)
+    es_opcional = bool(getattr(asignacion, "es_opcional", False))
+
     fecha_y_label = 220
     fecha_y_value = 240
     if comida_label:
@@ -367,8 +417,13 @@ def generate_voucher(asignacion_id: int, db: Session = Depends(get_db)):
         fecha_y_label = 250
         fecha_y_value = 270
 
-    draw.text((40, fecha_y_label), "FECHA / PAX:", fill=color_label, font=font_label)
-    draw.text((40, fecha_y_value), f"{fecha} - {grupo.cantidad_pax} PAX", fill=color_text, font=font_sub)
+    label_pax = "FECHA / PAX:" if not es_opcional else "FECHA / PAX (OPCIONAL VENDIDO):"
+    texto_pax = f"{fecha} - {pax_voucher} PAX"
+    if es_opcional:
+        texto_pax += " [OPCIONAL]"
+
+    draw.text((40, fecha_y_label), label_pax, fill=(234, 88, 12) if es_opcional else color_label, font=font_label)
+    draw.text((40, fecha_y_value), texto_pax, fill=(234, 88, 12) if es_opcional else color_text, font=font_sub)
     
     # Estética (ID en gris suave)
     draw.text((550, 20), f"ID: {voucher.token[:8].upper()}", fill=color_label, font=font_label)
@@ -476,6 +531,9 @@ def validate_voucher(token_data: dict, db: Session = Depends(get_db)):
         }, status_code=400)
 
     inicio_dt, fin_dt, etiqueta = build_event_window(asig.fecha_evento)
+    pax_val = obtener_pax_voucher(asig)
+    es_opc = bool(getattr(asig, "es_opcional", False))
+
     res_detalle = {
         "status": "success",
         "message": "Voucher validado con éxito",
@@ -484,10 +542,13 @@ def validate_voucher(token_data: dict, db: Session = Depends(get_db)):
             "grupo": asig.grupo.nombre,
             "servicio": asig.fecha_evento.evento.nombre,
             "fecha": str(asig.fecha_evento.fecha),
+            "es_opcional": es_opc,
+            "pax_total_voucher": pax_val,
             "estructura_grupo": {
-                "pax": asig.grupo.cantidad_estudiantes or 0,
-                "padres": asig.grupo.cantidad_padres or 0,
-                "guias": asig.grupo.cantidad_guias or 0
+                "pax": pax_val if es_opc else (asig.grupo.cantidad_estudiantes or 0),
+                "padres": 0 if es_opc else (asig.grupo.cantidad_padres or 0),
+                "guias": 0 if es_opc else (asig.grupo.cantidad_guias or 0),
+                "es_opcional": es_opc
             },
             "ventana": {
                 "inicio": inicio_dt.isoformat(),
@@ -552,6 +613,9 @@ def reporte_vouchers(
         scan_fecha = scan_dt.date().isoformat() if scan_dt else None
         scan_hora = scan_dt.strftime("%H:%M:%S") if scan_dt else None
 
+        pax_voucher_val = obtener_pax_voucher(asignacion)
+        es_opc_val = bool(getattr(asignacion, "es_opcional", False))
+
         resultados.append({
             "voucher_id": voucher.id,
             "token": voucher.token,
@@ -564,10 +628,11 @@ def reporte_vouchers(
             "empresa_id": empresa.id if empresa else None,
             "grupo": grupo.nombre,
             "grupo_id": grupo.id,
-            "estudiantes": grupo.cantidad_estudiantes or 0,
-            "padres": grupo.cantidad_padres or 0,
-            "guias": grupo.cantidad_guias or 0,
-            "pax": getattr(grupo, "cantidad_pax", 0) or 0,
+            "es_opcional": es_opc_val,
+            "estudiantes": pax_voucher_val if es_opc_val else (grupo.cantidad_estudiantes or 0),
+            "padres": 0 if es_opc_val else (grupo.cantidad_padres or 0),
+            "guias": 0 if es_opc_val else (grupo.cantidad_guias or 0),
+            "pax": pax_voucher_val,
         })
 
     return resultados
@@ -636,19 +701,21 @@ def exportar_reporte_vouchers_excel(
         scan_dt = parse_fecha_uso(voucher.fecha_uso)
         scan_fecha = scan_dt.date().isoformat() if scan_dt else None
         scan_hora = scan_dt.strftime("%H:%M:%S") if scan_dt else None
+        pax_excel = obtener_pax_voucher(asignacion)
+        es_opc_excel = bool(getattr(asignacion, "es_opcional", False))
 
         ws.append([
             scan_fecha or "",
             scan_hora or "",
             str(fecha_evento.fecha),
-            evento.nombre if evento else "",
+            f"{evento.nombre} (OPCIONAL)" if (evento and es_opc_excel) else (evento.nombre if evento else ""),
             evento.tipo if evento else "",
             empresa.nombre if empresa else "",
             grupo.nombre,
-            grupo.cantidad_estudiantes or 0,
-            grupo.cantidad_padres or 0,
-            grupo.cantidad_guias or 0,
-            getattr(grupo, "cantidad_pax", 0) or 0
+            pax_excel if es_opc_excel else (grupo.cantidad_estudiantes or 0),
+            0 if es_opc_excel else (grupo.cantidad_padres or 0),
+            0 if es_opc_excel else (grupo.cantidad_guias or 0),
+            pax_excel
         ])
 
     filename = f"planilla_vouchers_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"

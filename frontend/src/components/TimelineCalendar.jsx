@@ -269,6 +269,7 @@ export default function TimelineCalendar({
   const [cantidadSeguridad, setCantidadSeguridad] = useState("");
   const [cantidadLimpieza, setCantidadLimpieza] = useState("");
   const [esOpcionalAsignar, setEsOpcionalAsignar] = useState(false);
+  const [paxOpcional, setPaxOpcional] = useState(""); // PAX que compraron el servicio opcional
 
   const [editando, setEditando] = useState(null);
   const [grupoAsignando, setGrupoAsignando] = useState(null);
@@ -570,6 +571,7 @@ export default function TimelineCalendar({
     setCantidadSeguridad("");
     setCantidadLimpieza("");
     setEsOpcionalAsignar(false);
+    setPaxOpcional("");
 
     // Para crear global, mostramos TODOS los eventos posibles para elegir
     const res = await api.get("/eventos/");
@@ -614,8 +616,14 @@ export default function TimelineCalendar({
         tipo: "asignacion",
         evento_id_num: props.evento_id_num, // Capturamos el ID real para borrar
         nombre: props.nombre_evento,
-        es_opcional: Boolean(props.es_opcional)
+        es_opcional: Boolean(props.es_opcional),
+        pax_opcional: props.pax_opcional ?? null,
+        grupo_pax_total: props.grupo_pax_total ?? null,
+        evento_tipo: props.evento_tipo || "",
       });
+
+      // Pre-cargar el campo de PAX opcional si ya tenía valor guardado
+      setPaxOpcional(props.pax_opcional != null ? String(props.pax_opcional) : "");
 
       setEventoSeleccionado("");
       setEventosDisponibles([]);
@@ -679,6 +687,8 @@ export default function TimelineCalendar({
       setSelectedDate(fechaISO);
       setGrupoAsignando(resourceId);
       setEditando(null);
+      setEsOpcionalAsignar(false);
+      setPaxOpcional("");
 
       setModalOpen(true);
       return;
@@ -724,6 +734,7 @@ export default function TimelineCalendar({
     setEsPrivado(false);
     setEmpresaPrivadaId("");
     setEsOpcionalAsignar(false);
+    setPaxOpcional("");
 
     setModalOpen(true);
   };
@@ -744,11 +755,13 @@ export default function TimelineCalendar({
       if (grupoAsignando && !editando) {
         if (!eventoSeleccionado) return;
         const seleccionadoObj = eventosDisponibles.find(ev => (ev.fecha_evento_id || ev.id) === Number(eventoSeleccionado));
+        const paxOpcNum = (esOpcionalAsignar && paxOpcional !== "") ? parseInt(paxOpcional, 10) : null;
         await api.post(`/calendario/grupo/${grupoAsignando}/asignar`, {
           evento_id: seleccionadoObj ? seleccionadoObj.id : Number(eventoSeleccionado),
           fecha: selectedDate,
           fecha_evento_id: seleccionadoObj ? seleccionadoObj.fecha_evento_id : null,
           es_opcional: Boolean(esOpcionalAsignar),
+          pax_opcional: paxOpcNum,
           horario: horario ? horario.trim() : null
         });
       }
@@ -886,6 +899,7 @@ export default function TimelineCalendar({
     setEsPrivado(false);
     setEmpresaPrivadaId("");
     setEsOpcionalAsignar(false);
+    setPaxOpcional("");
     setShow("");
     setAnimador("");
     setCantidadCajas("");
@@ -1333,6 +1347,11 @@ export default function TimelineCalendar({
             {editando?.tipo === "asignacion" ? (
               <div style={{ margin: "10px 0" }}>
                 <p><b>Evento:</b> {editando.nombre}</p>
+                {editando.grupo_pax_total != null && (
+                  <p style={{ fontSize: "0.82rem", color: "#64748b", marginBottom: 8 }}>
+                    👥 PAX total del grupo: <strong>{editando.grupo_pax_total}</strong>
+                  </p>
+                )}
                 {/* Botón toggle opcional */}
                 <div style={{ margin: "12px 0", padding: "10px", background: "#fef9c3", borderRadius: 8, border: "1px solid #fde68a" }}>
                   <p style={{ margin: "0 0 8px 0", fontWeight: 600, color: "#92400e", fontSize: "0.9rem" }}>
@@ -1346,7 +1365,11 @@ export default function TimelineCalendar({
                         const newVal = e.target.checked;
                         try {
                           captureCurrentScroll(editando?.fecha || selectedDate);
-                          await api.put(`/calendario/asignacion/${editando.id}`, { es_opcional: newVal });
+                          const paxVal = paxOpcional !== "" ? parseInt(paxOpcional, 10) : null;
+                          await api.put(`/calendario/asignacion/${editando.id}`, {
+                            es_opcional: newVal,
+                            pax_opcional: newVal ? paxVal : 0,
+                          });
                           setEditando(prev => ({ ...prev, es_opcional: newVal }));
                           onRecargar?.();
                         } catch {
@@ -1357,9 +1380,75 @@ export default function TimelineCalendar({
                     Opcional vendida (precio diferente al incluido)
                   </label>
                   {editando.es_opcional && (
-                    <p style={{ margin: "6px 0 0", fontSize: "0.8rem", color: "#78350f" }}>
-                      ✅ Marcada como opcional. Aparecerá en finanzas con precio de "Disco Opcional".
-                    </p>
+                    <>
+                      <p style={{ margin: "6px 0 4px", fontSize: "0.8rem", color: "#78350f" }}>
+                        ✅ Marcada como opcional. Aparecerá en finanzas con el precio diferenciado.
+                      </p>
+                      {/* Campo para ingresar cuántos PAX compraron el servicio */}
+                      <div style={{ marginTop: 10, padding: "10px 12px", background: "#fff7ed", borderRadius: 7, border: "1px solid #fed7aa" }}>
+                        <label style={{ display: "block", marginBottom: 5, fontWeight: 700, fontSize: "0.85rem", color: "#7c2d12" }}>
+                          🎟️ ¿Cuántos PAX compraron este servicio opcional?
+                        </label>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <input
+                            type="number"
+                            min="0"
+                            max={editando.grupo_pax_total ?? undefined}
+                            placeholder={`ej: 30${editando.grupo_pax_total ? ` de ${editando.grupo_pax_total}` : ""}`}
+                            value={paxOpcional}
+                            onChange={(e) => setPaxOpcional(e.target.value)}
+                            style={{
+                              width: "120px",
+                              padding: "7px 10px",
+                              borderRadius: 6,
+                              border: "1px solid #fdba74",
+                              fontSize: "1rem",
+                              fontWeight: 700,
+                              textAlign: "center",
+                              background: "white",
+                            }}
+                          />
+                          {editando.grupo_pax_total != null && (
+                            <span style={{ fontSize: "0.82rem", color: "#9a3412" }}>
+                              de {editando.grupo_pax_total} PAX totales
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                captureCurrentScroll(editando?.fecha || selectedDate);
+                                const paxVal = paxOpcional !== "" ? parseInt(paxOpcional, 10) : null;
+                                await api.put(`/calendario/asignacion/${editando.id}`, {
+                                  es_opcional: true,
+                                  pax_opcional: paxVal,
+                                });
+                                setEditando(prev => ({ ...prev, pax_opcional: paxVal }));
+                                onRecargar?.();
+                                alert(`✅ Guardado: ${paxVal ?? "sin especificar"} PAX opcionales`);
+                              } catch {
+                                alert("Error al guardar los PAX opcionales");
+                              }
+                            }}
+                            style={{
+                              padding: "7px 14px",
+                              borderRadius: 6,
+                              border: "none",
+                              background: "#ea580c",
+                              color: "white",
+                              fontWeight: 700,
+                              fontSize: "0.85rem",
+                              cursor: "pointer",
+                            }}
+                          >
+                            💾 Guardar PAX
+                          </button>
+                        </div>
+                        <p style={{ margin: "6px 0 0", fontSize: "0.76rem", color: "#7c2d12" }}>
+                          Este valor se usará en Finanzas como "pagantes finales" para este servicio en el grupo.
+                        </p>
+                      </div>
+                    </>
                   )}
                 </div>
                 <p style={{ fontSize: "0.85rem", color: "#64748b" }}>Para eliminar esta asignación, pulsá el botón rojo.</p>
@@ -1661,8 +1750,37 @@ export default function TimelineCalendar({
                         🌟 Marcar como Opcional vendida
                       </label>
                       <small style={{ display: "block", marginTop: 4, color: "#a16207", fontSize: "0.78rem" }}>
-                        Permite asignar cualquier servicio vendido extra (Zacarías, Hielo, Pool, etc.). Tendrá valor diferenciado en Finanzas y dirá "Opcional vendida" en el diagrama.
+                        Permite asignar cualquier servicio vendido extra (Bar de Hielo, Zacarías, Pool, etc.). Emitirá el voucher por la cantidad exacta vendida y se sumará a finanzas.
                       </small>
+                      {esOpcionalAsignar && (
+                        <div style={{ marginTop: 10, padding: "8px 10px", background: "#fff7ed", borderRadius: 6, border: "1px solid #fed7aa" }}>
+                          <label style={{ display: "block", marginBottom: 4, fontWeight: 700, fontSize: "0.83rem", color: "#7c2d12" }}>
+                            🎟️ ¿Cuántos PAX compraron este opcional?
+                          </label>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <input
+                              type="number"
+                              min="1"
+                              placeholder="ej: 30"
+                              value={paxOpcional}
+                              onChange={(e) => setPaxOpcional(e.target.value)}
+                              style={{
+                                width: "120px",
+                                padding: "6px 8px",
+                                borderRadius: 5,
+                                border: "1px solid #fdba74",
+                                fontSize: "0.95rem",
+                                fontWeight: 700,
+                                textAlign: "center",
+                                background: "white",
+                              }}
+                            />
+                            <span style={{ fontSize: "0.8rem", color: "#9a3412" }}>
+                              PAX (voucher emitido por esta cantidad)
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </>
                 )}

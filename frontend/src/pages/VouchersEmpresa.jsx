@@ -166,7 +166,10 @@ function QRModal({ voucher, onClose }) {
           <InfoPill label="Fecha" value={formatFecha(voucher.fecha)} fullWidth />
           {voucher.empresa && <InfoPill label="Empresa" value={voucher.empresa} />}
           <InfoPill label="Grupo" value={voucher.grupo} />
-          <InfoPill label="PAX" value={voucher.pax + " personas"} />
+          <InfoPill
+            label="PAX"
+            value={`${voucher.pax} personas${voucher.es_opcional ? " (Opcional vendido)" : ""}`}
+          />
           {voucher.comida && <InfoPill label="Acceso" value={voucher.comida} />}
           {voucher.tipo === "DISCO" && (
             <InfoPill label="Alcohol" value={voucher.con_alcohol ? "Con alcohol" : "Sin alcohol"} />
@@ -253,7 +256,9 @@ function VoucherCard({ voucher, onClick }) {
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Tag color={meta.color}>{voucher.empresa ? `${voucher.empresa} · ${voucher.grupo}` : voucher.grupo}</Tag>
-          <Tag color="#94a3b8">{voucher.pax} PAX</Tag>
+          <Tag color={voucher.es_opcional ? "#ea580c" : "#94a3b8"}>
+            {voucher.es_opcional ? `🌟 ${voucher.pax} PAX (Opcional)` : `${voucher.pax} PAX`}
+          </Tag>
           {voucher.comida && <Tag color="#94a3b8">{voucher.comida}</Tag>}
         </div>
       </div>

@@ -43,10 +43,12 @@ class AsignarEventoBody(BaseModel):
     fecha_evento_id: Optional[int] = None
     es_opcional: bool = False
     horario: Optional[str] = None
+    pax_opcional: Optional[int] = None
 
 
 class EditarAsignacionBody(BaseModel):
     es_opcional: bool
+    pax_opcional: Optional[int] = None  # Cantidad de PAX que compraron el servicio opcional
 
 
 
@@ -655,6 +657,27 @@ def calendario(
                         horario_asig = getattr(asignacion.fecha_evento, "horario", None)
                         tipo_asig = asignacion.fecha_evento.evento.tipo.upper()
 
+                        # Leer PAX opcional guardado en el grupo (pagantes_finales_<servicio>)
+                        TIPO_A_CAMPO_PAX = {
+                            "HIELO":         "pagantes_finales_hielo",
+                            "CENA":          "pagantes_finales_cena",
+                            "POOL":          "pagantes_finales_pool",
+                            "ZACARIAS":      "pagantes_finales_zacarias",
+                            "PARQUE":        "pagantes_finales_parque",
+                            "CAMPAMENTO":    "pagantes_finales_campamento",
+                            "SURF":          "pagantes_finales_surf",
+                            "UNIPRAIAS":     "pagantes_finales_unipraias",
+                            "BETO":          "pagantes_finales_beto",
+                            "BARCO":         "pagantes_finales_barco",
+                            "CRISTO":        "pagantes_finales_cristo",
+                            "SUNSET":        "pagantes_finales_sunset",
+                            "QUINTA_COMIDA": "pagantes_finales_quinta_comida",
+                            "MULTIPARQUE":   "pagantes_finales_multiparque",
+                            "DISCO":         "pagantes_finales_disco_opcional",
+                        }
+                        campo_pax = TIPO_A_CAMPO_PAX.get(tipo_asig)
+                        pax_opcional_guardado = getattr(g, campo_pax, None) if campo_pax else None
+
                         if tipo_asig == "BIENVENIDA":
                             titulo_asig = f"🎉 {titulo_asig}"
                             if horario_asig:
@@ -671,7 +694,10 @@ def calendario(
                         if tipo_asig == "ZACARIAS" and getattr(g, 'campamento_acceso', False):
                             titulo_asig += "\n🏕️ Camp."
                         if es_opc:
-                            titulo_asig += "\nOpcional vendida"
+                            if pax_opcional_guardado is not None:
+                                titulo_asig += f"\nOpcional: {pax_opcional_guardado} PAX"
+                            else:
+                                titulo_asig += "\nOpcional vendida"
 
                         tooltip_asig = f"Asignado: {asignacion.fecha_evento.evento.nombre}"
                         if tipo_asig == "BIENVENIDA":
@@ -681,7 +707,10 @@ def calendario(
                         elif horario_asig:
                             tooltip_asig += f" ({horario_asig})"
                         if es_opc:
-                            tooltip_asig += " (Opcional vendida)"
+                            if pax_opcional_guardado is not None:
+                                tooltip_asig += f" (Opcional: {pax_opcional_guardado} PAX)"
+                            else:
+                                tooltip_asig += " (Opcional vendida)"
 
                         events.append({
                             "resourceId": g.id, # ID del Grupo ahora es la fila
@@ -702,6 +731,8 @@ def calendario(
                                 "horario": horario_asig,
                                 "empresa_nombre": e.nombre,
                                 "es_opcional": es_opc,
+                                "pax_opcional": pax_opcional_guardado,
+                                "grupo_pax_total": g.cantidad_pax,
                                 "tooltip": tooltip_asig
                             }
                         })
@@ -1541,6 +1572,10 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
         if tipo_nuevo == "HIELO" and not grupo.bar_hielo:
             raise HTTPException(400, "El grupo no tiene Bar de Hielo (marcar como opcional si fue vendida)")
 
+    # =========================================================
+    # LÓGICA ESPECIAL: BAR DE HIELO (POR TURNOS SEGÚN CAPACIDAD)
+    # =========================================================
+    if tipo_nuevo == "HIELO":
         existentes_hielo = db.query(models.Asignacion) \
             .join(models.FechaEvento) \
             .join(models.Evento) \
@@ -1553,7 +1588,14 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
             raise HTTPException(400, "El grupo ya tiene Bar de Hielo asignado ese día")
 
         capacidad_turno = nuevo_evento_fecha.evento.capacidad_maxima or 90
-        pax_total = grupo.cantidad_pax or 0
+
+        # Si se vendió como opcional con PAX específico, usar esa cantidad
+        if body.es_opcional and body.pax_opcional and body.pax_opcional > 0:
+            pax_total = body.pax_opcional
+            grupo.pagantes_finales_hielo = body.pax_opcional
+        else:
+            pax_total = grupo.cantidad_pax or 0
+
         if pax_total <= 0:
             raise HTTPException(400, "El grupo no tiene PAX cargados")
 
@@ -1572,20 +1614,6 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
 
         db.add_all(asignaciones)
         db.commit()
-
-        # NOTIFICACIÓN DESACTIVADA TEMPORALMENTE (Asignaciones individuales a grupos)
-        # try:
-        #     evento_nom = nuevo_evento_fecha.evento.nombre if nuevo_evento_fecha.evento else "Bar de Hielo"
-        #     grupo_nom = grupo.nombre if grupo else "Grupo"
-        #     fecha_str = fecha.strftime('%d/%m/%Y') if hasattr(fecha, 'strftime') else str(fecha)
-        #     notify_role(
-        #         role=["equipo", "admin"],
-        #         title=f"Asignación: {evento_nom}",
-        #         body=f"{grupo_nom} asignado para el {fecha_str} ({turnos} turnos).",
-        #         url="/calendario"
-        #     )
-        # except Exception as e:
-        #     print(f"Error notificando bar de hielo: {e}")
 
         return {"ok": True, "turnos": turnos}
 
@@ -1613,10 +1641,35 @@ def asignar_evento(grupo_id: int, body: AsignarEventoBody, db: Session = Depends
         # Superó las incluidas pero estaba dentro del cupo con opcionales -> se marca opcional automáticamente
         es_opc_final = True
 
+    pax_asig_val = None
+    if es_opc_final and body.pax_opcional and body.pax_opcional > 0:
+        pax_asig_val = body.pax_opcional
+        TIPO_A_CAMPO_PAX = {
+            "HIELO":         "pagantes_finales_hielo",
+            "CENA":          "pagantes_finales_cena",
+            "POOL":          "pagantes_finales_pool",
+            "ZACARIAS":      "pagantes_finales_zacarias",
+            "PARQUE":        "pagantes_finales_parque",
+            "CAMPAMENTO":    "pagantes_finales_campamento",
+            "SURF":          "pagantes_finales_surf",
+            "UNIPRAIAS":     "pagantes_finales_unipraias",
+            "BETO":          "pagantes_finales_beto",
+            "BARCO":         "pagantes_finales_barco",
+            "CRISTO":        "pagantes_finales_cristo",
+            "SUNSET":        "pagantes_finales_sunset",
+            "QUINTA_COMIDA": "pagantes_finales_quinta_comida",
+            "MULTIPARQUE":   "pagantes_finales_multiparque",
+            "DISCO":         "pagantes_finales_disco_opcional",
+        }
+        campo_pax = TIPO_A_CAMPO_PAX.get(tipo_nuevo)
+        if campo_pax and hasattr(grupo, campo_pax):
+            setattr(grupo, campo_pax, body.pax_opcional)
+
     # Si pasa validación, crear
     asignacion = models.Asignacion(
         grupo_id=grupo_id,
         fecha_evento_id=nuevo_evento_fecha.id,
+        pax_asignados=pax_asig_val,
         es_opcional=es_opc_final
     )
 
@@ -1649,9 +1702,53 @@ def actualizar_asignacion(asignacion_id: int, body: EditarAsignacionBody, db: Se
     if not asig:
         raise HTTPException(404, "Asignación no encontrada")
     asig.es_opcional = bool(body.es_opcional)
+
+    if not body.es_opcional:
+        asig.pax_asignados = None
+    elif body.pax_opcional is not None:
+        asig.pax_asignados = body.pax_opcional if body.pax_opcional > 0 else None
+
+    # Si se envía una cantidad de PAX opcional, actualizarla en el grupo
+    # según el tipo de servicio de esta asignación.
+    if body.pax_opcional is not None and asig.grupo and asig.fecha_evento and asig.fecha_evento.evento:
+        tipo = (asig.fecha_evento.evento.tipo or "").upper()
+        grupo = asig.grupo
+
+        # Mapa tipo de evento → campo pagantes_finales del grupo
+        TIPO_A_CAMPO = {
+            "HIELO":       "pagantes_finales_hielo",
+            "CENA":        "pagantes_finales_cena",
+            "POOL":        "pagantes_finales_pool",
+            "ZACARIAS":    "pagantes_finales_zacarias",
+            "PARQUE":      "pagantes_finales_parque",
+            "CAMPAMENTO":  "pagantes_finales_campamento",
+            "SURF":        "pagantes_finales_surf",
+            "UNIPRAIAS":   "pagantes_finales_unipraias",
+            "BETO":        "pagantes_finales_beto",
+            "BARCO":       "pagantes_finales_barco",
+            "CRISTO":      "pagantes_finales_cristo",
+            "SUNSET":      "pagantes_finales_sunset",
+            "QUINTA_COMIDA": "pagantes_finales_quinta_comida",
+            "MULTIPARQUE": "pagantes_finales_multiparque",
+            "DISCO":       "pagantes_finales_disco_opcional",  # disco opcional
+        }
+
+        campo = TIPO_A_CAMPO.get(tipo)
+        if campo and hasattr(grupo, campo):
+            # Si se pone 0 o no es_opcional, limpiar el override
+            if not body.es_opcional or body.pax_opcional == 0:
+                setattr(grupo, campo, None)
+            else:
+                setattr(grupo, campo, body.pax_opcional)
+
     db.commit()
     db.refresh(asig)
-    return {"ok": True, "asignacion_id": asig.id, "es_opcional": asig.es_opcional}
+    return {
+        "ok": True,
+        "asignacion_id": asig.id,
+        "es_opcional": asig.es_opcional,
+        "pax_opcional": asig.pax_asignados,
+    }
 
 
 @router.delete("/asignacion/{asignacion_id}")
@@ -1718,9 +1815,53 @@ def actualizar_asignacion(asignacion_id: int, body: EditarAsignacionBody, db: Se
     if not asig:
         raise HTTPException(404, "Asignación no encontrada")
     asig.es_opcional = bool(body.es_opcional)
+
+    if not body.es_opcional:
+        asig.pax_asignados = None
+    elif body.pax_opcional is not None:
+        asig.pax_asignados = body.pax_opcional if body.pax_opcional > 0 else None
+
+    # Si se envía una cantidad de PAX opcional, actualizarla en el grupo
+    # según el tipo de servicio de esta asignación.
+    if body.pax_opcional is not None and asig.grupo and asig.fecha_evento and asig.fecha_evento.evento:
+        tipo = (asig.fecha_evento.evento.tipo or "").upper()
+        grupo = asig.grupo
+
+        # Mapa tipo de evento → campo pagantes_finales del grupo
+        TIPO_A_CAMPO = {
+            "HIELO":       "pagantes_finales_hielo",
+            "CENA":        "pagantes_finales_cena",
+            "POOL":        "pagantes_finales_pool",
+            "ZACARIAS":    "pagantes_finales_zacarias",
+            "PARQUE":      "pagantes_finales_parque",
+            "CAMPAMENTO":  "pagantes_finales_campamento",
+            "SURF":        "pagantes_finales_surf",
+            "UNIPRAIAS":   "pagantes_finales_unipraias",
+            "BETO":        "pagantes_finales_beto",
+            "BARCO":       "pagantes_finales_barco",
+            "CRISTO":      "pagantes_finales_cristo",
+            "SUNSET":      "pagantes_finales_sunset",
+            "QUINTA_COMIDA": "pagantes_finales_quinta_comida",
+            "MULTIPARQUE": "pagantes_finales_multiparque",
+            "DISCO":       "pagantes_finales_disco_opcional",  # disco opcional
+        }
+
+        campo = TIPO_A_CAMPO.get(tipo)
+        if campo and hasattr(grupo, campo):
+            # Si se pone 0 o no es_opcional, limpiar el override
+            if not body.es_opcional or body.pax_opcional == 0:
+                setattr(grupo, campo, None)
+            else:
+                setattr(grupo, campo, body.pax_opcional)
+
     db.commit()
     db.refresh(asig)
-    return {"ok": True, "asignacion_id": asig.id, "es_opcional": asig.es_opcional}
+    return {
+        "ok": True,
+        "asignacion_id": asig.id,
+        "es_opcional": asig.es_opcional,
+        "pax_opcional": asig.pax_asignados,
+    }
 
 
 @router.delete("/asignacion/{asignacion_id}")

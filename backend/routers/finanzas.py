@@ -750,6 +750,35 @@ def get_asignaciones_pagadas(empresa_id: int, db: Session):
             f.write(traceback.format_exc())
         return {}
 
+def _get_pax_asignacion(a, grupo):
+    if a.pax_asignados is not None and a.pax_asignados > 0:
+        return a.pax_asignados
+    if getattr(a, "es_opcional", False) and a.fecha_evento and a.fecha_evento.evento:
+        tipo_u = (a.fecha_evento.evento.tipo or "").upper()
+        TIPO_A_CAMPO_PAX = {
+            "HIELO":         "pagantes_finales_hielo",
+            "CENA":          "pagantes_finales_cena",
+            "POOL":          "pagantes_finales_pool",
+            "ZACARIAS":      "pagantes_finales_zacarias",
+            "PARQUE":        "pagantes_finales_parque",
+            "CAMPAMENTO":    "pagantes_finales_campamento",
+            "SURF":          "pagantes_finales_surf",
+            "UNIPRAIAS":     "pagantes_finales_unipraias",
+            "BETO":          "pagantes_finales_beto",
+            "BARCO":         "pagantes_finales_barco",
+            "CRISTO":        "pagantes_finales_cristo",
+            "SUNSET":        "pagantes_finales_sunset",
+            "QUINTA_COMIDA": "pagantes_finales_quinta_comida",
+            "MULTIPARQUE":   "pagantes_finales_multiparque",
+            "DISCO":         "pagantes_finales_disco_opcional",
+        }
+        campo = TIPO_A_CAMPO_PAX.get(tipo_u)
+        if campo:
+            val = getattr(grupo, campo, None)
+            if val is not None and val > 0:
+                return val
+    return (grupo.cantidad_pax if grupo else 0) or 0
+
 @router.get("/asignaciones/{grupo_id}")
 def get_asignaciones_grupo(grupo_id: int, db: Session = Depends(get_db)):
     print(f"DEBUG: Cargando asignaciones para grupo_id={grupo_id}")
@@ -769,7 +798,7 @@ def get_asignaciones_grupo(grupo_id: int, db: Session = Depends(get_db)):
         "fecha": str(a.fecha_evento.fecha) if a.fecha_evento else "Sin fecha",
         "servicio": a.fecha_evento.evento.nombre if a.fecha_evento and a.fecha_evento.evento else "Sin servicio",
         "tipo": a.fecha_evento.evento.tipo if a.fecha_evento and a.fecha_evento.evento else "N/A",
-        "pax": a.pax_asignados if a.pax_asignados is not None else (a.grupo.cantidad_pax if a.grupo else 0),
+        "pax": _get_pax_asignacion(a, grupo),
         "es_opcional": getattr(a, "es_opcional", False),
         "habilitado": habilitados.get(a.id, False),
         "voucher_usado": db.query(models.Voucher).filter(models.Voucher.asignacion_id == a.id).first().usado if db.query(models.Voucher).filter(models.Voucher.asignacion_id == a.id).first() else False,
@@ -803,7 +832,7 @@ def get_asignaciones_empresa(empresa_id: int, db: Session = Depends(get_db)):
                 "fecha": str(a.fecha_evento.fecha) if a.fecha_evento else "Sin fecha",
                 "servicio": a.fecha_evento.evento.nombre if a.fecha_evento and a.fecha_evento.evento else "Sin servicio",
                 "tipo": a.fecha_evento.evento.tipo if a.fecha_evento and a.fecha_evento.evento else "N/A",
-                "pax": a.pax_asignados if a.pax_asignados is not None else (grupo.cantidad_pax or 0),
+                "pax": _get_pax_asignacion(a, grupo),
                 "es_opcional": getattr(a, "es_opcional", False),
                 "habilitado": habilitados.get(a.id, False),
                 "voucher_usado": v.usado if v else False,
