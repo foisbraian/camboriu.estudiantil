@@ -490,6 +490,39 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
                     "guias": g.cantidad_guias or 0
                 })
 
+        # ── Almuerzos y Cenas vendidos en restaurantes ──────────────────────
+        anotacion_g = db.query(models.AnotacionGrupo).filter(
+            models.AnotacionGrupo.grupo_id == g.id
+        ).first()
+        if anotacion_g:
+            for comida in anotacion_g.comidas:
+                if not (comida.cant_pax and comida.cant_pax > 0):
+                    continue
+                if comida.precio_unitario is not None:
+                    p_comida = comida.precio_unitario
+                elif (comida.tipo_comida or "").lower() == "almuerzo":
+                    p_comida = getattr(config, "precio_almuerzo", 0) or 0
+                else:
+                    p_comida = getattr(config, "precio_cena", 0) or 0
+                subtotal_comida = comida.cant_pax * p_comida
+                costo_grupo += subtotal_comida
+                tipo_label = "🍽️ Almuerzo" if (comida.tipo_comida or "").lower() == "almuerzo" else ("🍷 Cena" if (comida.tipo_comida or "").lower() == "cena" else f"🍴 {comida.tipo_comida}")
+                servicios_detalle.append({
+                    "servicio": f"{tipo_label} — {comida.lugar or 'Restaurante'}",
+                    "servicio_key": f"comida_{comida.id}",
+                    "descripcion": f"{comida.fecha or ''}{' · ' + comida.hora if comida.hora else ''} · {comida.lugar or ''}",
+                    "precio_u": p_comida,
+                    "cantidad": 1,
+                    "pax": comida.cant_pax,
+                    "subtotal": subtotal_comida,
+                    "pax_original": total_pax_grupo,
+                    "estudiantes": g.cantidad_estudiantes or 0,
+                    "padres": g.cantidad_padres or 0,
+                    "guias": g.cantidad_guias or 0,
+                    "es_comida": True,
+                    "comida_id": comida.id,
+                })
+
         total_venta += costo_grupo
         detalle_grupos.append({
             "id": g.id,

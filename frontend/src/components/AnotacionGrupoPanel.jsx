@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import api from "../api";
+import api, { BASE_URL } from "../api";
 
 // ─── Chips de tipo de comida ────────────────────────────────────────────────
 const TIPO_COMIDA_COLORS = {
@@ -287,6 +287,8 @@ export default function AnotacionGrupoPanel({
       tipo_comida: c.tipo_comida || "",
       lugar: c.lugar || "",
       cant_pax: c.cant_pax ?? "",
+      precio_unitario: c.precio_unitario ?? "",
+      hora: c.hora || "",
       notas: c.notas || "",
     });
     setAddingComida(false);
@@ -616,12 +618,29 @@ export default function AnotacionGrupoPanel({
                             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
                               <TipoChip tipo={c.tipo_comida} />
                               <span style={{ color: "#475569", fontSize: "0.82rem", fontWeight: 600 }}>{c.fecha}</span>
+                              {c.hora && <span style={{ color: "#64748b", fontSize: "0.78rem" }}>🕐 {c.hora}</span>}
                             </div>
                             <div style={{ color: "#64748b", fontSize: "0.8rem" }}>
-                              {c.lugar && `${c.lugar}`}
+                              {c.lugar && `🍽️ ${c.lugar}`}
                               {c.cant_pax && ` · ${c.cant_pax} pax`}
                             </div>
+                            {c.cant_pax && c.precio_unitario && (
+                              <div style={{ color: "#16a34a", fontWeight: 700, fontSize: "0.78rem", marginTop: 2 }}>
+                                Subtotal: {c.cant_pax} × ${c.precio_unitario} = ${(Number(c.cant_pax) * Number(c.precio_unitario)).toFixed(2)}
+                              </div>
+                            )}
                             {c.notas && <div style={{ color: "#94a3b8", fontSize: "0.78rem", marginTop: 2, fontStyle: "italic" }}>{c.notas}</div>}
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+                              {c.id && (
+                                <a href={`${BASE_URL}/vouchers/comida/${c.id}`} target="_blank" rel="noreferrer"
+                                  style={{ fontSize: "0.75rem", color: "#2563eb", textDecoration: "underline" }}>
+                                  🎫 Ver Voucher
+                                </a>
+                              )}
+                              {c.usado && (
+                                <span style={{ color: "#ef4444", fontWeight: 700, fontSize: "0.75rem" }}>✓ USADO</span>
+                              )}
+                            </div>
                           </div>
                           <button className="ag-btn-icon ag-btn-edit" onClick={() => iniciarEditComida(c)} title="Editar">✏️</button>
                           <button className="ag-btn-icon ag-btn-danger" onClick={() => eliminarComida(c.id)} title="Eliminar">🗑️</button>
@@ -828,14 +847,27 @@ function ComidaForm({ form, onChange, onSave, onCancel }) {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 80px", gap: 7 }}>
         <label style={labelStyle}>
-          Lugar
+          Lugar / Restaurante
           <input type="text" value={form.lugar} onChange={e => set("lugar", e.target.value)}
-            style={inputStyle} placeholder="Restaurante, salón..." />
+            style={inputStyle} placeholder="Nombre del restaurante..." />
         </label>
         <label style={labelStyle}>
           PAX
           <input type="number" min="0" value={form.cant_pax} onChange={e => set("cant_pax", e.target.value)}
             style={inputStyle} placeholder="0" />
+        </label>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
+        <label style={labelStyle}>
+          Hora
+          <input type="time" value={form.hora} onChange={e => set("hora", e.target.value)}
+            style={inputStyle} />
+        </label>
+        <label style={labelStyle}>
+          Precio / pax (opcional)
+          <input type="number" min="0" step="any" value={form.precio_unitario}
+            onChange={e => set("precio_unitario", e.target.value)}
+            style={inputStyle} placeholder="Precio global si vacío" />
         </label>
       </div>
       <label style={labelStyle}>
@@ -856,7 +888,7 @@ function emptyHotelForm(fIn = "", fOut = "", defaultPax = "") {
   return { hotel_nombre: "", cant_pax: defaultPax, fecha_ingreso: fIn, fecha_salida: fOut, notas: "" };
 }
 function emptyComidaForm() {
-  return { fecha: "", tipo_comida: "", lugar: "", cant_pax: "", notas: "" };
+  return { fecha: "", tipo_comida: "", lugar: "", cant_pax: "", precio_unitario: "", hora: "", notas: "" };
 }
 
 // ─── Estilos compartidos ────────────────────────────────────────────────────

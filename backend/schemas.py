@@ -179,6 +179,11 @@ class FinanzasEmpresaCreate(BaseModel):
     precio_pool_sin_comida: float = 0
     precio_cena_velas: float = 0
     precio_bar_hielo: float = 0
+
+    # Almuerzos y Cenas (Venta de Comidas en Restaurantes)
+    precio_almuerzo: float = 0
+    precio_cena: float = 0
+
     es_combo: bool = False
     precio_combo: float = 0
     combo_discos: int = 0
@@ -439,13 +444,19 @@ class HotelSegmentoOut(HotelSegmentoCreate):
 class ComidaGrupoCreate(BaseModel):
     fecha: date
     tipo_comida: str  # almuerzo | cena | desayuno
-    lugar: str
+    lugar: str | None = None
     cant_pax: int | None = None
+    precio_unitario: float | None = None
+    hora: str | None = None
     notas: str | None = None
 
 
 class ComidaGrupoOut(ComidaGrupoCreate):
     id: int
+    token: str | None = None
+    usado: bool = False
+    fecha_uso: str | None = None
+    subtotal: float | None = None
 
     class Config:
         from_attributes = True

@@ -14,6 +14,17 @@ const TIPO_META = {
   DEFAULT:    { emoji: "\uD83C\uDFAB", color: "#94a3b8", bg: "rgba(148,163,184,0.1)" },
 };
 
+const COMIDA_META = {
+  almuerzo:  { emoji: "🍽️", color: "#16a34a", bg: "rgba(22,163,74,0.13)" },
+  cena:      { emoji: "🌙", color: "#6366f1", bg: "rgba(99,102,241,0.13)" },
+  desayuno:  { emoji: "☕", color: "#f59e0b", bg: "rgba(245,158,11,0.13)" },
+  default:   { emoji: "🍴", color: "#94a3b8", bg: "rgba(148,163,184,0.1)" },
+};
+
+function getComidaMeta(tipo) {
+  return COMIDA_META[(tipo || "").toLowerCase()] || COMIDA_META.default;
+}
+
 function getMeta(tipo) {
   return TIPO_META[(tipo || "").toUpperCase()] || TIPO_META.DEFAULT;
 }
@@ -207,6 +218,170 @@ function QRModal({ voucher, onClose }) {
   );
 }
 
+function ComidaCard({ comida, onClick }) {
+  const meta = getComidaMeta(comida.tipo_comida);
+  const usado = comida.usado;
+  return (
+    <button onClick={onClick} style={{
+      width: "100%",
+      background: usado
+        ? "rgba(15,23,42,0.4)"
+        : "linear-gradient(135deg, rgba(15,23,42,0.85) 0%, rgba(30,41,59,0.85) 100%)",
+      border: usado ? "1px solid rgba(148,163,184,0.12)" : "1px solid " + meta.color + "30",
+      borderRadius: 20, padding: "20px",
+      cursor: usado ? "default" : "pointer",
+      textAlign: "left",
+      display: "flex", alignItems: "center", gap: 16,
+      backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+      boxShadow: usado ? "none" : "0 4px 24px " + meta.color + "15",
+      opacity: usado ? 0.55 : 1,
+      WebkitTapHighlightColor: "transparent",
+    }}>
+      <div style={{
+        width: 52, height: 52, borderRadius: 16,
+        background: meta.bg, border: "1px solid " + meta.color + "40",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: "1.6rem", flexShrink: 0,
+      }}>
+        {meta.emoji}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          color: usado ? "#64748b" : "white", fontWeight: 700, fontSize: "1rem",
+          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: 3,
+        }}>
+          {(comida.tipo_comida || "").charAt(0).toUpperCase() + (comida.tipo_comida || "").slice(1)}
+          {comida.lugar && <span style={{ color: meta.color, fontWeight: 500, fontSize: "0.82rem", marginLeft: 6 }}>· {comida.lugar}</span>}
+        </div>
+        <div style={{ color: "#64748b", fontSize: "0.82rem", marginBottom: 4 }}>
+          {formatFecha(comida.fecha)}{comida.hora ? ` · ${comida.hora}` : ""}
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Tag color={meta.color}>{comida.empresa ? `${comida.empresa} · ${comida.grupo}` : comida.grupo}</Tag>
+          {comida.cant_pax && <Tag color="#94a3b8">{comida.cant_pax} PAX</Tag>}
+        </div>
+      </div>
+      <div style={{ flexShrink: 0 }}>
+        {usado ? (
+          <span style={{
+            background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.25)",
+            color: "#ef4444", borderRadius: 999, padding: "4px 10px",
+            fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.05em",
+          }}>USADO</span>
+        ) : (
+          <div style={{
+            width: 36, height: 36, borderRadius: 999,
+            background: meta.color + "20", border: "1px solid " + meta.color + "40",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: meta.color, fontSize: "1.2rem",
+          }}>&#8250;</div>
+        )}
+      </div>
+    </button>
+  );
+}
+
+function ComidaModal({ comida, onClose }) {
+  const meta = getComidaMeta(comida.tipo_comida);
+  const voucherUrl = BASE_URL + "/vouchers/comida/" + comida.comida_id;
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
+  return (
+    <div onClick={onClose} style={{
+      position: "fixed", inset: 0,
+      background: "rgba(0,0,0,0.92)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+      zIndex: 1000, display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      padding: "24px 20px", overflowY: "auto",
+    }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        background: "linear-gradient(160deg, #0f172a 0%, #1e293b 100%)",
+        border: "1px solid " + meta.color + "40", borderRadius: 24, padding: "20px 16px",
+        width: "100%", maxWidth: 380,
+        boxShadow: "0 0 60px " + meta.color + "30, 0 32px 64px rgba(0,0,0,0.6)",
+        display: "flex", flexDirection: "column", alignItems: "center", gap: 12,
+        maxHeight: "95vh", overflowY: "auto",
+      }}>
+        {/* Badge + title */}
+        <div style={{ textAlign: "center", width: "100%" }}>
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            background: meta.bg, border: "1px solid " + meta.color + "50",
+            borderRadius: 999, padding: "4px 12px", marginBottom: 6,
+          }}>
+            <span style={{ fontSize: "1rem" }}>{meta.emoji}</span>
+            <span style={{ color: meta.color, fontWeight: 700, fontSize: "0.8rem", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+              {comida.tipo_comida}
+            </span>
+          </div>
+          <h2 style={{ margin: 0, color: "white", fontSize: "1.25rem", fontWeight: 800, lineHeight: 1.1 }}>
+            {comida.lugar || "Restaurante"}
+          </h2>
+          <p style={{ margin: "4px 0 0", color: "#94a3b8", fontSize: "0.82rem" }}>
+            {formatFecha(comida.fecha)}{comida.hora ? ` · ${comida.hora}` : ""}
+          </p>
+        </div>
+
+        {/* Voucher image (PNG del backend) */}
+        <div style={{
+          background: "white", borderRadius: 16, padding: 8,
+          width: "100%", boxShadow: "0 8px 32px rgba(0,0,0,0.4)", flexShrink: 0,
+        }}>
+          {comida.usado ? (
+            <div style={{
+              aspectRatio: "2.35", display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center", gap: 12,
+              color: "#ef4444", background: "#fef2f2", borderRadius: 12,
+            }}>
+              <span style={{ fontSize: "3rem" }}>&#x2717;</span>
+              <span style={{ fontWeight: 700, fontSize: "1rem" }}>Voucher ya utilizado</span>
+              {comida.fecha_uso && (
+                <span style={{ fontSize: "0.8rem", color: "#94a3b8" }}>
+                  {comida.fecha_uso.slice(0, 16).replace("T", " ")}
+                </span>
+              )}
+            </div>
+          ) : (
+            <img src={voucherUrl} alt="Voucher Comida" style={{ width: "100%", height: "auto", display: "block", borderRadius: 8 }} />
+          )}
+        </div>
+
+        {/* Info grid */}
+        <div style={{ width: "100%", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          <InfoPill label="Empresa" value={comida.empresa || "—"} />
+          <InfoPill label="Grupo" value={comida.grupo || "—"} />
+          {comida.cant_pax && <InfoPill label="PAX" value={`${comida.cant_pax} personas`} />}
+          {comida.lugar && <InfoPill label="Restaurante" value={comida.lugar} />}
+        </div>
+
+        {!comida.usado && (
+          <div style={{
+            background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: 12, padding: "10px 14px", width: "100%",
+          }}>
+            <span style={{ color: "#64748b", fontSize: "0.75rem" }}>
+              📲 Presentá este voucher en el restaurante para escanear el QR
+            </span>
+          </div>
+        )}
+
+        <button onClick={onClose} style={{
+          background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
+          borderRadius: 999, color: "#94a3b8", padding: "10px 32px",
+          fontSize: "0.85rem", fontWeight: 600, cursor: "pointer", width: "100%",
+          letterSpacing: "0.02em", marginTop: 4,
+        }}>
+          Cerrar
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function VoucherCard({ voucher, onClick }) {
   const meta = getMeta(voucher.tipo);
   const usado = voucher.usado;
@@ -293,6 +468,7 @@ export default function VouchersEmpresa() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState(null);
+  const [selectedComida, setSelectedComida] = useState(null);
 
   const cargar = useCallback(async () => {
     try {
@@ -334,8 +510,11 @@ export default function VouchersEmpresa() {
   );
 
   const vouchers = data?.vouchers || [];
+  const comidas = data?.comidas || [];
   const disponibles = vouchers.filter((v) => !v.usado);
   const usados = vouchers.filter((v) => v.usado);
+  const comidasDisponibles = comidas.filter((c) => !c.usado);
+  const comidasUsadas = comidas.filter((c) => c.usado);
 
   return (
     <div style={{
@@ -392,12 +571,13 @@ export default function VouchersEmpresa() {
         )}
         <p style={{ color: "#64748b", margin: 0, fontSize: "0.9rem" }}>
           {disponibles.length} voucher{disponibles.length !== 1 ? "s" : ""} disponible{disponibles.length !== 1 ? "s" : ""}
+          {comidasDisponibles.length > 0 && ` · ${comidasDisponibles.length} comida${comidasDisponibles.length !== 1 ? "s" : ""}`}
         </p>
       </div>
 
       {/* Cards */}
       <div style={{ padding: "0 16px", maxWidth: 480, margin: "0 auto" }}>
-        {vouchers.length === 0 ? (
+        {vouchers.length === 0 && comidas.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 20px", color: "#475569" }}>
             <div style={{ fontSize: "3rem", marginBottom: 16 }}>&#127915;</div>
             <p style={{ fontSize: "1rem", fontWeight: 600, color: "#64748b" }}>
@@ -429,6 +609,34 @@ export default function VouchersEmpresa() {
                 </div>
               </section>
             )}
+            {comidas.length > 0 && (
+              <>
+                <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "20px 0 24px" }} />
+                <p style={{ textAlign: "center", color: "#6366f1", fontWeight: 700, fontSize: "0.78rem", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 16 }}>
+                  🍽️ Vouchers de Comidas en Restaurante
+                </p>
+                {comidasDisponibles.length > 0 && (
+                  <section style={{ marginBottom: 20 }}>
+                    <SectionLabel text="Comidas disponibles" count={comidasDisponibles.length} color="#16a34a" />
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      {comidasDisponibles.map((c) => (
+                        <ComidaCard key={c.comida_id} comida={c} onClick={() => setSelectedComida(c)} />
+                      ))}
+                    </div>
+                  </section>
+                )}
+                {comidasUsadas.length > 0 && (
+                  <section>
+                    <SectionLabel text="Comidas ya utilizadas" count={comidasUsadas.length} color="#64748b" />
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      {comidasUsadas.map((c) => (
+                        <ComidaCard key={c.comida_id} comida={c} onClick={() => setSelectedComida(c)} />
+                      ))}
+                    </div>
+                  </section>
+                )}
+              </>
+            )}
           </>
         )}
         <p style={{ textAlign: "center", color: "#334155", fontSize: "0.75rem", marginTop: 36 }}>
@@ -437,6 +645,7 @@ export default function VouchersEmpresa() {
       </div>
 
       {selected && <QRModal voucher={selected} onClose={() => setSelected(null)} />}
+      {selectedComida && <ComidaModal comida={selectedComida} onClose={() => setSelectedComida(null)} />}
     </div>
   );
 }

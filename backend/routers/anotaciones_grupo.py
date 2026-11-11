@@ -3,6 +3,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from datetime import datetime
 import io
+import secrets
 
 from database import SessionLocal
 import models
@@ -36,6 +37,21 @@ def get_anotacion(grupo_id: int, db: Session = Depends(get_db)):
     if not anotacion:
         anotacion = models.AnotacionGrupo(grupo_id=grupo_id)
         db.add(anotacion)
+        db.commit()
+        db.refresh(anotacion)
+
+    # Asegurar que las comidas tengan token y voucher asociado
+    necesita_commit = False
+    for c in anotacion.comidas:
+        if not c.token:
+            c.token = secrets.token_urlsafe(16)
+            necesita_commit = True
+        v = db.query(models.Voucher).filter(models.Voucher.comida_id == c.id).first()
+        if not v:
+            v = models.Voucher(token=c.token, comida_id=c.id, usado=bool(c.usado))
+            db.add(v)
+            necesita_commit = True
+    if necesita_commit:
         db.commit()
         db.refresh(anotacion)
 
@@ -178,26 +194,43 @@ def delete_hotel_segmento(segmento_id: int, db: Session = Depends(get_db)):
 # ─────────────────────────────────────────
 @router.post("/{grupo_id}/comidas", response_model=schemas.ComidaGrupoOut)
 def add_comida(grupo_id: int, body: schemas.ComidaGrupoCreate, db: Session = Depends(get_db)):
+    grupo = db.query(models.Grupo).filter(models.Grupo.id == grupo_id).first()
+    if not grupo:
+        raise HTTPException(status_code=404, detail="Grupo no encontrado")
+
     anotacion = db.query(models.AnotacionGrupo).filter(
         models.AnotacionGrupo.grupo_id == grupo_id
     ).first()
 
     if not anotacion:
-        grupo = db.query(models.Grupo).filter(models.Grupo.id == grupo_id).first()
-        if not grupo:
-            raise HTTPException(status_code=404, detail="Grupo no encontrado")
         anotacion = models.AnotacionGrupo(grupo_id=grupo_id)
         db.add(anotacion)
         db.commit()
         db.refresh(anotacion)
 
+    data = body.model_dump()
+    token = secrets.token_urlsafe(16)
+    data["token"] = token
+    if not data.get("cant_pax") and grupo.cantidad_pax:
+        data["cant_pax"] = grupo.cantidad_pax
+
     comida = models.ComidaGrupo(
         anotacion_id=anotacion.id,
-        **body.model_dump()
+        **data
     )
     db.add(comida)
     db.commit()
     db.refresh(comida)
+
+    # Crear voucher correspondiente para poder imprimir y validar QR
+    voucher = models.Voucher(
+        token=token,
+        comida_id=comida.id,
+        usado=False
+    )
+    db.add(voucher)
+    db.commit()
+
     return comida
 
 
@@ -215,6 +248,17 @@ def update_comida(comida_id: int, body: schemas.ComidaGrupoCreate, db: Session =
 
     for field, value in body.model_dump(exclude_unset=True).items():
         setattr(comida, field, value)
+
+    if not comida.token:
+        comida.token = secrets.token_urlsafe(16)
+
+    # Verificar que tenga voucher asociado
+    voucher = db.query(models.Voucher).filter(models.Voucher.comida_id == comida.id).first()
+    if not voucher:
+        voucher = models.Voucher(token=comida.token, comida_id=comida.id, usado=bool(comida.usado))
+        db.add(voucher)
+    elif voucher.token != comida.token:
+        voucher.token = comida.token
 
     db.commit()
     db.refresh(comida)

@@ -121,6 +121,7 @@ class Grupo(Base):
     asignaciones = relationship("Asignacion", back_populates="grupo")
 
 
+
 # =============================
 # EVENTO BASE (Eclipse / Parque / Pool)
 # =============================
@@ -245,6 +246,10 @@ class FinanzasEmpresa(Base):
     precio_cena_velas = Column(Float, default=0)
     precio_bar_hielo = Column(Float, default=0)
 
+    # Almuerzos y Cenas (Venta de Comidas en Restaurantes)
+    precio_almuerzo = Column(Float, default=0)
+    precio_cena = Column(Float, default=0)
+
     precio_surf = Column(Float, default=0)
     precio_unipraias = Column(Float, default=0)
     precio_beto = Column(Float, default=0)
@@ -336,11 +341,13 @@ class Voucher(Base):
 
     id = Column(Integer, primary_key=True)
     token = Column(String, unique=True, index=True)
-    asignacion_id = Column(Integer, ForeignKey("asignaciones.id", ondelete="CASCADE"))
+    asignacion_id = Column(Integer, ForeignKey("asignaciones.id", ondelete="CASCADE"), nullable=True)
+    comida_id = Column(Integer, ForeignKey("comidas_grupo.id", ondelete="CASCADE"), nullable=True)
     usado = Column(Boolean, default=False)
     fecha_uso = Column(String, nullable=True)  # datetime string
 
     asignacion = relationship("Asignacion", back_populates="vouchers")
+    comida = relationship("ComidaGrupo", back_populates="vouchers")
 
 
 class Proveedor(Base):
@@ -536,10 +543,16 @@ class ComidaGrupo(Base):
     fecha = Column(Date, nullable=False)
     tipo_comida = Column(String, nullable=False)    # "almuerzo" | "cena" | "desayuno"
     lugar = Column(String, nullable=False)          # texto libre: nombre del restaurant/lugar
-    cant_pax = Column(Integer, nullable=True)
+    cant_pax = Column(Integer, nullable=True)        # cantidad de pagantes específicos para esta comida
+    precio_unitario = Column(Float, nullable=True)  # precio opcional por pagante (si null, toma precio de finanzas)
+    token = Column(String, unique=True, index=True, nullable=True) # token único para voucher / QR
+    usado = Column(Boolean, default=False)
+    fecha_uso = Column(String, nullable=True)
+    hora = Column(String, nullable=True)            # ej: "13:00", "21:30"
     notas = Column(String, nullable=True)
 
     anotacion = relationship("AnotacionGrupo", back_populates="comidas")
+    vouchers = relationship("Voucher", back_populates="comida", cascade="all, delete-orphan")
 
 
 class PushSubscription(Base):

@@ -49,6 +49,14 @@ def upgrade_db():
         )""",
         "ALTER TABLE links_personalizados ADD COLUMN empresas_ids VARCHAR",
         "ALTER TABLE grupos ADD COLUMN zacarias_ultimo_dia BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE finanzas_empresa ADD COLUMN precio_almuerzo FLOAT DEFAULT 0",
+        "ALTER TABLE finanzas_empresa ADD COLUMN precio_cena FLOAT DEFAULT 0",
+        "ALTER TABLE comidas_grupo ADD COLUMN precio_unitario FLOAT",
+        "ALTER TABLE comidas_grupo ADD COLUMN token VARCHAR",
+        "ALTER TABLE comidas_grupo ADD COLUMN usado BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE comidas_grupo ADD COLUMN fecha_uso VARCHAR",
+        "ALTER TABLE comidas_grupo ADD COLUMN hora VARCHAR",
+        "ALTER TABLE vouchers ADD COLUMN comida_id INTEGER REFERENCES comidas_grupo(id) ON DELETE CASCADE",
     ]
     for sql in migraciones:
         try:

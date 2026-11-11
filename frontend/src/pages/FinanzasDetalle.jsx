@@ -44,7 +44,9 @@ export default function FinanzasDetalle() {
         "sunset": "Sunset",
         "quinta_comida": "Quinta Comida",
         "multiparque": "Multiparque",
-        "combo": "Combo"
+        "combo": "Combo",
+        "almuerzo": "Almuerzo en Restaurante",
+        "cena_restaurante": "Cena en Restaurante"
     };
 
     const MESES = [
@@ -94,6 +96,8 @@ export default function FinanzasDetalle() {
         combo_sunset: false,
         combo_quinta_comida: false,
         combo_multiparque: false,
+        precio_almuerzo: 0,
+        precio_cena: 0,
 
         disco_liberados_ratio: 0,
         disco_padres_gratis: false,
@@ -485,6 +489,52 @@ export default function FinanzasDetalle() {
                                         onChange={e => setConfigForm({ ...configForm, precio_bar_hielo: Number(e.target.value) })}
                                         style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #bfdbfe" }}
                                     />
+                                </div>
+                                <div style={{ padding: 15, background: "#fef3c7", borderRadius: 8 }}>
+                                    <p style={{ margin: "0 0 8px 0", fontSize: "0.85rem", fontWeight: 700, color: "#92400e" }}>🍽️ Almuerzos y Cenas (Restaurantes)</p>
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                                        <div>
+                                            <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Precio Almuerzo / pax</p>
+                                            <input
+                                                type="number" step="any"
+                                                value={configForm.precio_almuerzo || 0}
+                                                onChange={e => setConfigForm({ ...configForm, precio_almuerzo: Number(e.target.value) })}
+                                                style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #fcd34d" }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Precio Cena / pax</p>
+                                            <input
+                                                type="number" step="any"
+                                                value={configForm.precio_cena || 0}
+                                                onChange={e => setConfigForm({ ...configForm, precio_cena: Number(e.target.value) })}
+                                                style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #fcd34d" }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style={{ padding: 15, background: "#fef3c7", borderRadius: 8 }}>
+                                    <p style={{ margin: "0 0 8px 0", fontSize: "0.85rem", fontWeight: 700, color: "#92400e" }}>🍽️ Almuerzos y Cenas (Restaurantes)</p>
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                                        <div>
+                                            <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Precio Almuerzo / pax</p>
+                                            <input
+                                                type="number" step="any"
+                                                value={configForm.precio_almuerzo || 0}
+                                                onChange={e => setConfigForm({ ...configForm, precio_almuerzo: Number(e.target.value) })}
+                                                style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #fcd34d" }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Precio Cena / pax</p>
+                                            <input
+                                                type="number" step="any"
+                                                value={configForm.precio_cena || 0}
+                                                onChange={e => setConfigForm({ ...configForm, precio_cena: Number(e.target.value) })}
+                                                style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #fcd34d" }}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                                 <div style={{ padding: 15, background: "#f0fdf4", borderRadius: 8 }}>
                                     <p style={{ margin: "0 0 8px 0", fontSize: "0.85rem", fontWeight: 700, color: "#166534" }}>🏄 Actividades Adicionales</p>
