@@ -2150,6 +2150,41 @@ def eliminar_horario_empresa(horario_id: int, db: Session = Depends(get_db)):
     return {"ok": True}
 
 
+@router.get("/fecha/{fecha_evento_id}/empresas-asignadas")
+def listar_empresas_asignadas(fecha_evento_id: int, db: Session = Depends(get_db)):
+    """Lista las empresas y grupos asignados a una fecha de evento (para mostrar al admin)."""
+    f = db.get(models.FechaEvento, fecha_evento_id)
+    if not f:
+        raise HTTPException(404, "FechaEvento no encontrada")
+
+    asignaciones_validas = [
+        a for a in f.asignaciones
+        if asignacion_valida_en_fecha(a, f.fecha, f.evento)
+    ]
+
+    # Agrupar por empresa
+    empresas_map: dict = {}
+    for asig in asignaciones_validas:
+        if not asig.grupo or not asig.grupo.empresa:
+            continue
+        g = asig.grupo
+        emp = g.empresa
+        if emp.id not in empresas_map:
+            empresas_map[emp.id] = {
+                "empresa_id": emp.id,
+                "empresa_nombre": emp.nombre,
+                "grupos": []
+            }
+        empresas_map[emp.id]["grupos"].append({
+            "grupo_id": g.id,
+            "grupo_nombre": g.nombre,
+            "pax": g.cantidad_pax,
+            "es_opcional": bool(getattr(asig, "es_opcional", False)),
+        })
+
+    return list(empresas_map.values())
+
+
 @router.get("/empresa/{empresa_id}/horarios")
 def listar_horarios_de_empresa(empresa_id: int, db: Session = Depends(get_db)):
     """Lista todos los horarios personalizados de una empresa (para el panel de detalle)."""

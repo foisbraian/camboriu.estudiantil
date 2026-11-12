@@ -445,6 +445,10 @@ export default function TimelineCalendar({
   const [cargandoHorarios, setCargandoHorarios] = useState(false);
   const [fechaEventoIdActual, setFechaEventoIdActual] = useState(null);
 
+  // Empresas asignadas al evento global (para mostrar al admin)
+  const [empresasAsignadas, setEmpresasAsignadas] = useState([]);
+  const [cargandoEmpresasAsignadas, setCargandoEmpresasAsignadas] = useState(false);
+
   // =========================================================
   // SYNC BACKEND
   // =========================================================
@@ -486,6 +490,20 @@ export default function TimelineCalendar({
       setHorariosEmpresa([]);
     } finally {
       setCargandoHorarios(false);
+    }
+  };
+
+  const cargarEmpresasAsignadas = async (fechaEventoId) => {
+    if (!fechaEventoId) return;
+    setCargandoEmpresasAsignadas(true);
+    try {
+      const res = await api.get(`/calendario/fecha/${fechaEventoId}/empresas-asignadas`);
+      setEmpresasAsignadas(res.data || []);
+    } catch (e) {
+      console.error("Error cargando empresas asignadas:", e);
+      setEmpresasAsignadas([]);
+    } finally {
+      setCargandoEmpresasAsignadas(false);
     }
   };
 
@@ -788,6 +806,7 @@ export default function TimelineCalendar({
 
       // Cargar horarios personalizados por empresa para esta fecha de evento
       await cargarHorariosEmpresa(cleanFid);
+      await cargarEmpresasAsignadas(cleanFid);
 
       setModalOpen(true);
       return;
@@ -1034,6 +1053,7 @@ export default function TimelineCalendar({
     setCantidadAmbulancias("");
     setHorariosEmpresa([]);
     setFechaEventoIdActual(null);
+    setEmpresasAsignadas([]);
     onRecargar?.();
   };
 
@@ -1963,6 +1983,83 @@ export default function TimelineCalendar({
                 )}
               </>
             )}
+
+            {/* ===============================================================
+                SECCIÓN EMPRESAS ASIGNADAS (solo admins, al editar evento global)
+                =============================================================== */}
+            {editando?.tipo === "global" && fechaEventoIdActual && (() => {
+              const role = localStorage.getItem("auth_role");
+              if (role !== "admin") return null;
+              return (
+                <div style={{
+                  marginTop: 16,
+                  borderTop: "2px solid #e2e8f0",
+                  paddingTop: 12,
+                }}>
+                  <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "#0f172a", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                    🏢 Empresas asignadas
+                    {cargandoEmpresasAsignadas && (
+                      <span style={{ fontWeight: 400, fontSize: "0.78rem", color: "#94a3b8" }}>Cargando...</span>
+                    )}
+                    {!cargandoEmpresasAsignadas && (
+                      <span style={{ fontWeight: 400, fontSize: "0.78rem", color: "#64748b" }}>
+                        ({empresasAsignadas.reduce((acc, e) => acc + e.grupos.length, 0)} grupo{empresasAsignadas.reduce((acc, e) => acc + e.grupos.length, 0) !== 1 ? "s" : ""})
+                      </span>
+                    )}
+                  </div>
+                  {!cargandoEmpresasAsignadas && empresasAsignadas.length === 0 && (
+                    <p style={{ fontSize: "0.82rem", color: "#94a3b8", fontStyle: "italic", margin: 0 }}>
+                      Ningún grupo asignado aún.
+                    </p>
+                  )}
+                  {!cargandoEmpresasAsignadas && empresasAsignadas.length > 0 && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      {empresasAsignadas.map(emp => (
+                        <div key={emp.empresa_id} style={{
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 8,
+                          padding: "8px 10px",
+                        }}>
+                          <div style={{ fontWeight: 700, fontSize: "0.88rem", color: "#1e293b", marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                            🏢 {emp.empresa_nombre}
+                            <span style={{ fontWeight: 400, fontSize: "0.78rem", color: "#64748b" }}>
+                              {emp.grupos.length} grupo{emp.grupos.length !== 1 ? "s" : ""}
+                            </span>
+                          </div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                            {emp.grupos.map(g => (
+                              <span key={g.grupo_id} style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                                background: g.es_opcional ? "#fef9c3" : "#eff6ff",
+                                border: `1px solid ${g.es_opcional ? "#fde68a" : "#bfdbfe"}`,
+                                borderRadius: 5,
+                                padding: "2px 8px",
+                                fontSize: "0.80rem",
+                                fontWeight: 600,
+                                color: g.es_opcional ? "#854d0e" : "#1d4ed8",
+                              }}>
+                                {g.grupo_nombre}
+                                <span style={{ fontWeight: 400, color: g.es_opcional ? "#a16207" : "#3b82f6", fontSize: "0.76rem" }}>
+                                  {g.pax} PAX
+                                </span>
+                                {g.es_opcional && (
+                                  <span title="Opcional vendida" style={{ fontSize: "0.70rem", background: "#fde68a", color: "#78350f", borderRadius: 3, padding: "0 3px", fontWeight: 700 }}>
+                                    ⭐ Opc.
+                                  </span>
+                                )}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* ===============================================================
                 SECCIÓN HORARIOS POR EMPRESA (solo al editar evento global)
