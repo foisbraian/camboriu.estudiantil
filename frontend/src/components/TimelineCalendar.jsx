@@ -16,6 +16,7 @@ export default function TimelineCalendar({
   targetDate = null,
   filtroServicio = "todos",
   historialCargado = false,
+  onVisibleDateChange,
 }) {
   const calendarRef = useRef(null);
   const [initialDate] = useState(() => targetDate || new Date());
@@ -42,8 +43,11 @@ export default function TimelineCalendar({
   }, [historialCargado]);
 
   // Preservación y restauración de scroll al agregar/editar eventos o grupos
-  const savedScrollPos = useRef({ left: null, top: null });
-  const lastInteractedDate = useRef(null);
+  const savedScrollPos = useRef({
+    left: typeof window !== "undefined" ? Number(sessionStorage.getItem("cal_scroll_left")) || null : null,
+    top: typeof window !== "undefined" ? Number(sessionStorage.getItem("cal_scroll_top")) || null : null,
+  });
+  const lastInteractedDate = useRef(typeof window !== "undefined" ? sessionStorage.getItem("cal_last_date") || null : null);
   const isRestoringScroll = useRef(false);
 
   // Obtener fecha del slot actualmente visible más a la izquierda
@@ -53,12 +57,19 @@ export default function TimelineCalendar({
     const scroller = rootEl.querySelector(".fc-timeline-body .fc-scroller");
     if (!scroller) return null;
     const currentLeft = scroller.scrollLeft;
-    const slots = rootEl.querySelectorAll(".fc-timeline-slot[data-date]");
-    if (!slots || slots.length === 0) return null;
 
-    for (let i = 0; i < slots.length; i++) {
-      const slot = slots[i];
-      if (slot.offsetLeft + slot.offsetWidth > currentLeft + 15) {
+    // Buscar slots de días (ignorando celdas de mes/año con colspan > 1 o clase major)
+    const allSlots = rootEl.querySelectorAll(".fc-timeline-header [data-date], .fc-timeline-body [data-date]");
+    const daySlots = Array.from(allSlots).filter(slot => {
+      const colspan = slot.getAttribute("colspan");
+      if (colspan && parseInt(colspan, 10) > 1) return false;
+      if (slot.classList.contains("fc-timeline-slot-major")) return false;
+      return true;
+    });
+
+    for (let i = 0; i < daySlots.length; i++) {
+      const slot = daySlots[i];
+      if (slot.offsetLeft + slot.offsetWidth > currentLeft + 10) {
         return slot.getAttribute("data-date");
       }
     }
@@ -69,24 +80,38 @@ export default function TimelineCalendar({
     const rootEl = calendarRef.current?.el;
     if (!rootEl) return;
     const scroller = rootEl.querySelector(".fc-timeline-body .fc-scroller");
-    if (scroller && (scroller.scrollLeft > 0 || scroller.scrollTop > 0)) {
-      savedScrollPos.current = {
-        left: scroller.scrollLeft,
-        top: scroller.scrollTop,
-      };
+    if (scroller) {
+      if (scroller.scrollLeft > 0 || scroller.scrollTop > 0) {
+        savedScrollPos.current = {
+          left: scroller.scrollLeft,
+          top: scroller.scrollTop,
+        };
+        try {
+          sessionStorage.setItem("cal_scroll_left", String(scroller.scrollLeft));
+          sessionStorage.setItem("cal_scroll_top", String(scroller.scrollTop));
+        } catch (_) {}
+      }
     }
     if (explicitDate) {
       const dStr = explicitDate instanceof Date
         ? `${explicitDate.getFullYear()}-${String(explicitDate.getMonth() + 1).padStart(2, '0')}-${String(explicitDate.getDate()).padStart(2, '0')}`
         : String(explicitDate).slice(0, 10);
       lastInteractedDate.current = dStr;
+      try {
+        sessionStorage.setItem("cal_last_date", dStr);
+      } catch (_) {}
+      onVisibleDateChange?.(dStr);
     } else {
       const vis = getVisibleDateFromScroll();
       if (vis) {
         lastInteractedDate.current = vis;
+        try {
+          sessionStorage.setItem("cal_last_date", vis);
+        } catch (_) {}
+        onVisibleDateChange?.(vis);
       }
     }
-  }, [getVisibleDateFromScroll]);
+  }, [getVisibleDateFromScroll, onVisibleDateChange]);
 
   const centerDate = useCallback((dateToCenter) => {
     const rootEl = calendarRef.current?.el;
@@ -97,7 +122,8 @@ export default function TimelineCalendar({
       : String(d).slice(0, 10);
     const slot =
       rootEl.querySelector(`.fc-timeline-slot[data-date="${dateISO}"]`)
-      || rootEl.querySelector(`.fc-col-header-cell[data-date="${dateISO}"]`);
+      || rootEl.querySelector(`.fc-col-header-cell[data-date="${dateISO}"]`)
+      || rootEl.querySelector(`[data-date="${dateISO}"]`);
     const scroller =
       rootEl.querySelector(".fc-timeline-body .fc-scroller")
       || rootEl.querySelector(".fc-scroller-harness .fc-scroller");
@@ -107,6 +133,11 @@ export default function TimelineCalendar({
       const headerScroller = rootEl.querySelector(".fc-timeline-header .fc-scroller");
       if (headerScroller) headerScroller.scrollLeft = offset;
       savedScrollPos.current = { left: offset, top: scroller.scrollTop };
+      try {
+        sessionStorage.setItem("cal_scroll_left", String(offset));
+        sessionStorage.setItem("cal_scroll_top", String(scroller.scrollTop));
+        sessionStorage.setItem("cal_last_date", dateISO);
+      } catch (_) {}
       return true;
     }
     if (slot?.scrollIntoView) {
@@ -144,7 +175,6 @@ export default function TimelineCalendar({
   // STATE
   // =========================================================
   const [slotWidth, setSlotWidth] = useState(110);
-  const [localEvents, setLocalEvents] = useState(events);
   const hasCenteredInitial = useRef(false);
 
   // Escuchar scroll del timeline para recordar la posición en todo momento
@@ -165,10 +195,16 @@ export default function TimelineCalendar({
           if (target.scrollLeft === 0 && savedScrollPos.current.left && savedScrollPos.current.left > 30) {
             return;
           }
-          savedScrollPos.current = {
-            left: target.scrollLeft,
-            top: target.scrollTop,
-          };
+          if (target.scrollLeft > 0 || target.scrollTop > 0) {
+            savedScrollPos.current = {
+              left: target.scrollLeft,
+              top: target.scrollTop,
+            };
+            try {
+              sessionStorage.setItem("cal_scroll_left", String(target.scrollLeft));
+              sessionStorage.setItem("cal_scroll_top", String(target.scrollTop));
+            } catch (_) {}
+          }
 
           clearTimeout(debounceTimer);
           debounceTimer = setTimeout(() => {
@@ -176,6 +212,10 @@ export default function TimelineCalendar({
               const visDate = getVisibleDateFromScroll();
               if (visDate) {
                 lastInteractedDate.current = visDate;
+                try {
+                  sessionStorage.setItem("cal_last_date", visDate);
+                } catch (_) {}
+                onVisibleDateChange?.(visDate);
               }
             }
           }, 250);
@@ -188,59 +228,70 @@ export default function TimelineCalendar({
       clearTimeout(debounceTimer);
       rootEl.removeEventListener("scroll", handleScrollCapture, { capture: true });
     };
-  }, [getVisibleDateFromScroll]);
+  }, [getVisibleDateFromScroll, onVisibleDateChange]);
 
-  // Centrado inicial en la fecha de hoy o targetDate
+  // Centrado inicial en la fecha de hoy o targetDate (SOLO se ejecuta una vez al montar)
   useEffect(() => {
     if (hasCenteredInitial.current) return;
     const api = calendarRef.current?.getApi();
     if (!api) return;
-    const dateToCenter = targetDate || initialDate;
-    api.gotoDate(dateToCenter);
+
+    const savedDateStr = typeof window !== "undefined" ? sessionStorage.getItem("cal_last_date") : null;
+    const dateToCenter = targetDate || (savedDateStr ? new Date(savedDateStr + "T12:00:00") : initialDate);
+
+    try {
+      api.gotoDate(dateToCenter);
+    } catch (_) {}
 
     let attempts = 0;
-    const maxAttempts = 6;
+    const maxAttempts = 10;
 
     const tryCenter = () => {
+      const savedLeft = typeof window !== "undefined" ? Number(sessionStorage.getItem("cal_scroll_left")) : null;
+      const savedTop = typeof window !== "undefined" ? Number(sessionStorage.getItem("cal_scroll_top")) : null;
+      const rootEl = calendarRef.current?.el;
+      const scroller = rootEl?.querySelector(".fc-timeline-body .fc-scroller");
+      const headerScroller = rootEl?.querySelector(".fc-timeline-header .fc-scroller");
+
+      if (scroller && savedLeft && savedLeft > 0 && scroller.scrollWidth > scroller.clientWidth) {
+        scroller.scrollLeft = savedLeft;
+        if (headerScroller) headerScroller.scrollLeft = savedLeft;
+        if (savedTop && savedTop > 0) scroller.scrollTop = savedTop;
+        hasCenteredInitial.current = true;
+        savedScrollPos.current = { left: savedLeft, top: savedTop };
+        return;
+      }
+
       if (centerDate(dateToCenter)) {
         hasCenteredInitial.current = true;
-        const rootEl = calendarRef.current?.el;
-        const scroller = rootEl?.querySelector(".fc-timeline-body .fc-scroller");
         if (scroller && scroller.scrollLeft > 0) {
           savedScrollPos.current = { left: scroller.scrollLeft, top: scroller.scrollTop };
         }
         return;
       }
-      if (attempts >= maxAttempts) return;
+      if (attempts >= maxAttempts) {
+        hasCenteredInitial.current = true;
+        return;
+      }
       attempts += 1;
-      setTimeout(tryCenter, 160);
+      setTimeout(tryCenter, 150);
     };
 
     const raf = requestAnimationFrame(tryCenter);
     return () => {
       cancelAnimationFrame(raf);
     };
-  }, [centerDate, events, initialDate, targetDate]);
+  }, [centerDate, initialDate, targetDate]);
 
   // Restaurar posición de scroll tras recargar datos (agregar/actualizar grupo o evento)
   useEffect(() => {
-    if (!hasCenteredInitial.current) return;
-
-    const targetLeft = savedScrollPos.current.left;
-    const targetTop = savedScrollPos.current.top;
-    const anchorDate = lastInteractedDate.current;
+    const targetLeft = savedScrollPos.current.left ?? (typeof window !== "undefined" ? Number(sessionStorage.getItem("cal_scroll_left")) || null : null);
+    const targetTop = savedScrollPos.current.top ?? (typeof window !== "undefined" ? Number(sessionStorage.getItem("cal_scroll_top")) || null : null);
+    const anchorDate = lastInteractedDate.current || (typeof window !== "undefined" ? sessionStorage.getItem("cal_last_date") : null);
 
     if (targetLeft === null && !anchorDate) return;
 
     isRestoringScroll.current = true;
-
-    // Sincronizar fecha interna de FullCalendar para evitar que regrese a initialDate
-    const api = calendarRef.current?.getApi();
-    if (api && anchorDate) {
-      try {
-        api.gotoDate(anchorDate);
-      } catch (e) {}
-    }
 
     const restore = () => {
       const rootEl = calendarRef.current?.el;
@@ -251,35 +302,31 @@ export default function TimelineCalendar({
       const datagridScroller = rootEl.querySelector(".fc-datagrid-body .fc-scroller");
 
       if (!timelineScroller) return false;
-
-      if (timelineScroller.scrollWidth <= timelineScroller.clientWidth) {
-        return false;
-      }
+      if (timelineScroller.scrollWidth <= timelineScroller.clientWidth) return false;
 
       let ok = false;
       if (targetLeft !== null && targetLeft > 0) {
         timelineScroller.scrollLeft = targetLeft;
         if (headerScroller) headerScroller.scrollLeft = targetLeft;
-        if (targetTop !== null) {
+        if (targetTop !== null && targetTop > 0) {
           timelineScroller.scrollTop = targetTop;
           if (datagridScroller) datagridScroller.scrollTop = targetTop;
         }
-        ok = Math.abs(timelineScroller.scrollLeft - targetLeft) < 10;
+        ok = Math.abs(timelineScroller.scrollLeft - targetLeft) < 15;
       }
 
       if (!ok && anchorDate) {
-        const slot = rootEl.querySelector(`.fc-timeline-slot[data-date="${anchorDate}"]`)
-          || rootEl.querySelector(`.fc-col-header-cell[data-date="${anchorDate}"]`);
+        const dStr = String(anchorDate).slice(0, 10);
+        const slot =
+          rootEl.querySelector(`.fc-timeline-slot[data-date="${dStr}"]`)
+          || rootEl.querySelector(`[data-date="${dStr}"]`);
         if (slot) {
-          timelineScroller.scrollLeft = slot.offsetLeft;
-          if (headerScroller) headerScroller.scrollLeft = slot.offsetLeft;
-          if (targetTop !== null) {
-            timelineScroller.scrollTop = targetTop;
-            if (datagridScroller) datagridScroller.scrollTop = targetTop;
-          }
+          const offset = Math.max(0, slot.offsetLeft - timelineScroller.clientWidth / 2 + slot.clientWidth / 2);
+          timelineScroller.scrollLeft = offset;
+          if (headerScroller) headerScroller.scrollLeft = offset;
           ok = true;
         } else {
-          ok = centerDate(anchorDate);
+          ok = centerDate(dStr);
         }
       }
 
@@ -288,12 +335,12 @@ export default function TimelineCalendar({
 
     restore();
     requestAnimationFrame(restore);
-    const delays = [30, 80, 160, 300, 550, 900, 1400];
+    const delays = [30, 80, 160, 300, 550, 900, 1300];
     const timers = delays.map((d) => setTimeout(restore, d));
 
     const unlockTimer = setTimeout(() => {
       isRestoringScroll.current = false;
-    }, 1600);
+    }, 1500);
 
     return () => {
       timers.forEach(clearTimeout);
@@ -378,7 +425,8 @@ export default function TimelineCalendar({
       e.stopPropagation();
 
       const props = res.extendedProps || {};
-      captureCurrentScroll(props.fechaEntrada || props.fechaSalida || null);
+      captureCurrentScroll();
+      isRestoringScroll.current = true;
       setAnotacionGrupo({
         grupoId: res.id,
         grupoNombre: props.grupoNombre || res.title,
@@ -400,9 +448,6 @@ export default function TimelineCalendar({
   // =========================================================
   // SYNC BACKEND
   // =========================================================
-  useEffect(() => {
-    setLocalEvents(events);
-  }, [events]);
 
   useEffect(() => {
     cargarTematicas();
@@ -1026,7 +1071,7 @@ export default function TimelineCalendar({
           }}
           headerToolbar={false}
           resources={resources}
-          events={localEvents}
+          events={events}
           locale="es"
           resourceOrder="order"
           slotMinWidth={slotWidth}
@@ -1063,6 +1108,8 @@ export default function TimelineCalendar({
             const hoteles = props.hoteles || [];
             const openAnotador = (e) => {
               e.stopPropagation();
+              captureCurrentScroll();
+              isRestoringScroll.current = true;
               setAnotacionGrupo({
                 grupoId: arg.resource.id,
                 grupoNombre: groupName,
@@ -1394,6 +1441,8 @@ export default function TimelineCalendar({
                 <button
                   type="button"
                   onClick={() => {
+                    captureCurrentScroll(selectedDate);
+                    isRestoringScroll.current = true;
                     setAnotacionGrupo({
                       grupoId: grupoObj.id,
                       grupoNombre: gProps.grupoNombre || grupoObj.title,
@@ -1575,7 +1624,7 @@ export default function TimelineCalendar({
                     const otros = eventosDisponibles.filter(ev => ev.esta_abierto === false);
 
                     const renderOption = (ev) => {
-                      const instancia = localEvents.find(e =>
+                      const instancia = events.find(e =>
                         String(e.resourceId).startsWith("servicio-") &&
                         Number(e.extendedProps?.evento_id) === Number(ev.id) &&
                         e.start.startsWith(selectedDate)
@@ -1960,12 +2009,12 @@ export default function TimelineCalendar({
           fechaEntrada={anotacionGrupo.fechaEntrada}
           fechaSalida={anotacionGrupo.fechaSalida}
           onClose={() => {
-            captureCurrentScroll(anotacionGrupo.fechaEntrada || anotacionGrupo.fechaSalida || null);
+            isRestoringScroll.current = true;
             setAnotacionGrupo(null);
             if (onRecargar) onRecargar();
           }}
           onActualizado={() => {
-            captureCurrentScroll(anotacionGrupo.fechaEntrada || anotacionGrupo.fechaSalida || null);
+            isRestoringScroll.current = true;
             if (onRecargar) onRecargar();
           }}
         />

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, model_validator, field_validator
 from datetime import date, datetime
 from typing import Union
 
@@ -449,6 +449,23 @@ class ComidaGrupoCreate(BaseModel):
     precio_unitario: float | None = None
     hora: str | None = None
     notas: str | None = None
+
+    @field_validator("precio_unitario", mode="before")
+    @classmethod
+    def parse_precio(cls, v):
+        if v == "" or v is None:
+            return None
+        if isinstance(v, str):
+            v = v.replace(",", ".").strip()
+            return float(v) if v else None
+        return float(v)
+
+    @field_validator("cant_pax", mode="before")
+    @classmethod
+    def parse_cant_pax(cls, v):
+        if v == "" or v is None:
+            return None
+        return int(v)
 
 
 class ComidaGrupoOut(ComidaGrupoCreate):

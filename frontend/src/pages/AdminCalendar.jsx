@@ -51,12 +51,41 @@ export default function AdminCalendar() {
   }, []);
 
   const now = new Date();
-  const [mesSeleccionado, setMesSeleccionado] = useState(() => targetDate ? targetDate.getMonth() : now.getMonth());
-  const [anioSeleccionado, setAnioSeleccionado] = useState(() => targetDate ? targetDate.getFullYear() : now.getFullYear());
+  const [mesSeleccionado, setMesSeleccionado] = useState(() => {
+    if (targetDate) return targetDate.getMonth();
+    const saved = typeof window !== "undefined" ? sessionStorage.getItem("cal_last_date") : null;
+    if (saved) {
+      const d = new Date(saved + "T12:00:00");
+      if (!isNaN(d.getTime())) return d.getMonth();
+    }
+    return now.getMonth();
+  });
+  const [anioSeleccionado, setAnioSeleccionado] = useState(() => {
+    if (targetDate) return targetDate.getFullYear();
+    const saved = typeof window !== "undefined" ? sessionStorage.getItem("cal_last_date") : null;
+    if (saved) {
+      const d = new Date(saved + "T12:00:00");
+      if (!isNaN(d.getTime())) return d.getFullYear();
+    }
+    return now.getFullYear();
+  });
   const [filtroAlcohol, setFiltroAlcohol] = useState("global");
   const [filtroEmpresa, setFiltroEmpresa] = useState("todas");
   const [filtroServicio, setFiltroServicio] = useState("todos");
   const [showFiltros, setShowFiltros] = useState(true);
+
+  const handleVisibleDateChange = useCallback((dateStr) => {
+    if (!dateStr) return;
+    const parts = dateStr.split("-");
+    if (parts.length === 3) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      if (!isNaN(y) && !isNaN(m)) {
+        setMesSeleccionado(m);
+        setAnioSeleccionado(y);
+      }
+    }
+  }, []);
 
   const aniosDisponibles = useMemo(() => {
     const currentYear = new Date().getFullYear();
@@ -594,6 +623,7 @@ export default function AdminCalendar() {
             targetDate={targetDate}
             filtroServicio={filtroServicio}
             historialCargado={historialCargadoDesde !== null}
+            onVisibleDateChange={handleVisibleDateChange}
           />
         </div>
       )}

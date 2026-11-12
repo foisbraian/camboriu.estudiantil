@@ -496,24 +496,32 @@ def get_resumen_empresa(empresa_id: int, db: Session = Depends(get_db)):
         ).first()
         if anotacion_g:
             for comida in anotacion_g.comidas:
-                if not (comida.cant_pax and comida.cant_pax > 0):
+                pax_comida = comida.cant_pax if (comida.cant_pax and comida.cant_pax > 0) else (total_pax_grupo or 0)
+                if pax_comida <= 0:
                     continue
-                if comida.precio_unitario is not None:
-                    p_comida = comida.precio_unitario
-                elif (comida.tipo_comida or "").lower() == "almuerzo":
-                    p_comida = getattr(config, "precio_almuerzo", 0) or 0
+
+                tipo = (comida.tipo_comida or "").strip().lower()
+                # Si tiene precio específico mayor a 0, usarlo.
+                # De lo contrario, usar el precio global configurado en Finanzas para la empresa.
+                if comida.precio_unitario is not None and float(comida.precio_unitario) > 0:
+                    p_comida = float(comida.precio_unitario)
+                elif tipo == "almuerzo":
+                    p_comida = float(getattr(config, "precio_almuerzo", 0) or 0)
+                elif tipo == "cena":
+                    p_comida = float(getattr(config, "precio_cena", 0) or 0)
                 else:
-                    p_comida = getattr(config, "precio_cena", 0) or 0
-                subtotal_comida = comida.cant_pax * p_comida
+                    p_comida = float(getattr(config, "precio_almuerzo", 0) or 0)
+
+                subtotal_comida = pax_comida * p_comida
                 costo_grupo += subtotal_comida
-                tipo_label = "🍽️ Almuerzo" if (comida.tipo_comida or "").lower() == "almuerzo" else ("🍷 Cena" if (comida.tipo_comida or "").lower() == "cena" else f"🍴 {comida.tipo_comida}")
+                tipo_label = "🍽️ Almuerzo" if tipo == "almuerzo" else ("🍷 Cena" if tipo == "cena" else f"🍴 {comida.tipo_comida}")
                 servicios_detalle.append({
                     "servicio": f"{tipo_label} — {comida.lugar or 'Restaurante'}",
                     "servicio_key": f"comida_{comida.id}",
-                    "descripcion": f"{comida.fecha or ''}{' · ' + comida.hora if comida.hora else ''} · {comida.lugar or ''}",
+                    "descripcion": f"{comida.fecha or ''}{' · ' + comida.hora if comida.hora else ''} · {comida.lugar or 'Restaurante'}",
                     "precio_u": p_comida,
                     "cantidad": 1,
-                    "pax": comida.cant_pax,
+                    "pax": pax_comida,
                     "subtotal": subtotal_comida,
                     "pax_original": total_pax_grupo,
                     "estudiantes": g.cantidad_estudiantes or 0,
@@ -826,7 +834,7 @@ def get_asignaciones_grupo(grupo_id: int, db: Session = Depends(get_db)):
     habilitados = get_asignaciones_pagadas(grupo.empresa_id, db)
     print(f"DEBUG: Habilitados calculados para empresa {grupo.empresa_id}")
     
-    return [{
+    items = [{
         "id": a.id,
         "fecha": str(a.fecha_evento.fecha) if a.fecha_evento else "Sin fecha",
         "servicio": a.fecha_evento.evento.nombre if a.fecha_evento and a.fecha_evento.evento else "Sin servicio",
@@ -835,8 +843,30 @@ def get_asignaciones_grupo(grupo_id: int, db: Session = Depends(get_db)):
         "es_opcional": getattr(a, "es_opcional", False),
         "habilitado": habilitados.get(a.id, False),
         "voucher_usado": db.query(models.Voucher).filter(models.Voucher.asignacion_id == a.id).first().usado if db.query(models.Voucher).filter(models.Voucher.asignacion_id == a.id).first() else False,
-        "voucher_fecha_uso": db.query(models.Voucher).filter(models.Voucher.asignacion_id == a.id).first().fecha_uso if db.query(models.Voucher).filter(models.Voucher.asignacion_id == a.id).first() else None
+        "voucher_fecha_uso": db.query(models.Voucher).filter(models.Voucher.asignacion_id == a.id).first().fecha_uso if db.query(models.Voucher).filter(models.Voucher.asignacion_id == a.id).first() else None,
+        "es_comida": False,
     } for a in asignaciones]
+
+    # Incluir comidas registradas para el grupo
+    anotacion = db.query(models.AnotacionGrupo).filter(models.AnotacionGrupo.grupo_id == grupo_id).first()
+    if anotacion:
+        for c in anotacion.comidas:
+            tipo_label = "Almuerzo" if (c.tipo_comida or "").lower() == "almuerzo" else ("Cena" if (c.tipo_comida or "").lower() == "cena" else (c.tipo_comida or "Comida").capitalize())
+            items.append({
+                "id": f"comida_{c.id}",
+                "comida_id": c.id,
+                "fecha": str(c.fecha) if c.fecha else "Sin fecha",
+                "servicio": f"🍽️ {tipo_label} - {c.lugar or 'Restaurante'}",
+                "tipo": "COMIDA",
+                "pax": c.cant_pax if (c.cant_pax and c.cant_pax > 0) else (grupo.cantidad_pax or 0),
+                "es_opcional": False,
+                "habilitado": True,
+                "voucher_usado": bool(c.usado),
+                "voucher_fecha_uso": c.fecha_uso,
+                "es_comida": True,
+            })
+
+    return items
 
 @router.get("/asignaciones-empresa/{empresa_id}")
 def get_asignaciones_empresa(empresa_id: int, db: Session = Depends(get_db)):

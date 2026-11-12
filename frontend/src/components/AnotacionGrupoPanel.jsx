@@ -255,21 +255,41 @@ export default function AnotacionGrupoPanel({
     if (!comidaForm.tipo_comida) { alert("Seleccioná el tipo de comida"); return; }
     if (!comidaForm.fecha) { alert("Ingresá la fecha"); return; }
     try {
-      await api.post(`/anotaciones-grupo/${grupoId}/comidas`, comidaForm);
+      const payload = {
+        ...comidaForm,
+        cant_pax: comidaForm.cant_pax !== "" && comidaForm.cant_pax !== null ? Number(comidaForm.cant_pax) : null,
+        precio_unitario: comidaForm.precio_unitario !== "" && comidaForm.precio_unitario !== null
+          ? (parseFloat(String(comidaForm.precio_unitario).replace(",", ".")) || null)
+          : null,
+      };
+      await api.post(`/anotaciones-grupo/${grupoId}/comidas`, payload);
       await cargar();
       setAddingComida(false);
       setComidaForm(emptyComidaForm());
-    } catch { alert("Error al agregar comida"); }
+    } catch (err) {
+      console.error(err);
+      alert("Error al agregar comida: " + (err.response?.data?.detail || err.message));
+    }
   };
 
   const editarComida = async (id) => {
     if (!comidaForm.tipo_comida) { alert("Seleccioná el tipo de comida"); return; }
     try {
-      await api.put(`/anotaciones-grupo/comidas/${id}`, comidaForm);
+      const payload = {
+        ...comidaForm,
+        cant_pax: comidaForm.cant_pax !== "" && comidaForm.cant_pax !== null ? Number(comidaForm.cant_pax) : null,
+        precio_unitario: comidaForm.precio_unitario !== "" && comidaForm.precio_unitario !== null
+          ? (parseFloat(String(comidaForm.precio_unitario).replace(",", ".")) || null)
+          : null,
+      };
+      await api.put(`/anotaciones-grupo/comidas/${id}`, payload);
       await cargar();
       setEditingComidaId(null);
       setComidaForm(emptyComidaForm());
-    } catch { alert("Error al editar comida"); }
+    } catch (err) {
+      console.error(err);
+      alert("Error al editar comida: " + (err.response?.data?.detail || err.message));
+    }
   };
 
   const eliminarComida = async (id) => {
@@ -624,9 +644,13 @@ export default function AnotacionGrupoPanel({
                               {c.lugar && `🍽️ ${c.lugar}`}
                               {c.cant_pax && ` · ${c.cant_pax} pax`}
                             </div>
-                            {c.cant_pax && c.precio_unitario && (
+                            {c.precio_unitario ? (
                               <div style={{ color: "#16a34a", fontWeight: 700, fontSize: "0.78rem", marginTop: 2 }}>
-                                Subtotal: {c.cant_pax} × ${c.precio_unitario} = ${(Number(c.cant_pax) * Number(c.precio_unitario)).toFixed(2)}
+                                Precio personalizado: ${c.precio_unitario} / pax {c.cant_pax ? `(Subtotal: $${(Number(c.cant_pax) * Number(c.precio_unitario)).toFixed(2)})` : ""}
+                              </div>
+                            ) : (
+                              <div style={{ color: "#64748b", fontSize: "0.75rem", marginTop: 2, fontStyle: "italic" }}>
+                                💡 Precio según Finanzas de la empresa
                               </div>
                             )}
                             {c.notas && <div style={{ color: "#94a3b8", fontSize: "0.78rem", marginTop: 2, fontStyle: "italic" }}>{c.notas}</div>}
@@ -865,7 +889,7 @@ function ComidaForm({ form, onChange, onSave, onCancel }) {
         </label>
         <label style={labelStyle}>
           Precio / pax (opcional)
-          <input type="number" min="0" step="any" value={form.precio_unitario}
+          <input type="text" inputMode="decimal" min="0" value={form.precio_unitario}
             onChange={e => set("precio_unitario", e.target.value)}
             style={inputStyle} placeholder="Precio global si vacío" />
         </label>

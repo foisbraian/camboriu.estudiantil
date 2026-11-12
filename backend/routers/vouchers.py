@@ -604,11 +604,10 @@ def generate_voucher_comida(comida_id: int, db: Session = Depends(get_db)):
     draw.text((40, 215), "FECHA / HORA:", fill=color_label, font=font_label)
     draw.text((40, 233), fecha_hora, fill=color_text, font=font_sub)
 
-    # PAX y precio
+    # PAX
     pax_txt = f"{comida.cant_pax} PAX" if comida.cant_pax else "—"
-    precio_txt = f"$ {comida.precio_unitario:.2f} / pax" if comida.precio_unitario else ""
     draw.text((40, 268), "PAGANTES:", fill=color_label, font=font_label)
-    draw.text((40, 286), f"{pax_txt}  {precio_txt}".strip(), fill=color_text, font=font_sub)
+    draw.text((40, 286), pax_txt, fill=color_text, font=font_sub)
 
     # Token ID (esquina superior derecha)
     token_short = (comida.token or "")[:8].upper()
