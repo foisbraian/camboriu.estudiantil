@@ -1814,26 +1814,49 @@ def actualizar_asignacion(asignacion_id: int, body: EditarAsignacionBody, db: Se
 
         turnos_necesarios = max(1, math.ceil(pax_total / capacidad_turno)) if pax_total > 0 else 1
 
-        # Reemplazar asignaciones existentes de hielo de este grupo en esta fecha_evento
-        db.query(models.Asignacion).filter_by(
+        # Obtener todas las asignaciones existentes de hielo de este grupo en esta fecha_evento
+        asigs_existentes = db.query(models.Asignacion).filter_by(
             grupo_id=asig.grupo_id,
             fecha_evento_id=fecha_evento_id
-        ).delete()
+        ).all()
 
         restante = pax_total
         primera_asig = None
-        for _ in range(turnos_necesarios):
+
+        # Actualizar las asignaciones existentes in-place (evita violar FK de vouchers)
+        for i in range(turnos_necesarios):
             pax_turno = min(capacidad_turno, restante)
             restante -= pax_turno
-            nueva_asig = models.Asignacion(
-                grupo_id=asig.grupo_id,
-                fecha_evento_id=fecha_evento_id,
-                pax_asignados=pax_turno if body.es_opcional else None,
-                es_opcional=bool(body.es_opcional)
-            )
-            db.add(nueva_asig)
-            if primera_asig is None:
-                primera_asig = nueva_asig
+            if i < len(asigs_existentes):
+                # Reusar asignación existente
+                a_upd = asigs_existentes[i]
+                a_upd.pax_asignados = pax_turno if body.es_opcional else None
+                a_upd.es_opcional = bool(body.es_opcional)
+                if primera_asig is None:
+                    primera_asig = a_upd
+            else:
+                # Crear turno adicional solo si aumentó la cantidad
+                nueva_asig = models.Asignacion(
+                    grupo_id=asig.grupo_id,
+                    fecha_evento_id=fecha_evento_id,
+                    pax_asignados=pax_turno if body.es_opcional else None,
+                    es_opcional=bool(body.es_opcional)
+                )
+                db.add(nueva_asig)
+                if primera_asig is None:
+                    primera_asig = nueva_asig
+
+        # Si hay más asignaciones existentes que turnos necesarios, eliminar el exceso
+        # Solo se eliminan las que no tienen vouchers asociados
+        for i in range(turnos_necesarios, len(asigs_existentes)):
+            sobrante = asigs_existentes[i]
+            tiene_voucher = db.query(models.Voucher).filter_by(asignacion_id=sobrante.id).first()
+            if not tiene_voucher:
+                db.delete(sobrante)
+            else:
+                # Si tiene voucher, simplemente actualizar sus campos en lugar de borrar
+                sobrante.pax_asignados = None
+                sobrante.es_opcional = bool(body.es_opcional)
 
         db.commit()
         if primera_asig:
