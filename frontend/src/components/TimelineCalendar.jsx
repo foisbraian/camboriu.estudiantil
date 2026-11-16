@@ -1057,12 +1057,17 @@ export default function TimelineCalendar({
     onRecargar?.();
   };
 
+  const cerrarRef = useRef(cerrar);
+  useEffect(() => {
+    cerrarRef.current = cerrar;
+  });
+
   // Cerrar modal al presionar Escape
   useEffect(() => {
     if (!modalOpen) return;
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
-        cerrar();
+        cerrarRef.current?.();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
