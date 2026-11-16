@@ -1057,6 +1057,42 @@ export default function TimelineCalendar({
     onRecargar?.();
   };
 
+  // Cerrar modal al presionar Escape
+  useEffect(() => {
+    if (!modalOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        cerrar();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [modalOpen]);
+
+  // Formato de fecha legible en español
+  const formatFechaLegible = (fechaStr) => {
+    if (!fechaStr) return "";
+    try {
+      const partes = String(fechaStr).split("T")[0].split("-");
+      if (partes.length === 3) {
+        const y = parseInt(partes[0], 10);
+        const m = parseInt(partes[1], 10) - 1;
+        const d = parseInt(partes[2], 10);
+        const dateObj = new Date(y, m, d);
+        const formatted = dateObj.toLocaleDateString("es-AR", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric"
+        });
+        return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+      }
+    } catch {
+      // fallback
+    }
+    return fechaStr;
+  };
+
   return (
     <>
       <div
@@ -1437,118 +1473,154 @@ export default function TimelineCalendar({
       </div>
 
       {!readOnly && modalOpen && (
-        <div className="modal-overlay">
-          <div className="modal">
+        <div 
+          className="modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) cerrar();
+          }}
+        >
+          <div 
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header Fijo */}
+            <div className="modal-header">
+              <div className="modal-header-info">
+                <span className="modal-type-badge">
+                  {editando?.tipo === "asignacion"
+                    ? "Asignación de grupo"
+                    : grupoAsignando
+                      ? "Asignar al grupo"
+                      : editando
+                        ? "Evento global"
+                        : "Nuevo evento global"}
+                </span>
+                <h3 className="modal-title">
+                  {editando?.tipo === "asignacion"
+                    ? "Detalle de asignación"
+                    : grupoAsignando
+                      ? "Asignar servicio al grupo"
+                      : editando
+                        ? "Modificar evento global"
+                        : "Crear evento global"
+                  }
+                </h3>
+                <div className="modal-date-chip">
+                  <span>📅</span>
+                  <span>{formatFechaLegible(selectedDate)}</span>
+                  <span style={{ color: "#94a3b8", fontSize: "0.78rem" }}>({selectedDate})</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={cerrar}
+                title="Cerrar ventana (Esc)"
+                aria-label="Cerrar"
+              >
+                ✕
+              </button>
+            </div>
 
-            <h3>
-              {editando?.tipo === "asignacion"
-                ? "Asignación existente"
-                : grupoAsignando
-                  ? "Asignar evento al grupo"
-                  : editando
-                    ? "Editar evento global"
-                    : "Nuevo evento global"
-              }
-              <br />
-              <small>{selectedDate}</small>
-            </h3>
+            {/* Cuerpo Scrolleable */}
+            <div className="modal-body custom-scrollbar">
 
-            {grupoAsignando && (() => {
-              const grupoObj = resources.find(r => String(r.id) === String(grupoAsignando));
-              if (!grupoObj) return null;
-              const gProps = grupoObj.extendedProps || {};
-              return (
-                <button
-                  type="button"
-                  onClick={() => {
-                    captureCurrentScroll(selectedDate);
-                    isRestoringScroll.current = true;
-                    setAnotacionGrupo({
-                      grupoId: grupoObj.id,
-                      grupoNombre: gProps.grupoNombre || grupoObj.title,
-                      empresaNombre: gProps.empresaNombre || "",
-                      fechaEntrada: gProps.fechaEntrada || "",
-                      fechaSalida: gProps.fechaSalida || "",
-                    });
-                    setModalOpen(false);
-                  }}
-                  style={{
-                    width: "100%",
-                    padding: "8px 12px",
-                    background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)",
-                    color: "white",
-                    border: "none",
-                    borderRadius: 7,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    marginBottom: 12,
-                    fontWeight: 700,
-                    fontSize: "0.85rem",
-                    boxShadow: "0 2px 6px rgba(37,99,235,0.2)"
-                  }}
-                >
-                  <span>📝 Abrir Anotador del Grupo (Hoteles / Comidas / Rooming)</span>
-                  <span>➔</span>
-                </button>
-              );
-            })()}
+              {grupoAsignando && (() => {
+                const grupoObj = resources.find(r => String(r.id) === String(grupoAsignando));
+                if (!grupoObj) return null;
+                const gProps = grupoObj.extendedProps || {};
+                return (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      captureCurrentScroll(selectedDate);
+                      isRestoringScroll.current = true;
+                      setAnotacionGrupo({
+                        grupoId: grupoObj.id,
+                        grupoNombre: gProps.grupoNombre || grupoObj.title,
+                        empresaNombre: gProps.empresaNombre || "",
+                        fechaEntrada: gProps.fechaEntrada || "",
+                        fechaSalida: gProps.fechaSalida || "",
+                      });
+                      setModalOpen(false);
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "10px 14px",
+                      background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)",
+                      color: "white",
+                      border: "none",
+                      borderRadius: 10,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      fontWeight: 700,
+                      fontSize: "0.88rem",
+                      boxShadow: "0 2px 8px rgba(37,99,235,0.25)"
+                    }}
+                  >
+                    <span>📝 Abrir Anotador del Grupo (Hoteles / Comidas / Rooming)</span>
+                    <span>➔</span>
+                  </button>
+                );
+              })()}
 
-            {editando?.tipo === "asignacion" ? (
-              <div style={{ margin: "10px 0" }}>
-                <p>
-                  <b>Evento:</b> {editando.nombre}
-                  {editando.turnos > 1 && (
-                    <span style={{ marginLeft: 8, fontSize: "0.82rem", background: "#e0f2fe", color: "#0369a1", padding: "2px 7px", borderRadius: 4, fontWeight: 700 }}>
-                      🕒 {editando.turnos} turnos
-                    </span>
-                  )}
-                </p>
-                {editando.grupo_pax_total != null && (
-                  <p style={{ fontSize: "0.82rem", color: "#64748b", marginBottom: 8 }}>
-                    👥 PAX total del grupo: <strong>{editando.grupo_pax_total}</strong>
-                  </p>
-                )}
-                {/* Botón toggle opcional */}
-                <div style={{ margin: "12px 0", padding: "10px", background: "#fef9c3", borderRadius: 8, border: "1px solid #fde68a" }}>
-                  <p style={{ margin: "0 0 8px 0", fontWeight: 600, color: "#92400e", fontSize: "0.9rem" }}>
-                    🌟 Compra opcional
-                  </p>
-                  <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: "0.88rem" }}>
-                    <input
-                      type="checkbox"
-                      checked={Boolean(editando.es_opcional)}
-                      onChange={async (e) => {
-                        const newVal = e.target.checked;
-                        try {
-                          captureCurrentScroll(editando?.fecha || selectedDate);
-                          isRestoringScroll.current = true;
-                          const paxVal = paxOpcional !== "" ? parseInt(paxOpcional, 10) : null;
-                          await api.put(`/calendario/asignacion/${editando.id}`, {
-                            es_opcional: newVal,
-                            pax_opcional: newVal ? paxVal : 0,
-                          });
-                          setEditando(prev => ({ ...prev, es_opcional: newVal }));
-                          onRecargar?.();
-                        } catch {
-                          alert("Error al actualizar");
-                        }
-                      }}
-                    />
-                    Opcional vendida (precio diferente al incluido)
-                  </label>
-                  {editando.es_opcional && (
-                    <>
-                      <p style={{ margin: "6px 0 4px", fontSize: "0.8rem", color: "#78350f" }}>
-                        ✅ Marcada como opcional. Aparecerá en finanzas con el precio diferenciado.
+              {editando?.tipo === "asignacion" ? (
+                <div className="modal-section-card">
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: "1.05rem", fontWeight: 700, color: "#1e293b", display: "flex", alignItems: "center", gap: 8 }}>
+                      <span>🎟️ {editando.nombre}</span>
+                      {editando.turnos > 1 && (
+                        <span style={{ fontSize: "0.78rem", background: "#e0f2fe", color: "#0369a1", padding: "2px 8px", borderRadius: 6, fontWeight: 700 }}>
+                          🕒 {editando.turnos} turnos
+                        </span>
+                      )}
+                    </div>
+                    {editando.grupo_pax_total != null && (
+                      <p style={{ fontSize: "0.85rem", color: "#64748b", margin: "6px 0 0" }}>
+                        👥 PAX total del grupo: <strong style={{ color: "#0f172a" }}>{editando.grupo_pax_total}</strong>
                       </p>
-                      {/* Campo para ingresar cuántos PAX compraron el servicio */}
-                      <div style={{ marginTop: 10, padding: "10px 12px", background: "#fff7ed", borderRadius: 7, border: "1px solid #fed7aa" }}>
-                        <label style={{ display: "block", marginBottom: 5, fontWeight: 700, fontSize: "0.85rem", color: "#7c2d12" }}>
+                    )}
+                  </div>
+
+                  {/* Compra opcional */}
+                  <div style={{ padding: "12px 14px", background: "#fef9c3", borderRadius: 10, border: "1px solid #fde68a" }}>
+                    <p style={{ margin: "0 0 8px 0", fontWeight: 700, color: "#92400e", fontSize: "0.88rem", display: "flex", alignItems: "center", gap: 6 }}>
+                      <span>🌟</span> Compra opcional vendida
+                    </p>
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: "0.86rem", color: "#78350f" }}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(editando.es_opcional)}
+                        onChange={async (e) => {
+                          const newVal = e.target.checked;
+                          try {
+                            captureCurrentScroll(editando?.fecha || selectedDate);
+                            isRestoringScroll.current = true;
+                            const paxVal = paxOpcional !== "" ? parseInt(paxOpcional, 10) : null;
+                            await api.put(`/calendario/asignacion/${editando.id}`, {
+                              es_opcional: newVal,
+                              pax_opcional: newVal ? paxVal : 0,
+                            });
+                            setEditando(prev => ({ ...prev, es_opcional: newVal }));
+                            onRecargar?.();
+                          } catch {
+                            alert("Error al actualizar");
+                          }
+                        }}
+                      />
+                      Opcional vendida (precio diferenciado del paquete)
+                    </label>
+
+                    {editando.es_opcional && (
+                      <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px dashed #fcd34d" }}>
+                        <label style={{ display: "block", marginBottom: 6, fontWeight: 700, fontSize: "0.82rem", color: "#7c2d12" }}>
                           🎟️ ¿Cuántos PAX compraron este servicio opcional?
                         </label>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                           <input
                             type="number"
                             min="0"
@@ -1558,10 +1630,10 @@ export default function TimelineCalendar({
                             onChange={(e) => setPaxOpcional(e.target.value)}
                             style={{
                               width: "120px",
-                              padding: "7px 10px",
+                              padding: "6px 10px",
                               borderRadius: 6,
                               border: "1px solid #fdba74",
-                              fontSize: "1rem",
+                              fontSize: "0.95rem",
                               fontWeight: 700,
                               textAlign: "center",
                               background: "white",
@@ -1569,7 +1641,7 @@ export default function TimelineCalendar({
                           />
                           {editando.grupo_pax_total != null && (
                             <span style={{ fontSize: "0.82rem", color: "#9a3412" }}>
-                              de {editando.grupo_pax_total} PAX totales
+                              de {editando.grupo_pax_total} PAX
                             </span>
                           )}
                           <button
@@ -1593,13 +1665,13 @@ export default function TimelineCalendar({
                               }
                             }}
                             style={{
-                              padding: "7px 14px",
+                              padding: "6px 12px",
                               borderRadius: 6,
                               border: "none",
                               background: "#ea580c",
                               color: "white",
                               fontWeight: 700,
-                              fontSize: "0.85rem",
+                              fontSize: "0.82rem",
                               cursor: "pointer",
                             }}
                           >
@@ -1616,484 +1688,547 @@ export default function TimelineCalendar({
                           )}
                         </div>
                         <p style={{ margin: "6px 0 0", fontSize: "0.76rem", color: "#7c2d12" }}>
-                          Este valor se usará en Finanzas como "pagantes finales" para este servicio en el grupo.
+                          Este valor se usará en Finanzas como pagantes finales para este servicio en el grupo.
                         </p>
                       </div>
-                    </>
-                  )}
+                    )}
+                  </div>
+                  <p style={{ fontSize: "0.82rem", color: "#64748b", margin: "12px 0 0" }}>
+                    💡 Para eliminar esta asignación, usá el botón rojo <strong>Eliminar</strong> del pie.
+                  </p>
                 </div>
-                <p style={{ fontSize: "0.85rem", color: "#64748b" }}>Para eliminar esta asignación, pulsá el botón rojo.</p>
-              </div>
-            ) : (
-              <>
-                <select
-                  value={eventoSeleccionado}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setEventoSeleccionado(val);
-                    const match = eventosDisponibles.find(ev => (ev.fecha_evento_id || ev.id) === Number(val));
-                    if (match?.horario) {
-                      setHorario(match.horario);
-                    }
-                  }}
-                  style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "0.9rem" }}
-                >
-                  <option value="">-- Seleccionar evento o servicio --</option>
-                  {(() => {
-                    const abiertos = eventosDisponibles.filter(ev => ev.esta_abierto !== false);
-                    const otros = eventosDisponibles.filter(ev => ev.esta_abierto === false);
-
-                    const renderOption = (ev) => {
-                      const instancia = events.find(e =>
-                        String(e.resourceId).startsWith("servicio-") &&
-                        Number(e.extendedProps?.evento_id) === Number(ev.id) &&
-                        e.start.startsWith(selectedDate)
-                      );
-
-                      let label = `${ev.nombre} (${ev.tipo})`;
-                      if (instancia && instancia.extendedProps) {
-                        const { ocupacion, capacidad, con_comida, sin_comida } = instancia.extendedProps;
-                        let extra = "";
-                        if (ev.tipo === "PARQUE" || ev.tipo === "POOL") {
-                          extra = ` (Comida: ${con_comida} / Sin: ${sin_comida})`;
+              ) : (
+                <>
+                  {/* Tarjeta 1: Selección de Evento o Servicio */}
+                  <div className="modal-section-card">
+                    <label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, fontSize: "0.86rem", fontWeight: 700, color: "#1e293b" }}>
+                      <span>🏷️</span> Evento o Servicio Principal
+                    </label>
+                    <select
+                      value={eventoSeleccionado}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEventoSeleccionado(val);
+                        const match = eventosDisponibles.find(ev => (ev.fecha_evento_id || ev.id) === Number(val));
+                        if (match?.horario) {
+                          setHorario(match.horario);
                         }
-                        label += ` [Oc: ${ocupacion} / Cap: ${capacidad}]${extra}`;
-                      } else if (ev.capacidad_maxima) {
-                        label += ` [Cap: ${ev.capacidad_maxima}]`;
-                      }
+                      }}
+                      className="form-input"
+                      style={{ fontSize: "0.92rem", fontWeight: 500 }}
+                    >
+                      <option value="">-- Seleccionar evento o servicio --</option>
+                      {(() => {
+                        const abiertos = eventosDisponibles.filter(ev => ev.esta_abierto !== false);
+                        const otros = eventosDisponibles.filter(ev => ev.esta_abierto === false);
 
-                      const esPrivadoEvento = Boolean(instancia?.extendedProps?.es_privado);
-                      const empresaPrivadaEvento = instancia?.extendedProps?.empresa_privada_id != null
-                        ? Number(instancia.extendedProps.empresa_privada_id)
-                        : null;
-                      const empresaObjId = empresaObjetivo != null ? Number(empresaObjetivo) : null;
+                        const renderOption = (ev) => {
+                          const instancia = events.find(e =>
+                            String(e.resourceId).startsWith("servicio-") &&
+                            Number(e.extendedProps?.evento_id) === Number(ev.id) &&
+                            e.start.startsWith(selectedDate)
+                          );
 
-                      if (grupoAsignando && esPrivadoEvento) {
-                        if (!empresaObjId || empresaPrivadaEvento !== empresaObjId) {
-                          return null;
-                        }
-                      }
+                          let label = `${ev.nombre} (${ev.tipo})`;
+                          if (instancia && instancia.extendedProps) {
+                            const { ocupacion, capacidad, con_comida, sin_comida } = instancia.extendedProps;
+                            let extra = "";
+                            if (ev.tipo === "PARQUE" || ev.tipo === "POOL") {
+                              extra = ` (Comida: ${con_comida} / Sin: ${sin_comida})`;
+                            }
+                            label += ` [Oc: ${ocupacion} / Cap: ${capacidad}]${extra}`;
+                          } else if (ev.capacidad_maxima) {
+                            label += ` [Cap: ${ev.capacidad_maxima}]`;
+                          }
 
-                      if (esPrivadoEvento && instancia?.extendedProps?.empresa_privada_nombre) {
-                        label += ` [Privado: ${instancia.extendedProps.empresa_privada_nombre}]`;
-                      }
+                          const esPrivadoEvento = Boolean(instancia?.extendedProps?.es_privado);
+                          const empresaPrivadaEvento = instancia?.extendedProps?.empresa_privada_id != null
+                            ? Number(instancia.extendedProps.empresa_privada_id)
+                            : null;
+                          const empresaObjId = empresaObjetivo != null ? Number(empresaObjetivo) : null;
 
-                      const optionVal = ev.fecha_evento_id || ev.id;
-                      return (
-                        <option key={`${ev.esta_abierto ? 'abierto' : 'base'}-${optionVal}`} value={optionVal}>
-                          {label}
-                        </option>
-                      );
-                    };
+                          if (grupoAsignando && esPrivadoEvento) {
+                            if (!empresaObjId || empresaPrivadaEvento !== empresaObjId) {
+                              return null;
+                            }
+                          }
+
+                          if (esPrivadoEvento && instancia?.extendedProps?.empresa_privada_nombre) {
+                            label += ` [Privado: ${instancia.extendedProps.empresa_privada_nombre}]`;
+                          }
+
+                          const optionVal = ev.fecha_evento_id || ev.id;
+                          return (
+                            <option key={`${ev.esta_abierto ? 'abierto' : 'base'}-${optionVal}`} value={optionVal}>
+                              {label}
+                            </option>
+                          );
+                        };
+
+                        return (
+                          <>
+                            {abiertos.length > 0 && (
+                              <optgroup label="✨ Eventos ya abiertos en esta fecha">
+                                {abiertos.map(renderOption)}
+                              </optgroup>
+                            )}
+                            {otros.length > 0 && (
+                              <optgroup label="📋 Otros servicios disponibles (Crear / Asignar)">
+                                {otros.map(renderOption)}
+                              </optgroup>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </select>
+                  </div>
+
+                  {!grupoAsignando && (() => {
+                    // Determinar tipo de evento
+                    const eventoObj = eventosDisponibles.find(ev => ev.id === Number(eventoSeleccionado));
+                    const tipoEv = (eventoObj?.tipo || editando?.evento_tipo || "").toUpperCase();
+                    const nomEv = (eventoObj?.nombre || editando?.evento_nombre || "").toUpperCase();
+                    const esDisco = tipoEv === "DISCO" || nomEv.includes("DISCO") || nomEv.includes("BOLICHE");
+
+                    // Permitir Show y Animador / DJ para Boliches, Cascata Carolina, Zacarías, Cabral y Parador
+                    const permiteShowAnimador =
+                      esDisco ||
+                      tipoEv === "ZACARIAS" ||
+                      tipoEv === "PARADOR" ||
+                      tipoEv === "POOL" ||
+                      tipoEv === "CABRAL" ||
+                      nomEv.includes("ZACARIAS") ||
+                      nomEv.includes("PARADOR") ||
+                      nomEv.includes("CASCATA") ||
+                      nomEv.includes("CAROLINA") ||
+                      nomEv.includes("CABRAL");
+
+                    const permiteAmbulancias =
+                      esDisco ||
+                      tipoEv === "ZACARIAS" ||
+                      tipoEv === "PARADOR" ||
+                      nomEv.includes("ZACARIAS") ||
+                      nomEv.includes("PARADOR");
+
+                    const bloqueoEmpresaPrivada = Boolean(editando?.tipo === "global" && (editando?.ocupacion || 0) > 0);
 
                     return (
                       <>
-                        {abiertos.length > 0 && (
-                          <optgroup label="✨ Eventos ya abiertos en esta fecha">
-                            {abiertos.map(renderOption)}
-                          </optgroup>
+                        {/* Configuración Disco / Temática */}
+                        {esDisco && (
+                          <div className="modal-section-card">
+                            <div className="modal-section-header">
+                              <span className="modal-section-title">
+                                <span>🪩</span> Modalidad & Temática de Disco
+                              </span>
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                              <div>
+                                <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#475569" }}>
+                                  Modalidad Alcohol:
+                                </label>
+                                <select
+                                  value={tipoAlcohol}
+                                  onChange={(e) => setTipoAlcohol(e.target.value)}
+                                  className="form-input"
+                                  style={{
+                                    borderColor: tipoAlcohol === "con" ? "#fca5a5" : tipoAlcohol === "mix" ? "#fdba74" : "#fde047",
+                                    backgroundColor: tipoAlcohol === "con" ? "#fff5f5" : tipoAlcohol === "mix" ? "#fffaf0" : "#fefce8",
+                                    fontWeight: 600
+                                  }}
+                                >
+                                  <option value="sin">🟡 Sin Alcohol (Amarillo)</option>
+                                  <option value="mix">🟠 Mix / Pulsera (Naranja)</option>
+                                  <option value="con">🔴 Con Alcohol (Rojo)</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#475569" }}>
+                                  Temática (opcional):
+                                </label>
+                                <select
+                                  value={tematicaSeleccionada}
+                                  onChange={(e) => setTematicaSeleccionada(e.target.value)}
+                                  className="form-input"
+                                >
+                                  <option value="">Sin temática</option>
+                                  {tematicas.map((tem) => (
+                                    <option key={tem.id} value={tem.id}>
+                                      {tem.nombre} {tem.descripcion && `- ${tem.descripcion}`}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          </div>
                         )}
-                        {otros.length > 0 && (
-                          <optgroup label="📋 Otros servicios disponibles (Crear / Asignar)">
-                            {otros.map(renderOption)}
-                          </optgroup>
+
+                        {/* Anotaciones internas */}
+                        {permiteShowAnimador && (
+                          <div className="modal-section-card" style={{ background: "#f8fafc", border: "1px dashed #94a3b8" }}>
+                            <div className="modal-section-header">
+                              <span className="modal-section-title">
+                                <span>🔒</span> Anotaciones Internas (Admin y Equipo)
+                              </span>
+                              <span className="modal-badge-info">
+                                No visible para empresas
+                              </span>
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                              <div>
+                                <label style={{ fontSize: "0.80rem", color: "#475569", fontWeight: 600 }}>
+                                  🎤 Show:
+                                </label>
+                                <input
+                                  type="text"
+                                  placeholder="ej: Robot LED / Banda"
+                                  value={show}
+                                  onChange={(e) => setShow(e.target.value)}
+                                  className="form-input"
+                                  style={{ padding: "7px 10px", fontSize: "0.88rem" }}
+                                />
+                              </div>
+                              <div>
+                                <label style={{ fontSize: "0.80rem", color: "#475569", fontWeight: 600 }}>
+                                  🎧 Animador / DJ:
+                                </label>
+                                <input
+                                  type="text"
+                                  placeholder="ej: Animador Leo"
+                                  value={animador}
+                                  onChange={(e) => setAnimador(e.target.value)}
+                                  className="form-input"
+                                  style={{ padding: "7px 10px", fontSize: "0.88rem" }}
+                                />
+                              </div>
+                            </div>
+
+                            {(esDisco || permiteAmbulancias) && (
+                              <div style={{
+                                display: "grid",
+                                gridTemplateColumns: esDisco ? "repeat(auto-fit, minmax(110px, 1fr))" : "1fr",
+                                gap: 10,
+                                marginTop: 10,
+                                paddingTop: 10,
+                                borderTop: "1px solid #e2e8f0"
+                              }}>
+                                {esDisco && (
+                                  <>
+                                    <div>
+                                      <label style={{ fontSize: "0.78rem", color: "#475569", fontWeight: 600 }}>
+                                        💵 Cajas:
+                                      </label>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        placeholder="ej: 4"
+                                        value={cantidadCajas}
+                                        onChange={(e) => setCantidadCajas(e.target.value)}
+                                        className="form-input"
+                                        style={{ padding: "6px 8px", fontSize: "0.85rem", textAlign: "center" }}
+                                      />
+                                    </div>
+                                    <div>
+                                      <label style={{ fontSize: "0.78rem", color: "#475569", fontWeight: 600 }}>
+                                        🛡️ Seguridad:
+                                      </label>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        placeholder="ej: 12"
+                                        value={cantidadSeguridad}
+                                        onChange={(e) => setCantidadSeguridad(e.target.value)}
+                                        className="form-input"
+                                        style={{ padding: "6px 8px", fontSize: "0.85rem", textAlign: "center" }}
+                                      />
+                                    </div>
+                                    <div>
+                                      <label style={{ fontSize: "0.78rem", color: "#475569", fontWeight: 600 }}>
+                                        🧹 Limpieza:
+                                      </label>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        placeholder="ej: 6"
+                                        value={cantidadLimpieza}
+                                        onChange={(e) => setCantidadLimpieza(e.target.value)}
+                                        className="form-input"
+                                        style={{ padding: "6px 8px", fontSize: "0.85rem", textAlign: "center" }}
+                                      />
+                                    </div>
+                                  </>
+                                )}
+                                {permiteAmbulancias && (
+                                  <div>
+                                    <label style={{ fontSize: "0.78rem", color: "#475569", fontWeight: 600 }}>
+                                      🚑 Ambulancias:
+                                    </label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      placeholder="ej: 1"
+                                      value={cantidadAmbulancias}
+                                      onChange={(e) => setCantidadAmbulancias(e.target.value)}
+                                      className="form-input"
+                                      style={{ padding: "6px 8px", fontSize: "0.85rem", textAlign: "center" }}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         )}
+
+                        {/* Horario y Evento Privado */}
+                        <div className="modal-section-card">
+                          <div style={{ marginBottom: 10 }}>
+                            <label style={{ fontSize: "0.83rem", fontWeight: 600, color: "#475569" }}>
+                              ⏰ Horario / Turno general (ej: 18:00hs):
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="ej: 18:00hs"
+                              value={horario}
+                              onChange={(e) => setHorario(e.target.value)}
+                              className="form-input"
+                              style={{ padding: "7px 10px" }}
+                            />
+                          </div>
+
+                          <div className="checkbox-wrapper" style={{ marginTop: 8 }}>
+                            <input
+                              id="check-evento-privado"
+                              type="checkbox"
+                              checked={esPrivado}
+                              onChange={(e) => setEsPrivado(e.target.checked)}
+                            />
+                            <label htmlFor="check-evento-privado" style={{ fontWeight: 600, color: "#1e293b", fontSize: "0.88rem" }}>
+                              🔒 Evento exclusivo / privado para una empresa
+                            </label>
+                          </div>
+
+                          {esPrivado && (
+                            <div style={{ marginTop: 10, padding: 10, background: "#fff", borderRadius: 8, border: "1px solid #cbd5e1" }}>
+                              <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#475569", marginBottom: 5 }}>
+                                Empresa asignada exclusiva:
+                              </label>
+                              <select
+                                value={empresaPrivadaId}
+                                onChange={(e) => setEmpresaPrivadaId(e.target.value)}
+                                className="form-input"
+                                disabled={bloqueoEmpresaPrivada}
+                              >
+                                <option value="">-- Seleccionar empresa --</option>
+                                {empresas.map((empresa) => (
+                                  <option key={empresa.id} value={empresa.id}>
+                                    {empresa.nombre}
+                                  </option>
+                                ))}
+                              </select>
+                              {bloqueoEmpresaPrivada && (
+                                <p style={{ fontSize: "0.8rem", color: "#ef4444", marginTop: 6, margin: "6px 0 0" }}>
+                                  ⚠️ El evento ya tiene grupos asignados. Eliminá sus asignaciones antes de cambiar de empresa.
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </>
                     );
                   })()}
-                </select>
 
-                {!grupoAsignando && (() => {
-                  // Determinar tipo de evento
-                  const eventoObj = eventosDisponibles.find(ev => ev.id === Number(eventoSeleccionado));
-                  const tipoEv = (eventoObj?.tipo || editando?.evento_tipo || "").toUpperCase();
-                  const nomEv = (eventoObj?.nombre || editando?.evento_nombre || "").toUpperCase();
-                  const esDisco = tipoEv === "DISCO" || nomEv.includes("DISCO") || nomEv.includes("BOLICHE");
-
-                  // Permitir Show y Animador / DJ para Boliches, Cascata Carolina, Zacarías, Cabral y Parador
-                  const permiteShowAnimador =
-                    esDisco ||
-                    tipoEv === "ZACARIAS" ||
-                    tipoEv === "PARADOR" ||
-                    tipoEv === "POOL" ||
-                    tipoEv === "CABRAL" ||
-                    nomEv.includes("ZACARIAS") ||
-                    nomEv.includes("PARADOR") ||
-                    nomEv.includes("CASCATA") ||
-                    nomEv.includes("CAROLINA") ||
-                    nomEv.includes("CABRAL");
-
-                  const permiteAmbulancias =
-                    esDisco ||
-                    tipoEv === "ZACARIAS" ||
-                    tipoEv === "PARADOR" ||
-                    nomEv.includes("ZACARIAS") ||
-                    nomEv.includes("PARADOR");
-
-                  const bloqueoEmpresaPrivada = Boolean(editando?.tipo === "global" && (editando?.ocupacion || 0) > 0);
-
-                  return (
-                    <>
-                      {esDisco && (
-                        <div style={{ marginTop: 10 }}>
-                          <label style={{ display: "block", marginBottom: 5, fontSize: "0.9rem", fontWeight: "bold" }}>
-                            Modalidad Alcohol:
-                          </label>
-                          <select
-                            value={tipoAlcohol}
-                            onChange={(e) => setTipoAlcohol(e.target.value)}
-                            style={{ width: "100%", padding: "6px", borderRadius: "4px", border: "1px solid #cbd5e1" }}
-                          >
-                            <option value="sin">🟡 Sin Alcohol (Amarillo)</option>
-                            <option value="mix">🟠 Mix / Pulsera (Naranja)</option>
-                            <option value="con">🔴 Con Alcohol (Rojo)</option>
-                          </select>
-                        </div>
-                      )}
-
-                      {esDisco && (
-                        <div style={{ marginTop: 10 }}>
-                          <label style={{ display: "block", marginBottom: 5 }}>
-                            Temática (opcional):
-                          </label>
-                          <select
-                            value={tematicaSeleccionada}
-                            onChange={(e) => setTematicaSeleccionada(e.target.value)}
-                            style={{ width: "100%" }}
-                          >
-                            <option value="">Sin temática</option>
-                            {tematicas.map((tem) => (
-                              <option key={tem.id} value={tem.id}>
-                                {tem.nombre} {tem.descripcion && `- ${tem.descripcion}`}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-
-                      {permiteShowAnimador && (
-                        <div style={{ marginTop: 12, padding: "10px 12px", background: "#f8fafc", borderRadius: 8, border: "1px dashed #94a3b8" }}>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                            <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "#1e293b" }}>
-                              🔒 Anotaciones Internas (Admin y Equipo)
-                            </span>
-                            <span style={{ fontSize: "0.72rem", background: "#e2e8f0", color: "#475569", padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>
-                              No visible para empresas
-                            </span>
-                          </div>
-                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                            <div>
-                              <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
-                                🎤 Show:
-                              </label>
-                              <input
-                                type="text"
-                                placeholder="ej: Robot LED / Banda"
-                                value={show}
-                                onChange={(e) => setShow(e.target.value)}
-                                style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
-                              />
-                            </div>
-                            <div>
-                              <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
-                                🎧 Animador / DJ:
-                              </label>
-                              <input
-                                type="text"
-                                placeholder="ej: Animador Leo"
-                                value={animador}
-                                onChange={(e) => setAnimador(e.target.value)}
-                                style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
-                              />
-                            </div>
-                          </div>
-
-                          {(esDisco || permiteAmbulancias) && (
-                            <div style={{ display: "grid", gridTemplateColumns: esDisco ? "repeat(auto-fit, minmax(100px, 1fr))" : "1fr", gap: 10, marginTop: 10 }}>
-                              {esDisco && (
-                                <>
-                                  <div>
-                                    <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
-                                      💵 Cajas:
-                                    </label>
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      placeholder="ej: 4"
-                                      value={cantidadCajas}
-                                      onChange={(e) => setCantidadCajas(e.target.value)}
-                                      style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
-                                    />
-                                  </div>
-                                  <div>
-                                    <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
-                                      🛡️ Seguridad:
-                                    </label>
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      placeholder="ej: 12"
-                                      value={cantidadSeguridad}
-                                      onChange={(e) => setCantidadSeguridad(e.target.value)}
-                                      style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
-                                    />
-                                  </div>
-                                  <div>
-                                    <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
-                                      🧹 Limpieza:
-                                    </label>
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      placeholder="ej: 6"
-                                      value={cantidadLimpieza}
-                                      onChange={(e) => setCantidadLimpieza(e.target.value)}
-                                      style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
-                                    />
-                                  </div>
-                                </>
-                              )}
-                              {permiteAmbulancias && (
-                                <div>
-                                  <label style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", color: "#475569", fontWeight: 600 }}>
-                                    🚑 Ambulancias:
-                                  </label>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    placeholder="ej: 1"
-                                    value={cantidadAmbulancias}
-                                    onChange={(e) => setCantidadAmbulancias(e.target.value)}
-                                    style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
-                                  />
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      <div style={{ marginTop: 10 }}>
-                        <label style={{ display: "block", marginBottom: 5 }}>
-                          Horario / Turno (opcional, ej: 18:00hs):
+                  {grupoAsignando && (
+                    <div className="modal-section-card">
+                      <div style={{ marginBottom: 10 }}>
+                        <label style={{ fontSize: "0.84rem", fontWeight: 600, color: "#475569" }}>
+                          ⏰ Horario del evento (opcional, ej: 20:30hs):
                         </label>
                         <input
                           type="text"
-                          placeholder="ej: 18:00hs"
+                          placeholder="ej: 20:30hs"
                           value={horario}
                           onChange={(e) => setHorario(e.target.value)}
-                          style={{ width: "100%", padding: "6px", borderRadius: "4px", border: "1px solid #cbd5e1" }}
+                          className="form-input"
+                          style={{ padding: "7px 10px" }}
                         />
                       </div>
 
-                      <label style={{ display: "block", marginTop: 12 }}>
-                        <input
-                          type="checkbox"
-                          checked={esPrivado}
-                          onChange={(e) => setEsPrivado(e.target.checked)}
-                        />
-                        Evento privado para una empresa
-                      </label>
-
-                      {esPrivado && (
-                        <div style={{ marginTop: 10 }}>
-                          <label style={{ display: "block", marginBottom: 5 }}>Empresa asignada:</label>
-                          <select
-                            value={empresaPrivadaId}
-                            onChange={(e) => setEmpresaPrivadaId(e.target.value)}
-                            style={{ width: "100%" }}
-                            disabled={bloqueoEmpresaPrivada}
-                          >
-                            <option value="">Seleccionar empresa</option>
-                            {empresas.map((empresa) => (
-                              <option key={empresa.id} value={empresa.id}>
-                                {empresa.nombre}
-                              </option>
-                            ))}
-                          </select>
-                          {bloqueoEmpresaPrivada && (
-                            <p style={{ fontSize: "0.8rem", color: "#ef4444", marginTop: 6 }}>
-                              El evento tiene grupos asignados. Eliminá las asignaciones para cambiar de empresa.
-                            </p>
-                          )}
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
-
-                {grupoAsignando && (
-                  <>
-                    <div style={{ marginTop: 10 }}>
-                      <label style={{ display: "block", marginBottom: 5, fontSize: "0.85rem", fontWeight: 600, color: "#475569" }}>
-                        ⏰ Horario del evento (opcional, ej: 20:30hs):
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="ej: 20:30hs"
-                        value={horario}
-                        onChange={(e) => setHorario(e.target.value)}
-                        style={{ width: "100%", padding: "6px 8px", borderRadius: "5px", border: "1px solid #cbd5e1", fontSize: "0.88rem" }}
-                      />
-                    </div>
-
-                    <div style={{ marginTop: 12, padding: "10px", background: "#fef9c3", borderRadius: 8, border: "1px solid #fde68a" }}>
-                      <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: "0.88rem", fontWeight: 700, color: "#854d0e" }}>
-                        <input
-                          type="checkbox"
-                          checked={esOpcionalAsignar}
-                          onChange={(e) => setEsOpcionalAsignar(e.target.checked)}
-                        />
-                        🌟 Marcar como Opcional vendida
-                      </label>
-                      <small style={{ display: "block", marginTop: 4, color: "#a16207", fontSize: "0.78rem" }}>
-                        Permite asignar cualquier servicio vendido extra (Bar de Hielo, Zacarías, Pool, etc.). Emitirá el voucher por la cantidad exacta vendida y se sumará a finanzas.
-                      </small>
-                      {esOpcionalAsignar && (
-                        <div style={{ marginTop: 10, padding: "8px 10px", background: "#fff7ed", borderRadius: 6, border: "1px solid #fed7aa" }}>
-                          <label style={{ display: "block", marginBottom: 4, fontWeight: 700, fontSize: "0.83rem", color: "#7c2d12" }}>
-                            🎟️ ¿Cuántos PAX compraron este opcional?
-                          </label>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <input
-                              type="number"
-                              min="1"
-                              placeholder="ej: 30"
-                              value={paxOpcional}
-                              onChange={(e) => setPaxOpcional(e.target.value)}
-                              style={{
-                                width: "120px",
-                                padding: "6px 8px",
-                                borderRadius: 5,
-                                border: "1px solid #fdba74",
-                                fontSize: "0.95rem",
-                                fontWeight: 700,
-                                textAlign: "center",
-                                background: "white",
-                              }}
-                            />
-                            <span style={{ fontSize: "0.8rem", color: "#9a3412" }}>
-                              PAX (voucher emitido por esta cantidad)
-                            </span>
+                      <div style={{ padding: "12px", background: "#fef9c3", borderRadius: 8, border: "1px solid #fde68a" }}>
+                        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: "0.88rem", fontWeight: 700, color: "#854d0e" }}>
+                          <input
+                            type="checkbox"
+                            checked={esOpcionalAsignar}
+                            onChange={(e) => setEsOpcionalAsignar(e.target.checked)}
+                          />
+                          🌟 Marcar como Opcional vendida
+                        </label>
+                        <small style={{ display: "block", marginTop: 4, color: "#a16207", fontSize: "0.78rem" }}>
+                          Permite asignar cualquier servicio vendido extra (Bar de Hielo, Zacarías, Pool, etc.). Emitirá el voucher por la cantidad exacta vendida y se sumará a finanzas.
+                        </small>
+                        {esOpcionalAsignar && (
+                          <div style={{ marginTop: 10, padding: "8px 10px", background: "#fff7ed", borderRadius: 6, border: "1px solid #fed7aa" }}>
+                            <label style={{ display: "block", marginBottom: 4, fontWeight: 700, fontSize: "0.82rem", color: "#7c2d12" }}>
+                              🎟️ ¿Cuántos PAX compraron este opcional?
+                            </label>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <input
+                                type="number"
+                                min="1"
+                                placeholder="ej: 30"
+                                value={paxOpcional}
+                                onChange={(e) => setPaxOpcional(e.target.value)}
+                                style={{
+                                  width: "120px",
+                                  padding: "6px 8px",
+                                  borderRadius: 5,
+                                  border: "1px solid #fdba74",
+                                  fontSize: "0.95rem",
+                                  fontWeight: 700,
+                                  textAlign: "center",
+                                  background: "white",
+                                }}
+                              />
+                              <span style={{ fontSize: "0.8rem", color: "#9a3412" }}>
+                                PAX (voucher por esta cantidad)
+                              </span>
+                            </div>
                           </div>
-                        </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* ===============================================================
+                  SECCIÓN EMPRESAS ASIGNADAS (solo admins, al editar evento global)
+                  =============================================================== */}
+              {editando?.tipo === "global" && fechaEventoIdActual && (() => {
+                const role = localStorage.getItem("auth_role");
+                if (role !== "admin") return null;
+                const totalGrupos = empresasAsignadas.reduce((acc, e) => acc + e.grupos.length, 0);
+                const totalPax = empresasAsignadas.reduce((acc, e) => acc + e.grupos.reduce((accG, g) => accG + (g.pax || 0), 0), 0);
+                return (
+                  <div className="modal-section-card">
+                    <div className="modal-section-header">
+                      <span className="modal-section-title">
+                        <span>🏢</span> Empresas y Grupos Asignados
+                      </span>
+                      {cargandoEmpresasAsignadas ? (
+                        <span style={{ fontSize: "0.78rem", color: "#94a3b8" }}>Cargando...</span>
+                      ) : (
+                        <span className="modal-badge-info">
+                          {totalGrupos} grupo{totalGrupos !== 1 ? "s" : ""} • {totalPax} PAX
+                        </span>
                       )}
                     </div>
-                  </>
-                )}
-              </>
-            )}
 
-            {/* ===============================================================
-                SECCIÓN EMPRESAS ASIGNADAS (solo admins, al editar evento global)
-                =============================================================== */}
-            {editando?.tipo === "global" && fechaEventoIdActual && (() => {
-              const role = localStorage.getItem("auth_role");
-              if (role !== "admin") return null;
-              return (
-                <div style={{
-                  marginTop: 16,
-                  borderTop: "2px solid #e2e8f0",
-                  paddingTop: 12,
-                }}>
-                  <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "#0f172a", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-                    🏢 Empresas asignadas
-                    {cargandoEmpresasAsignadas && (
-                      <span style={{ fontWeight: 400, fontSize: "0.78rem", color: "#94a3b8" }}>Cargando...</span>
+                    {!cargandoEmpresasAsignadas && empresasAsignadas.length === 0 && (
+                      <p style={{ fontSize: "0.84rem", color: "#94a3b8", fontStyle: "italic", margin: "4px 0" }}>
+                        Ningún grupo asignado a este evento todavía.
+                      </p>
                     )}
-                    {!cargandoEmpresasAsignadas && (
-                      <span style={{ fontWeight: 400, fontSize: "0.78rem", color: "#64748b" }}>
-                        ({empresasAsignadas.reduce((acc, e) => acc + e.grupos.length, 0)} grupo{empresasAsignadas.reduce((acc, e) => acc + e.grupos.length, 0) !== 1 ? "s" : ""})
-                      </span>
+
+                    {!cargandoEmpresasAsignadas && empresasAsignadas.length > 0 && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        {empresasAsignadas.map(emp => (
+                          <div key={emp.empresa_id} style={{
+                            background: "#ffffff",
+                            border: "1px solid #e2e8f0",
+                            borderRadius: 8,
+                            padding: "8px 10px",
+                          }}>
+                            <div style={{ fontWeight: 700, fontSize: "0.86rem", color: "#1e293b", marginBottom: 6, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                              <span>🏢 {emp.empresa_nombre}</span>
+                              <span style={{ fontWeight: 500, fontSize: "0.78rem", color: "#64748b" }}>
+                                {emp.grupos.length} grupo{emp.grupos.length !== 1 ? "s" : ""}
+                              </span>
+                            </div>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                              {emp.grupos.map(g => (
+                                <span key={g.grupo_id} style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 5,
+                                  background: g.es_opcional ? "#fef9c3" : "#eff6ff",
+                                  border: `1px solid ${g.es_opcional ? "#fde68a" : "#bfdbfe"}`,
+                                  borderRadius: 6,
+                                  padding: "3px 8px",
+                                  fontSize: "0.80rem",
+                                  fontWeight: 600,
+                                  color: g.es_opcional ? "#854d0e" : "#1d4ed8",
+                                }}>
+                                  <span>{g.grupo_nombre}</span>
+                                  <span style={{ fontWeight: 700, color: g.es_opcional ? "#a16207" : "#2563eb", fontSize: "0.76rem" }}>
+                                    ({g.pax} PAX)
+                                  </span>
+                                  {g.es_opcional && (
+                                    <span title="Opcional vendida" style={{ fontSize: "0.68rem", background: "#fde68a", color: "#78350f", borderRadius: 3, padding: "0 4px", fontWeight: 700 }}>
+                                      ⭐ Opc.
+                                    </span>
+                                  )}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
-                  {!cargandoEmpresasAsignadas && empresasAsignadas.length === 0 && (
-                    <p style={{ fontSize: "0.82rem", color: "#94a3b8", fontStyle: "italic", margin: 0 }}>
-                      Ningún grupo asignado aún.
-                    </p>
-                  )}
-                  {!cargandoEmpresasAsignadas && empresasAsignadas.length > 0 && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                      {empresasAsignadas.map(emp => (
-                        <div key={emp.empresa_id} style={{
-                          background: "#f8fafc",
-                          border: "1px solid #e2e8f0",
-                          borderRadius: 8,
-                          padding: "8px 10px",
-                        }}>
-                          <div style={{ fontWeight: 700, fontSize: "0.88rem", color: "#1e293b", marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
-                            🏢 {emp.empresa_nombre}
-                            <span style={{ fontWeight: 400, fontSize: "0.78rem", color: "#64748b" }}>
-                              {emp.grupos.length} grupo{emp.grupos.length !== 1 ? "s" : ""}
-                            </span>
-                          </div>
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                            {emp.grupos.map(g => (
-                              <span key={g.grupo_id} style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 4,
-                                background: g.es_opcional ? "#fef9c3" : "#eff6ff",
-                                border: `1px solid ${g.es_opcional ? "#fde68a" : "#bfdbfe"}`,
-                                borderRadius: 5,
-                                padding: "2px 8px",
-                                fontSize: "0.80rem",
-                                fontWeight: 600,
-                                color: g.es_opcional ? "#854d0e" : "#1d4ed8",
-                              }}>
-                                {g.grupo_nombre}
-                                <span style={{ fontWeight: 400, color: g.es_opcional ? "#a16207" : "#3b82f6", fontSize: "0.76rem" }}>
-                                  {g.pax} PAX
-                                </span>
-                                {g.es_opcional && (
-                                  <span title="Opcional vendida" style={{ fontSize: "0.70rem", background: "#fde68a", color: "#78350f", borderRadius: 3, padding: "0 3px", fontWeight: 700 }}>
-                                    ⭐ Opc.
-                                  </span>
-                                )}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
+                );
+              })()}
 
-            {/* ===============================================================
-                SECCIÓN HORARIOS POR EMPRESA (solo al editar evento global)
-                =============================================================== */}
-            {editando?.tipo === "global" && fechaEventoIdActual && (
-              <HorariosEmpresaPanel
-                fechaEventoId={fechaEventoIdActual}
-                horariosEmpresa={horariosEmpresa}
-                cargandoHorarios={cargandoHorarios}
-                empresas={empresas}
-                onGuardar={guardarHorarioEmpresa}
-                onEliminar={eliminarHorarioEmpresa}
-              />
-            )}
-
-            <div style={{ marginTop: 15 }}>
-              {editando?.tipo !== "asignacion" && (
-                <button className="primary" onClick={guardar}>
-                  {editando ? "Guardar cambios" : "Crear / Asignar"}
-                </button>
+              {/* ===============================================================
+                  SECCIÓN HORARIOS POR EMPRESA (solo al editar evento global)
+                  =============================================================== */}
+              {editando?.tipo === "global" && fechaEventoIdActual && (
+                <HorariosEmpresaPanel
+                  fechaEventoId={fechaEventoIdActual}
+                  horariosEmpresa={horariosEmpresa}
+                  cargandoHorarios={cargandoHorarios}
+                  empresas={empresas}
+                  onGuardar={guardarHorarioEmpresa}
+                  onEliminar={eliminarHorarioEmpresa}
+                />
               )}
 
-              {/* Boton Eliminar solo si estamos editando algo existente */}
-              {(editando && editando.tipo) && (
-                <button
-                  className="danger"
-                  onClick={eliminar}
-                >
-                  Eliminar
-                </button>
-              )}
-
-              <button onClick={cerrar}>Cancelar</button>
             </div>
+
+            {/* Footer Fijo con Acciones */}
+            <div className="modal-footer">
+              <div className="modal-footer-left">
+                {(editando && editando.tipo) && (
+                  <button
+                    type="button"
+                    className="btn-danger-outline"
+                    onClick={eliminar}
+                    title="Eliminar este evento o asignación"
+                  >
+                    🗑️ Eliminar
+                  </button>
+                )}
+              </div>
+
+              <div className="modal-footer-right">
+                <button 
+                  type="button" 
+                  className="btn-secondary" 
+                  onClick={cerrar}
+                >
+                  Cancelar
+                </button>
+                {editando?.tipo !== "asignacion" && (
+                  <button 
+                    type="button" 
+                    className="btn-primary" 
+                    onClick={guardar}
+                  >
+                    💾 {editando ? "Guardar cambios" : "Crear / Asignar"}
+                  </button>
+                )}
+              </div>
+            </div>
+
           </div>
         </div>
       )}
@@ -2149,50 +2284,57 @@ function HorariosEmpresaPanel({ fechaEventoId, horariosEmpresa, cargandoHorarios
   };
 
   return (
-    <div style={{
-      marginTop: 16,
-      borderTop: "2px solid #e2e8f0",
-      paddingTop: 12,
-    }}>
-      <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "#0f172a", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-        🕐 Horarios individuales por empresa
-        <span style={{ fontWeight: 400, fontSize: "0.78rem", color: "#64748b" }}>
-          (visible solo en el portal de cada empresa)
+    <div className="modal-section-card">
+      <div className="modal-section-header">
+        <span className="modal-section-title">
+          <span>🕐</span> Horarios individuales por empresa
+        </span>
+        <span className="modal-badge-info">
+          Visible en portal de cada empresa
         </span>
       </div>
 
-      {cargandoHorarios && <p style={{ fontSize: "0.85rem", color: "#94a3b8" }}>Cargando...</p>}
+      {cargandoHorarios && <p style={{ fontSize: "0.82rem", color: "#94a3b8", margin: "4px 0" }}>Cargando horarios...</p>}
 
       {/* Lista de horarios ya asignados */}
       {horariosEmpresa.length > 0 && (
-        <div style={{ marginBottom: 10, display: "flex", flexDirection: "column", gap: 4 }}>
+        <div style={{ marginBottom: 12, display: "flex", flexDirection: "column", gap: 6 }}>
           {horariosEmpresa.map(h => (
             <div key={h.id} style={{
               display: "flex",
               alignItems: "center",
               gap: 8,
-              background: "#f0fdf4",
+              background: "#ffffff",
               border: "1px solid #bbf7d0",
-              borderRadius: 6,
-              padding: "4px 8px",
-              fontSize: "0.85rem"
+              borderRadius: 8,
+              padding: "6px 10px",
+              fontSize: "0.85rem",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
             }}>
-              <span style={{ fontWeight: 600, color: "#166534", minWidth: 80 }}>{h.empresa_nombre}</span>
-              <span style={{ color: "#0f172a" }}>⏰ {h.horario}</span>
-              {h.nota && <span style={{ color: "#64748b", fontStyle: "italic" }}>({h.nota})</span>}
+              <span style={{ fontWeight: 700, color: "#166534", minWidth: 90 }}>🏢 {h.empresa_nombre}</span>
+              <span style={{ color: "#0f172a", fontWeight: 600 }}>⏰ {h.horario}</span>
+              {h.nota && <span style={{ color: "#64748b", fontStyle: "italic", fontSize: "0.80rem" }}>({h.nota})</span>}
               <button
+                type="button"
                 onClick={() => onEliminar(h.id, fechaEventoId)}
                 style={{
                   marginLeft: "auto",
-                  background: "none",
+                  background: "#fee2e2",
                   border: "none",
+                  borderRadius: "50%",
+                  width: 24,
+                  height: 24,
                   cursor: "pointer",
-                  color: "#ef4444",
+                  color: "#dc2626",
                   fontWeight: 700,
-                  fontSize: "0.9rem",
-                  padding: "0 4px"
+                  fontSize: "0.75rem",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: 0,
+                  transition: "all 0.15s ease"
                 }}
-                title="Eliminar horario"
+                title="Eliminar este horario"
               >✕</button>
             </div>
           ))}
@@ -2200,49 +2342,66 @@ function HorariosEmpresaPanel({ fechaEventoId, horariosEmpresa, cargandoHorarios
       )}
 
       {/* Formulario para agregar/editar */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: 10 }}>
-        <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#475569" }}>Agregar / editar horario:</label>
+      <div style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+        background: "#ffffff",
+        border: "1px solid #e2e8f0",
+        borderRadius: 8,
+        padding: "10px 12px"
+      }}>
+        <label style={{ fontSize: "0.80rem", fontWeight: 700, color: "#475569", margin: 0 }}>
+          ➕ Agregar o modificar horario de empresa:
+        </label>
         <select
           value={empresaSeleccionada}
           onChange={handleEmpresaChange}
-          style={{ padding: "5px 8px", borderRadius: 5, border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+          className="form-input"
+          style={{ padding: "7px 10px", fontSize: "0.85rem" }}
         >
           <option value="">— Seleccionar empresa —</option>
           {empresas.map(emp => (
             <option key={emp.id} value={emp.id}>
               {emp.nombre}
-              {horariosEmpresa.find(h => h.empresa_id === emp.id) ? " ✓" : ""}
+              {horariosEmpresa.find(h => h.empresa_id === emp.id) ? " (ya asignado ✓)" : ""}
             </option>
           ))}
         </select>
-        <div style={{ display: "flex", gap: 6 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <input
             type="text"
             placeholder="Horario (ej: 10:00hs)"
             value={horarioInput}
             onChange={e => setHorarioInput(e.target.value)}
-            style={{ flex: 1, padding: "5px 8px", borderRadius: 5, border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+            className="form-input"
+            style={{ flex: "1 1 120px", padding: "7px 10px", fontSize: "0.85rem" }}
           />
           <input
             type="text"
-            placeholder="Nota (opcional)"
+            placeholder="Nota interna (opcional)"
             value={notaInput}
             onChange={e => setNotaInput(e.target.value)}
-            style={{ flex: 1, padding: "5px 8px", borderRadius: 5, border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+            className="form-input"
+            style={{ flex: "2 1 160px", padding: "7px 10px", fontSize: "0.85rem" }}
           />
           <button
+            type="button"
             onClick={handleGuardar}
             style={{
               background: "#16a34a",
               color: "white",
               border: "none",
-              borderRadius: 5,
-              padding: "5px 12px",
+              borderRadius: 7,
+              padding: "7px 14px",
               cursor: "pointer",
               fontWeight: 700,
-              fontSize: "0.85rem"
+              fontSize: "0.84rem",
+              boxShadow: "0 1px 3px rgba(22,163,74,0.3)"
             }}
-          >Guardar</button>
+          >
+            Guardar horario
+          </button>
         </div>
       </div>
     </div>
