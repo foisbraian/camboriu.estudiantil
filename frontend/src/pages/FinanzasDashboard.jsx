@@ -125,9 +125,28 @@ export default function FinanzasDashboard() {
                                     onMouseEnter={(e) => e.currentTarget.style.background = "#f8fafc"}
                                     onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                                 >
-                                    <td style={{ padding: "16px 20px", fontWeight: 700, color: "#1e293b" }}>{emp.nombre}</td>
-                                    <td style={{ padding: "16px 20px", color: "#334155" }}>{formatMoney(emp.total_venta, emp.moneda)}</td>
-                                    <td style={{ padding: "16px 20px", color: "#059669", fontWeight: 600 }}>{formatMoney(emp.total_pagado, emp.moneda)}</td>
+                                    <td style={{ padding: "16px 20px" }}>
+                                        <div style={{ fontWeight: 700, color: "#1e293b", fontSize: "1rem" }}>{emp.nombre}</div>
+                                        <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: 2 }}>
+                                            💱 1 USD = {emp.tasa_cambio || 5.3} BRL · Base {emp.moneda || "USD"}
+                                        </div>
+                                    </td>
+                                    <td style={{ padding: "16px 20px", color: "#334155" }}>
+                                        <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>{formatMoney(emp.total_venta, emp.moneda)}</div>
+                                        {(emp.total_venta_usd > 0 || emp.total_venta_brl > 0) && (
+                                            <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: 2 }}>
+                                                USD: {formatMoney(emp.total_venta_usd, "USD")} · BRL: {formatMoney(emp.total_venta_brl, "BRL")}
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td style={{ padding: "16px 20px", color: "#059669" }}>
+                                        <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>{formatMoney(emp.total_pagado, emp.moneda)}</div>
+                                        {(emp.total_pagado_usd > 0 || emp.total_pagado_brl > 0) && (
+                                            <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: 2 }}>
+                                                USD: {formatMoney(emp.total_pagado_usd, "USD")} · BRL: {formatMoney(emp.total_pagado_brl, "BRL")}
+                                            </div>
+                                        )}
+                                    </td>
                                     <td style={{ padding: "16px 20px", width: "250px" }}>
                                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                                             <div style={{ flex: 1, height: 8, background: "#e2e8f0", borderRadius: 4, overflow: "hidden" }}>

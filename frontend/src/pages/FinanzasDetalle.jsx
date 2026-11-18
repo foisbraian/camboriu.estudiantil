@@ -66,6 +66,9 @@ export default function FinanzasDetalle() {
     // Form para configuración
     const [configForm, setConfigForm] = useState({
         moneda: "USD",
+        moneda_liquidacion: "USD",
+        tasa_cambio: 5.3,
+        servicios_monedas: "{}",
         precio_disco_individual: 0,
         precio_disco_opcional: 0,
         precio_parque_individual: 0,
@@ -127,10 +130,136 @@ export default function FinanzasDetalle() {
 
     const [pagoForm, setPagoForm] = useState({
         monto: 0,
+        moneda: "USD",
+        tasa_cambio: 5.3,
         fecha: new Date().toLocaleDateString('en-CA'),
         metodo: "Transferencia",
         nota: "",
     });
+
+    const getServicioMoneda = (sKey) => {
+        try {
+            const map = typeof configForm.servicios_monedas === "string" 
+                ? JSON.parse(configForm.servicios_monedas || "{}") 
+                : (configForm.servicios_monedas || {});
+            return map[sKey] || configForm.moneda_liquidacion || "USD";
+        } catch {
+            return configForm.moneda_liquidacion || "USD";
+        }
+    };
+
+    const setServicioMoneda = (sKey, nuevaMoneda) => {
+        try {
+            const map = typeof configForm.servicios_monedas === "string" 
+                ? JSON.parse(configForm.servicios_monedas || "{}") 
+                : { ...(configForm.servicios_monedas || {}) };
+            map[sKey] = nuevaMoneda;
+            setConfigForm(prev => ({
+                ...prev,
+                servicios_monedas: JSON.stringify(map)
+            }));
+        } catch (e) {
+            console.error("Error setting servicio moneda", e);
+        }
+    };
+
+    // Componente reutilizable para definir el precio de un servicio con selector de moneda USD / BRL
+    const PrecioInput = ({ label, servicioKey, valueKey, extraContent = null, highlight = false }) => {
+        const monedaActual = getServicioMoneda(servicioKey);
+        const tasa = Number(configForm.tasa_cambio) > 0 ? Number(configForm.tasa_cambio) : 5.3;
+        const precioValor = Number(configForm[valueKey]) || 0;
+        
+        let conversionInfo = null;
+        if (precioValor > 0) {
+            if (monedaActual === "BRL") {
+                conversionInfo = `≈ US$ ${(precioValor / tasa).toFixed(2)}`;
+            } else if (monedaActual === "USD") {
+                conversionInfo = `≈ R$ ${(precioValor * tasa).toFixed(2)}`;
+            }
+        }
+
+        return (
+            <div style={{
+                padding: highlight ? 12 : 10,
+                background: highlight ? "#fef9c3" : "#f8fafc",
+                borderRadius: 8,
+                border: highlight ? "1px solid #fde68a" : "1px solid #e2e8f0",
+                display: "flex",
+                flexDirection: "column",
+                gap: 6
+            }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: "0.8rem", fontWeight: 600, color: highlight ? "#854d0e" : "#475569" }}>
+                        {label}
+                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                        <button
+                            type="button"
+                            onClick={() => setServicioMoneda(servicioKey, "USD")}
+                            style={{
+                                padding: "2px 7px",
+                                fontSize: "0.7rem",
+                                fontWeight: 700,
+                                borderRadius: 4,
+                                border: "1px solid",
+                                borderColor: monedaActual === "USD" ? "#2563eb" : "#cbd5e1",
+                                background: monedaActual === "USD" ? "#2563eb" : "#ffffff",
+                                color: monedaActual === "USD" ? "#ffffff" : "#64748b",
+                                cursor: "pointer"
+                            }}
+                        >
+                            USD
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setServicioMoneda(servicioKey, "BRL")}
+                            style={{
+                                padding: "2px 7px",
+                                fontSize: "0.7rem",
+                                fontWeight: 700,
+                                borderRadius: 4,
+                                border: "1px solid",
+                                borderColor: monedaActual === "BRL" ? "#16a34a" : "#cbd5e1",
+                                background: monedaActual === "BRL" ? "#16a34a" : "#ffffff",
+                                color: monedaActual === "BRL" ? "#ffffff" : "#64748b",
+                                cursor: "pointer"
+                            }}
+                        >
+                            BRL (R$)
+                        </button>
+                    </div>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: "0.85rem", fontWeight: 700, color: monedaActual === "BRL" ? "#16a34a" : "#2563eb", minWidth: 32 }}>
+                        {monedaActual === "BRL" ? "R$" : "US$"}
+                    </span>
+                    <input
+                        type="text"
+                        inputMode="decimal"
+                        value={configForm[valueKey] ?? 0}
+                        onChange={e => setConfigForm({ ...configForm, [valueKey]: parseDecimal(e.target.value) })}
+                        style={{
+                            width: "100%",
+                            padding: "6px 8px",
+                            borderRadius: 6,
+                            border: highlight ? "1px solid #facc15" : "1px solid #cbd5e1",
+                            background: "white",
+                            fontSize: "0.9rem"
+                        }}
+                    />
+                </div>
+
+                {conversionInfo && (
+                    <span style={{ fontSize: "0.72rem", color: "#64748b", textAlign: "right" }}>
+                        {conversionInfo} (tasa {tasa})
+                    </span>
+                )}
+
+                {extraContent}
+            </div>
+        );
+    };
 
     // Componente helper para inputs de liberados
     const LiberadosInputs = ({ prefix, label }) => (
@@ -172,7 +301,20 @@ export default function FinanzasDetalle() {
             setResumen(resR.data);
             const cfg = resR.data.config || {};
             const normalizedMoneda = cfg.moneda === "ARS" ? "USD" : (cfg.moneda || "USD");
-            setConfigForm({ ...cfg, moneda: normalizedMoneda });
+            const normalizedMonedaLiq = cfg.moneda_liquidacion === "ARS" ? "USD" : (cfg.moneda_liquidacion || normalizedMoneda);
+            const tasaDef = cfg.tasa_cambio ? Number(cfg.tasa_cambio) : 5.3;
+            setConfigForm({
+                ...cfg,
+                moneda: normalizedMoneda,
+                moneda_liquidacion: normalizedMonedaLiq,
+                tasa_cambio: tasaDef,
+                servicios_monedas: cfg.servicios_monedas || "{}"
+            });
+
+            setPagoForm(prev => ({
+                ...prev,
+                tasa_cambio: tasaDef
+            }));
 
             const resP = await api.get(`/finanzas/pagos/${id}`);
             setPagos(resP.data);
@@ -204,8 +346,14 @@ export default function FinanzasDetalle() {
     }, [resumen]);
 
     async function guardarConfig() {
-        await api.post("/finanzas/config", { ...configForm, empresa_id: Number(id) });
-        alert("Configuración guardada");
+        await api.post("/finanzas/config", {
+            ...configForm,
+            empresa_id: Number(id),
+            tasa_cambio: Number(configForm.tasa_cambio) || 5.3,
+            moneda_liquidacion: configForm.moneda_liquidacion || "USD",
+            moneda: configForm.moneda_liquidacion || configForm.moneda || "USD"
+        });
+        alert("Configuración de precios y monedas guardada con éxito");
         cargarTodo();
     }
 
@@ -235,9 +383,21 @@ export default function FinanzasDetalle() {
 
     async function registrarPago(e) {
         e.preventDefault();
-        await api.post("/finanzas/pagos", { ...pagoForm, empresa_id: Number(id) });
-        setPagoForm({ monto: 0, fecha: new Date().toLocaleDateString('en-CA'), metodo: "Transferencia", nota: "" });
-        alert("Pago registrado");
+        const tasa = Number(pagoForm.tasa_cambio) > 0 ? Number(pagoForm.tasa_cambio) : (Number(configForm.tasa_cambio) || 5.3);
+        await api.post("/finanzas/pagos", {
+            ...pagoForm,
+            empresa_id: Number(id),
+            tasa_cambio: tasa
+        });
+        setPagoForm({
+            monto: 0,
+            moneda: "USD",
+            tasa_cambio: tasa,
+            fecha: new Date().toLocaleDateString('en-CA'),
+            metodo: "Transferencia",
+            nota: ""
+        });
+        alert("Pago registrado con éxito");
         cargarTodo();
     }
 
@@ -277,24 +437,25 @@ export default function FinanzasDetalle() {
         cargarTodo();
     }
 
-    const formatMoney = (val) => {
-        const monedaRaw = (configForm && configForm.moneda) ? configForm.moneda : "USD";
-        const moneda = monedaRaw === "ARS" ? "USD" : monedaRaw;
+    const formatMoney = (val, monedaEspecífica) => {
+        const monedaRaw = monedaEspecífica || (resumen && resumen.moneda_liquidacion) || (configForm && configForm.moneda_liquidacion) || (configForm && configForm.moneda) || "USD";
+        const moneda = (monedaRaw === "ARS" || !monedaRaw) ? "USD" : monedaRaw;
         return new Intl.NumberFormat("es-AR", { 
             style: "currency", 
             currency: moneda, 
-            minimumFractionDigits: 0,
+            minimumFractionDigits: 2,
             maximumFractionDigits: 2 
         }).format(val || 0);
     };
 
     if (!resumen) return <div style={{ padding: 40 }}>Cargando datos...</div>;
 
-    const totalConDescuento = resumen.total_venta * (1 - descuento / 100);
-    const saldoFinal = totalConDescuento - resumen.total_pagado;
+    const tasaEmpresa = (resumen && Number(resumen.tasa_cambio) > 0) ? Number(resumen.tasa_cambio) : (Number(configForm.tasa_cambio) > 0 ? Number(configForm.tasa_cambio) : 5.3);
+    const totalConDescuento = (resumen?.total_venta || 0) * (1 - descuento / 100);
+    const saldoFinal = totalConDescuento - (resumen?.total_pagado || 0);
 
     return (
-        <div style={{ padding: "40px 20px", maxWidth: "1000px" }}>
+        <div style={{ padding: "40px 20px", maxWidth: "1050px" }}>
             <button
                 onClick={() => navigate("/finanzas")}
                 style={{ background: "none", border: "none", color: "#2563eb", cursor: "pointer", fontWeight: 700, marginBottom: 20 }}
@@ -302,303 +463,254 @@ export default function FinanzasDetalle() {
                 ← Volver al Dashboard
             </button>
 
-            <h1 style={{ color: "#1e293b", marginBottom: 30 }}>Finanzas: <span style={{ color: "#2563eb" }}>{resumen.empresa}</span></h1>
+            <h1 style={{ color: "#1e293b", marginBottom: 25 }}>Finanzas: <span style={{ color: "#2563eb" }}>{resumen.empresa}</span></h1>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 30, marginBottom: 40 }}>
                 {/* CONFIGURACIÓN DE PRECIOS */}
                 <div style={{ background: "white", padding: 25, borderRadius: 12, boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" }}>
-                    <h3 style={{ marginTop: 0, marginBottom: 20 }}>⚙️ Configuración de Precios</h3>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 15 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-                            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontWeight: 600 }}>
-                                <input
-                                    type="checkbox"
-                                    checked={configForm.es_combo}
-                                    onChange={e => setConfigForm({ ...configForm, es_combo: e.target.checked })}
-                                />
-                                Manejar por COMBO
-                            </label>
-
-                            <label style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 600 }}>
-                                Moneda:
+                    <h3 style={{ marginTop: 0, marginBottom: 15 }}>⚙️ Configuración de Precios y Monedas</h3>
+                    
+                    {/* PANEL DE MONEDA BASE Y TASA DE CAMBIO */}
+                    <div style={{ padding: 14, background: "#f1f5f9", borderRadius: 10, border: "1px solid #cbd5e1", marginBottom: 20, display: "flex", flexDirection: "column", gap: 12 }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                            <div>
+                                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
+                                    Moneda de Liquidación:
+                                </span>
                                 <select 
-                                    value={configForm.moneda} 
-                                    onChange={e => setConfigForm({ ...configForm, moneda: e.target.value })}
-                                    style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #cbd5e1" }}
+                                    value={configForm.moneda_liquidacion || configForm.moneda || "USD"} 
+                                    onChange={e => setConfigForm({ ...configForm, moneda_liquidacion: e.target.value, moneda: e.target.value })}
+                                    style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: "1px solid #cbd5e1", background: "white", fontWeight: 700, fontSize: "0.85rem" }}
                                 >
-                                    <option value="USD">USD (US$)</option>
-                                    <option value="BRL">BRL (R$)</option>
+                                    <option value="USD">USD (Dólares US$)</option>
+                                    <option value="BRL">BRL (Reales R$)</option>
                                 </select>
-                            </label>
+                                <small style={{ fontSize: "0.7rem", color: "#64748b", display: "block", marginTop: 2 }}>
+                                    Moneda del balance consolidado final.
+                                </small>
+                            </div>
+
+                            <div>
+                                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
+                                    💱 Tasa de Cambio Pactada:
+                                </span>
+                                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                    <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#2563eb" }}>1 USD =</span>
+                                    <input
+                                        type="text" inputMode="decimal"
+                                        value={configForm.tasa_cambio ?? 5.3}
+                                        onChange={e => setConfigForm({ ...configForm, tasa_cambio: parseDecimal(e.target.value) })}
+                                        placeholder="5.30"
+                                        style={{ width: "100%", padding: "6px 8px", borderRadius: 6, border: "1px solid #2563eb", background: "white", fontWeight: 800, color: "#1e40af", fontSize: "0.95rem" }}
+                                    />
+                                    <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#16a34a" }}>BRL</span>
+                                </div>
+                                <small style={{ fontSize: "0.7rem", color: "#64748b", display: "block", marginTop: 2 }}>
+                                    Convierte servicios y pagos en Reales.
+                                </small>
+                            </div>
                         </div>
 
+                        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontWeight: 600, fontSize: "0.85rem", color: "#1e293b" }}>
+                            <input
+                                type="checkbox"
+                                checked={configForm.es_combo}
+                                onChange={e => setConfigForm({ ...configForm, es_combo: e.target.checked })}
+                            />
+                            Manejar servicios principales por paquete COMBO
+                        </label>
+                    </div>
+
+                    <div style={{ display: "flex", flexDirection: "column", gap: 15 }}>
                         {!configForm.es_combo ? (
-                            <div style={{ padding: 15, background: "#f8fafc", borderRadius: 8, display: "flex", flexDirection: "column", gap: 10 }}>
-                                <div>
-                                    <p style={{ margin: "0 0 4px 0", fontSize: "0.8rem", color: "#64748b" }}>Precio Discoteca (Indiv.)</p>
-                                    <input
-                                        type="text" inputMode="decimal"
-                                        value={configForm.precio_disco_individual}
-                                        onChange={e => setConfigForm({ ...configForm, precio_disco_individual: parseDecimal(e.target.value) })}
-                                        style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
-                                    />
-                                    <LiberadosInputs prefix="disco" label="Disco" />
-                                </div>
-                                <div style={{ padding: 12, background: "#fef9c3", borderRadius: 8, border: "1px solid #fde68a" }}>
-                                    <p style={{ margin: "0 0 4px 0", fontSize: "0.82rem", fontWeight: 700, color: "#854d0e" }}>🌟 Precio Noche Opcional (Discoteca)</p>
-                                    <input
-                                        type="text" inputMode="decimal"
-                                        value={configForm.precio_disco_opcional ?? 0}
-                                        onChange={e => setConfigForm({ ...configForm, precio_disco_opcional: parseDecimal(e.target.value) })}
-                                        style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #facc15" }}
-                                        placeholder="0"
-                                    />
-                                    <small style={{ color: "#a16207", fontSize: "0.75rem", display: "block", marginTop: 4 }}>
-                                        Precio diferenciado para las noches vendidas como compra opcional.
-                                    </small>
-                                </div>
-                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                                    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                                    <p style={{ margin: "0 0 4px 0", fontSize: "0.8rem", color: "#64748b" }}>Precio Parque</p>
-                                    <input
-                                        type="text" inputMode="decimal"
-                                        value={configForm.precio_parque_individual}
-                                        onChange={e => setConfigForm({ ...configForm, precio_parque_individual: parseDecimal(e.target.value) })}
-                                        style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
-                                    />
-                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
-                                        <div>
-                                            <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Con comida</p>
-                                            <input
-                                                type="text" inputMode="decimal"
-                                                value={configForm.precio_parque_con_comida}
-                                                onChange={e => setConfigForm({ ...configForm, precio_parque_con_comida: parseDecimal(e.target.value) })}
-                                                style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
-                                            />
-                                        </div>
-                                        <div>
-                                            <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Sin comida</p>
-                                            <input
-                                                type="text" inputMode="decimal"
-                                                value={configForm.precio_parque_sin_comida}
-                                                onChange={e => setConfigForm({ ...configForm, precio_parque_sin_comida: parseDecimal(e.target.value) })}
-                                                style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
-                                            />
-                                        </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                                <PrecioInput
+                                    label="Discoteca Individual"
+                                    servicioKey="disco"
+                                    valueKey="precio_disco_individual"
+                                    extraContent={<LiberadosInputs prefix="disco" label="Disco" />}
+                                />
+
+                                <PrecioInput
+                                    label="🌟 Noche Opcional (Discoteca)"
+                                    servicioKey="disco_opcional"
+                                    valueKey="precio_disco_opcional"
+                                    highlight={true}
+                                />
+
+                                {/* Parque */}
+                                <div style={{ padding: 12, background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+                                    <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: 8 }}>
+                                        🎡 Parque Acuático
+                                    </span>
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                                        <PrecioInput
+                                            label="Con Comida"
+                                            servicioKey="parque_con_comida"
+                                            valueKey="precio_parque_con_comida"
+                                        />
+                                        <PrecioInput
+                                            label="Sin Comida"
+                                            servicioKey="parque_sin_comida"
+                                            valueKey="precio_parque_sin_comida"
+                                        />
                                     </div>
                                     <LiberadosInputs prefix="parque" label="Parque" />
                                 </div>
 
-                                    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                                    <p style={{ margin: "0 0 4px 0", fontSize: "0.8rem", color: "#64748b" }}>Precio Campamento Americano</p>
-                                    <input
-                                        type="text" inputMode="decimal"
-                                        value={configForm.precio_campamento_individual || 0}
-                                        onChange={e => setConfigForm({ ...configForm, precio_campamento_individual: parseDecimal(e.target.value) })}
-                                        style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
-                                    />
-                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
-                                        <div>
-                                            <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Con comida</p>
-                                            <input
-                                                type="text" inputMode="decimal"
-                                                value={configForm.precio_campamento_con_comida || 0}
-                                                onChange={e => setConfigForm({ ...configForm, precio_campamento_con_comida: parseDecimal(e.target.value) })}
-                                                style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
-                                            />
-                                        </div>
-                                        <div>
-                                            <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Sin comida</p>
-                                            <input
-                                                type="text" inputMode="decimal"
-                                                value={configForm.precio_campamento_sin_comida || 0}
-                                                onChange={e => setConfigForm({ ...configForm, precio_campamento_sin_comida: parseDecimal(e.target.value) })}
-                                                style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
-                                            />
-                                        </div>
+                                {/* Campamento */}
+                                <div style={{ padding: 12, background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+                                    <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: 8 }}>
+                                        🏕️ Campamento Americano
+                                    </span>
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                                        <PrecioInput
+                                            label="Con Comida"
+                                            servicioKey="campamento_con_comida"
+                                            valueKey="precio_campamento_con_comida"
+                                        />
+                                        <PrecioInput
+                                            label="Sin Comida"
+                                            servicioKey="campamento_sin_comida"
+                                            valueKey="precio_campamento_sin_comida"
+                                        />
                                     </div>
                                     <LiberadosInputs prefix="campamento" label="Campamento" />
                                 </div>
 
-                                    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                                    <p style={{ margin: "0 0 4px 0", fontSize: "0.8rem", color: "#64748b" }}>Precio Zacarias</p>
-                                    <input
-                                        type="text" inputMode="decimal"
-                                        value={configForm.precio_zacarias_individual || 0}
-                                        onChange={e => setConfigForm({ ...configForm, precio_zacarias_individual: parseDecimal(e.target.value) })}
-                                        style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
-                                    />
-                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
-                                        <div>
-                                            <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Con comida</p>
-                                            <input
-                                                type="text" inputMode="decimal"
-                                                value={configForm.precio_zacarias_con_comida || 0}
-                                                onChange={e => setConfigForm({ ...configForm, precio_zacarias_con_comida: parseDecimal(e.target.value) })}
-                                                style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
-                                            />
-                                        </div>
-                                        <div>
-                                            <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Sin comida</p>
-                                            <input
-                                                type="text" inputMode="decimal"
-                                                value={configForm.precio_zacarias_sin_comida || 0}
-                                                onChange={e => setConfigForm({ ...configForm, precio_zacarias_sin_comida: parseDecimal(e.target.value) })}
-                                                style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
-                                            />
-                                        </div>
+                                {/* Zacarias */}
+                                <div style={{ padding: 12, background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+                                    <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: 8 }}>
+                                        🌲 Zacarias
+                                    </span>
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                                        <PrecioInput
+                                            label="Con Comida"
+                                            servicioKey="zacarias_con_comida"
+                                            valueKey="precio_zacarias_con_comida"
+                                        />
+                                        <PrecioInput
+                                            label="Sin Comida"
+                                            servicioKey="zacarias_sin_comida"
+                                            valueKey="precio_zacarias_sin_comida"
+                                        />
                                     </div>
                                     <LiberadosInputs prefix="zacarias" label="Zacarias" />
                                 </div>
 
-                                    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                                        <p style={{ margin: "0 0 4px 0", fontSize: "0.8rem", color: "#64748b" }}>Precio Pool</p>
-                                        <input
-                                            type="text" inputMode="decimal"
-                                            value={configForm.precio_pool_individual}
-                                            onChange={e => setConfigForm({ ...configForm, precio_pool_individual: parseDecimal(e.target.value) })}
-                                            style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
+                                {/* Pool / Water */}
+                                <div style={{ padding: 12, background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+                                    <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "#334155", display: "block", marginBottom: 8 }}>
+                                        🏊 Pool / Water Park
+                                    </span>
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                                        <PrecioInput
+                                            label="Con Comida"
+                                            servicioKey="pool_con_comida"
+                                            valueKey="precio_pool_con_comida"
                                         />
-                                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
-                                            <div>
-                                                <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Con comida</p>
-                                                <input
-                                                    type="text" inputMode="decimal"
-                                                    value={configForm.precio_pool_con_comida}
-                                                    onChange={e => setConfigForm({ ...configForm, precio_pool_con_comida: parseDecimal(e.target.value) })}
-                                                    style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
-                                                />
-                                            </div>
-                                            <div>
-                                                <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Sin comida</p>
-                                                <input
-                                                    type="text" inputMode="decimal"
-                                                    value={configForm.precio_pool_sin_comida}
-                                                    onChange={e => setConfigForm({ ...configForm, precio_pool_sin_comida: parseDecimal(e.target.value) })}
-                                                    style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
-                                                />
-                                            </div>
-                                        </div>
-                                        <LiberadosInputs prefix="pool" label="Pool" />
+                                        <PrecioInput
+                                            label="Sin Comida"
+                                            servicioKey="pool_sin_comida"
+                                            valueKey="precio_pool_sin_comida"
+                                        />
                                     </div>
+                                    <LiberadosInputs prefix="pool" label="Pool" />
                                 </div>
-                                <div style={{ padding: 15, background: "#fefce8", borderRadius: 8 }}>
-                                    <p style={{ margin: "0 0 6px 0", fontSize: "0.8rem", color: "#92400e" }}>Cena de velas</p>
-                                    <input
-                                        type="text" inputMode="decimal"
-                                        value={configForm.precio_cena_velas}
-                                        onChange={e => setConfigForm({ ...configForm, precio_cena_velas: parseDecimal(e.target.value) })}
-                                        style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #fcd34d" }}
+
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                                    <PrecioInput
+                                        label="Cena de Velas"
+                                        servicioKey="cena"
+                                        valueKey="precio_cena_velas"
+                                    />
+                                    <PrecioInput
+                                        label="Bar de Hielo"
+                                        servicioKey="hielo"
+                                        valueKey="precio_bar_hielo"
                                     />
                                 </div>
-                                <div style={{ padding: 15, background: "#eff6ff", borderRadius: 8 }}>
-                                    <p style={{ margin: "0 0 6px 0", fontSize: "0.8rem", color: "#1d4ed8" }}>Bar de hielo</p>
-                                    <input
-                                        type="text" inputMode="decimal"
-                                        value={configForm.precio_bar_hielo}
-                                        onChange={e => setConfigForm({ ...configForm, precio_bar_hielo: parseDecimal(e.target.value) })}
-                                        style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #bfdbfe" }}
-                                    />
-                                </div>
-                                <div style={{ padding: 15, background: "#fef3c7", borderRadius: 8 }}>
-                                    <p style={{ margin: "0 0 8px 0", fontSize: "0.85rem", fontWeight: 700, color: "#92400e" }}>🍽️ Almuerzos y Cenas (Restaurantes)</p>
-                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                                        <div>
-                                            <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Precio Almuerzo / pax</p>
-                                            <input
-                                                type="text" inputMode="decimal"
-                                                value={configForm.precio_almuerzo ?? 0}
-                                                onChange={e => setConfigForm({ ...configForm, precio_almuerzo: parseDecimal(e.target.value) })}
-                                                style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #fcd34d" }}
-                                            />
-                                        </div>
-                                        <div>
-                                            <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>Precio Cena / pax</p>
-                                            <input
-                                                type="text" inputMode="decimal"
-                                                value={configForm.precio_cena ?? 0}
-                                                onChange={e => setConfigForm({ ...configForm, precio_cena: parseDecimal(e.target.value) })}
-                                                style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #fcd34d" }}
-                                            />
-                                        </div>
+
+                                {/* Almuerzos y Cenas */}
+                                <div style={{ padding: 12, background: "#fef3c7", borderRadius: 8, border: "1px solid #fde68a" }}>
+                                    <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "#92400e", display: "block", marginBottom: 8 }}>
+                                        🍽️ Almuerzos y Cenas (Restaurantes)
+                                    </span>
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                                        <PrecioInput
+                                            label="Almuerzo / pax"
+                                            servicioKey="almuerzo"
+                                            valueKey="precio_almuerzo"
+                                        />
+                                        <PrecioInput
+                                            label="Cena / pax"
+                                            servicioKey="cena_restaurante"
+                                            valueKey="precio_cena"
+                                        />
                                     </div>
                                 </div>
-                                <div style={{ padding: 15, background: "#f0fdf4", borderRadius: 8 }}>
-                                    <p style={{ margin: "0 0 8px 0", fontSize: "0.85rem", fontWeight: 700, color: "#166534" }}>🏄 Actividades Adicionales</p>
-                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                                        {[
-                                            { key: "precio_surf", label: "Surf" },
-                                            { key: "precio_unipraias", label: "Parque Unipraias" },
-                                            { key: "precio_beto", label: "Beto Carrero" },
-                                            { key: "precio_barco", label: "Barco Pirata" },
-                                            { key: "precio_cristo", label: "Cristo Luz" },
-                                            { key: "precio_sunset", label: "Sunset" },
-                                            { key: "precio_quinta_comida", label: "Quinta Comida" },
-                                            { key: "precio_multiparque", label: "Multiparque" },
-                                        ].map(({ key, label }) => (
-                                            <div key={key}>
-                                                <p style={{ margin: "0 0 4px 0", fontSize: "0.75rem", color: "#64748b" }}>{label}</p>
-                                                <input
-                                                    type="text" inputMode="decimal"
-                                                    value={configForm[key]}
-                                                    onChange={e => setConfigForm({ ...configForm, [key]: parseDecimal(e.target.value) })}
-                                                    style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #bbf7d0" }}
-                                                />
-                                            </div>
-                                        ))}
+
+                                {/* Actividades adicionales */}
+                                <div style={{ padding: 12, background: "#f0fdf4", borderRadius: 8, border: "1px solid #bbf7d0" }}>
+                                    <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "#166534", display: "block", marginBottom: 8 }}>
+                                        🏄 Paseos y Actividades Adicionales
+                                    </span>
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                                        <PrecioInput label="Surf" servicioKey="surf" valueKey="precio_surf" />
+                                        <PrecioInput label="Parque Unipraias" servicioKey="unipraias" valueKey="precio_unipraias" />
+                                        <PrecioInput label="Beto Carrero" servicioKey="beto" valueKey="precio_beto" />
+                                        <PrecioInput label="Barco Pirata" servicioKey="barco" valueKey="precio_barco" />
+                                        <PrecioInput label="Cristo Luz" servicioKey="cristo" valueKey="precio_cristo" />
+                                        <PrecioInput label="Sunset" servicioKey="sunset" valueKey="precio_sunset" />
+                                        <PrecioInput label="Quinta Comida" servicioKey="quinta_comida" valueKey="precio_quinta_comida" />
+                                        <PrecioInput label="Multiparque" servicioKey="multiparque" valueKey="precio_multiparque" />
                                     </div>
                                 </div>
                             </div>
                         ) : (
-                            <div style={{ padding: 15, background: "#f0fdf4", borderRadius: 8, display: "flex", flexDirection: "column", gap: 10 }}>
-                                <div>
-                                    <p style={{ margin: "0 0 8px 0", fontSize: "0.85rem", color: "#166534" }}>Precio Total del Combo</p>
-                                    <input
-                                        type="text" inputMode="decimal"
-                                        value={configForm.precio_combo}
-                                        onChange={e => setConfigForm({ ...configForm, precio_combo: parseDecimal(e.target.value) })}
-                                        style={{ width: "100%", padding: 10, borderRadius: 6, border: "1px solid #bbf7d0" }}
-                                    />
-                                </div>
-                                <div style={{ display: "flex", gap: 15, fontSize: "0.85rem", flexWrap: "wrap" }}>
-                                    <input
-                                        type="text" inputMode="decimal"
-                                        placeholder="Cant. Discos"
-                                        value={configForm.combo_discos}
-                                        onChange={e => setConfigForm({ ...configForm, combo_discos: parseDecimal(e.target.value) })}
-                                        style={{ width: 80, padding: 5 }}
-                                    />
+                            <div style={{ padding: 15, background: "#f0fdf4", borderRadius: 8, display: "flex", flexDirection: "column", gap: 12 }}>
+                                <PrecioInput
+                                    label="Precio Total del Combo"
+                                    servicioKey="combo"
+                                    valueKey="precio_combo"
+                                />
+
+                                <div style={{ display: "flex", gap: 15, fontSize: "0.85rem", flexWrap: "wrap", padding: 10, background: "white", borderRadius: 6, border: "1px solid #bbf7d0" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                        <span style={{ fontSize: "0.75rem", fontWeight: 600 }}>Cant. Discos:</span>
+                                        <input
+                                            type="text" inputMode="decimal"
+                                            value={configForm.combo_discos}
+                                            onChange={e => setConfigForm({ ...configForm, combo_discos: parseDecimal(e.target.value) })}
+                                            style={{ width: 60, padding: 4, borderRadius: 4, border: "1px solid #cbd5e1" }}
+                                        />
+                                    </div>
                                     <label><input type="checkbox" checked={configForm.combo_parque} onChange={e => setConfigForm({ ...configForm, combo_parque: e.target.checked })} /> Parque</label>
                                     <label><input type="checkbox" checked={configForm.combo_pool} onChange={e => setConfigForm({ ...configForm, combo_pool: e.target.checked })} /> Pool</label>
                                     <label><input type="checkbox" checked={configForm.combo_cena_velas} onChange={e => setConfigForm({ ...configForm, combo_cena_velas: e.target.checked })} /> Cena</label>
-                                    <label><input type="checkbox" checked={configForm.combo_bar_hielo} onChange={e => setConfigForm({ ...configForm, combo_bar_hielo: e.target.checked })} /> Bar de hielo</label>
+                                    <label><input type="checkbox" checked={configForm.combo_bar_hielo} onChange={e => setConfigForm({ ...configForm, combo_bar_hielo: e.target.checked })} /> Bar hielo</label>
                                     <label><input type="checkbox" checked={configForm.combo_surf} onChange={e => setConfigForm({ ...configForm, combo_surf: e.target.checked })} /> Surf</label>
                                     <label><input type="checkbox" checked={configForm.combo_unipraias} onChange={e => setConfigForm({ ...configForm, combo_unipraias: e.target.checked })} /> Unipraias</label>
                                     <label><input type="checkbox" checked={configForm.combo_beto} onChange={e => setConfigForm({ ...configForm, combo_beto: e.target.checked })} /> Beto Carrero</label>
                                     <label><input type="checkbox" checked={configForm.combo_barco} onChange={e => setConfigForm({ ...configForm, combo_barco: e.target.checked })} /> Barco Pirata</label>
                                     <label><input type="checkbox" checked={configForm.combo_cristo} onChange={e => setConfigForm({ ...configForm, combo_cristo: e.target.checked })} /> Cristo Luz</label>
                                     <label><input type="checkbox" checked={configForm.combo_sunset} onChange={e => setConfigForm({ ...configForm, combo_sunset: e.target.checked })} /> Sunset</label>
-                                    <label><input type="checkbox" checked={configForm.combo_quinta_comida || false} onChange={e => setConfigForm({ ...configForm, combo_quinta_comida: e.target.checked })} /> Quinta Comida</label>
+                                    <label><input type="checkbox" checked={configForm.combo_quinta_comida || false} onChange={e => setConfigForm({ ...configForm, combo_quinta_comida: e.target.checked })} /> 5ta Comida</label>
                                     <label><input type="checkbox" checked={configForm.combo_multiparque || false} onChange={e => setConfigForm({ ...configForm, combo_multiparque: e.target.checked })} /> Multiparque</label>
                                 </div>
                                 <LiberadosInputs prefix="disco" label="Combo (Basado en Disco)" />
-                                <div style={{ padding: 12, background: "#fef9c3", borderRadius: 8, border: "1px solid #fde68a", marginTop: 8 }}>
-                                    <p style={{ margin: "0 0 4px 0", fontSize: "0.82rem", fontWeight: 700, color: "#854d0e" }}>🌟 Precio Noche Opcional (Discoteca Fuera de Combo)</p>
-                                    <input
-                                        type="text" inputMode="decimal"
-                                        value={configForm.precio_disco_opcional ?? 0}
-                                        onChange={e => setConfigForm({ ...configForm, precio_disco_opcional: parseDecimal(e.target.value) })}
-                                        style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #facc15" }}
-                                        placeholder="0"
-                                    />
-                                    <small style={{ color: "#a16207", fontSize: "0.75rem", display: "block", marginTop: 4 }}>
-                                        Se factura aparte del combo cuando un grupo compra noches extras opcionales.
-                                    </small>
-                                </div>
+
+                                <PrecioInput
+                                    label="🌟 Precio Noche Opcional (Fuera de Combo)"
+                                    servicioKey="disco_opcional"
+                                    valueKey="precio_disco_opcional"
+                                    highlight={true}
+                                />
                             </div>
                         )}
-                        <button onClick={guardarConfig} style={{ padding: 12, background: "#1e293b", color: "white", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 700 }}>
-                            Actualizar Precios
+
+                        <button onClick={guardarConfig} style={{ padding: 12, background: "#1e293b", color: "white", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: "0.95rem" }}>
+                            💾 Guardar Configuración de Precios y Monedas
                         </button>
                     </div>
                 </div>
@@ -689,41 +801,101 @@ export default function FinanzasDetalle() {
 
                 {/* REGISTRO DE PAGOS */}
                 <div style={{ background: "white", padding: 25, borderRadius: 12, boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" }}>
-                    <h3 style={{ marginTop: 0, marginBottom: 20 }}>💸 Registrar Pago</h3>
-                    <form onSubmit={registrarPago} style={{ display: "flex", flexDirection: "column", gap: 15 }}>
-                        <input
-                            type="text" inputMode="decimal"
-                            placeholder="Monto $"
-                            value={pagoForm.monto || ""}
-                            onChange={e => setPagoForm({ ...pagoForm, monto: parseDecimal(e.target.value) })}
-                            required
-                            style={{ padding: 10, borderRadius: 6, border: "1px solid #cbd5e1" }}
-                        />
-                        <input
-                            type="date"
-                            value={pagoForm.fecha}
-                            onChange={e => setPagoForm({ ...pagoForm, fecha: e.target.value })}
-                            required
-                            style={{ padding: 10, borderRadius: 6, border: "1px solid #cbd5e1" }}
-                        />
-                        <select
-                            value={pagoForm.metodo}
-                            onChange={e => setPagoForm({ ...pagoForm, metodo: e.target.value })}
-                            style={{ padding: 10, borderRadius: 6, border: "1px solid #cbd5e1" }}
-                        >
-                            <option>Transferencia</option>
-                            <option>Efectivo</option>
-                            <option>Cheque</option>
-                        </select>
+                    <h3 style={{ marginTop: 0, marginBottom: 15 }}>💸 Registrar Pago</h3>
+                    <form onSubmit={registrarPago} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 10 }}>
+                            <div>
+                                <label style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 700, display: "block", marginBottom: 4 }}>
+                                    Monto Recibido:
+                                </label>
+                                <input
+                                    type="text" inputMode="decimal"
+                                    placeholder="0.00"
+                                    value={pagoForm.monto || ""}
+                                    onChange={e => setPagoForm({ ...pagoForm, monto: parseDecimal(e.target.value) })}
+                                    required
+                                    style={{ width: "100%", padding: 10, borderRadius: 6, border: "1px solid #cbd5e1", boxSizing: "border-box", fontWeight: 700, fontSize: "1rem" }}
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 700, display: "block", marginBottom: 4 }}>
+                                    Moneda del Pago:
+                                </label>
+                                <select
+                                    value={pagoForm.moneda || "USD"}
+                                    onChange={e => setPagoForm({ ...pagoForm, moneda: e.target.value })}
+                                    style={{ width: "100%", padding: 10, borderRadius: 6, border: "1px solid #cbd5e1", boxSizing: "border-box", background: "white", fontWeight: 700 }}
+                                >
+                                    <option value="USD">USD (US$ Dólares)</option>
+                                    <option value="BRL">BRL (R$ Reales)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {pagoForm.moneda === "BRL" && (
+                            <div style={{ padding: 10, background: "#f0fdf4", borderRadius: 8, border: "1px solid #bbf7d0" }}>
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                                    <label style={{ fontSize: "0.78rem", color: "#166534", fontWeight: 700 }}>
+                                        Tasa de cambio para este pago:
+                                    </label>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                        <span style={{ fontSize: "0.75rem", color: "#166534" }}>1 USD =</span>
+                                        <input
+                                            type="text" inputMode="decimal"
+                                            value={pagoForm.tasa_cambio ?? tasaEmpresa}
+                                            onChange={e => setPagoForm({ ...pagoForm, tasa_cambio: parseDecimal(e.target.value) })}
+                                            style={{ width: 65, padding: "4px 6px", borderRadius: 4, border: "1px solid #86efac", fontWeight: 700, textAlign: "center" }}
+                                        />
+                                    </div>
+                                </div>
+                                {Number(pagoForm.monto) > 0 && (
+                                    <div style={{ marginTop: 6, fontSize: "0.85rem", color: "#15803d", fontWeight: 700 }}>
+                                        💰 Cierra la cuenta como: US$ {(Number(pagoForm.monto) / (Number(pagoForm.tasa_cambio) > 0 ? Number(pagoForm.tasa_cambio) : tasaEmpresa)).toFixed(2)}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                            <div>
+                                <label style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 700, display: "block", marginBottom: 4 }}>
+                                    Fecha:
+                                </label>
+                                <input
+                                    type="date"
+                                    value={pagoForm.fecha}
+                                    onChange={e => setPagoForm({ ...pagoForm, fecha: e.target.value })}
+                                    required
+                                    style={{ width: "100%", padding: 10, borderRadius: 6, border: "1px solid #cbd5e1", boxSizing: "border-box" }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 700, display: "block", marginBottom: 4 }}>
+                                    Método:
+                                </label>
+                                <select
+                                    value={pagoForm.metodo}
+                                    onChange={e => setPagoForm({ ...pagoForm, metodo: e.target.value })}
+                                    style={{ width: "100%", padding: 10, borderRadius: 6, border: "1px solid #cbd5e1", boxSizing: "border-box", background: "white" }}
+                                >
+                                    <option>Transferencia</option>
+                                    <option>Pix</option>
+                                    <option>Efectivo</option>
+                                    <option>Cheque</option>
+                                </select>
+                            </div>
+                        </div>
+
                         <input
                             type="text"
-                            placeholder="Nota / Observación"
+                            placeholder="Nota / Observación (ej: Depósito bancario, seña, etc.)"
                             value={pagoForm.nota}
                             onChange={e => setPagoForm({ ...pagoForm, nota: e.target.value })}
                             style={{ padding: 10, borderRadius: 6, border: "1px solid #cbd5e1" }}
                         />
-                        <button type="submit" style={{ padding: 12, background: "#059669", color: "white", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 700 }}>
-                            Confirmar Pago
+                        <button type="submit" style={{ padding: 12, background: "#059669", color: "white", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: "0.95rem" }}>
+                            ✅ Confirmar y Acreditar Pago
                         </button>
                     </form>
                 </div>
@@ -732,7 +904,7 @@ export default function FinanzasDetalle() {
             {/* RESUMEN FINANCIERO */}
             <div id="finance-report" style={{ background: "white", padding: 30, borderRadius: 12, boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)", marginBottom: 40 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-                    <h3 style={{ margin: 0 }}>📊 Resumen por Grupos</h3>
+                    <h3 style={{ margin: 0 }}>📊 Resumen de Servicios por Grupo</h3>
                     <div style={{ display: "flex", gap: 10 }}>
                         <button onClick={() => window.print()} style={{ padding: "8px 15px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, cursor: "pointer", fontSize: "0.85rem" }}>🖨️ Imprimir</button>
                         <button
@@ -761,7 +933,7 @@ export default function FinanzasDetalle() {
                         <tr style={{ background: "#f8fafc", textAlign: "left" }}>
                             <th style={{ padding: 12, borderBottom: "2px solid #e2e8f0" }}>Grupo</th>
                             <th style={{ padding: 12, borderBottom: "2px solid #e2e8f0" }}>PAX</th>
-                            <th style={{ padding: 12, borderBottom: "2px solid #e2e8f0" }}>Servicios</th>
+                            <th style={{ padding: 12, borderBottom: "2px solid #e2e8f0" }}>Servicios y Precio Unitario</th>
                             <th style={{ padding: 12, borderBottom: "2px solid #e2e8f0", textAlign: "right" }}>Subtotal</th>
                         </tr>
                     </thead>
@@ -785,117 +957,224 @@ export default function FinanzasDetalle() {
                                             </button>
                                         </div>
                                     </td>
-                                    <td style={{ padding: 12, textAlign: "right" }}>{formatMoney(g.subtotal)}</td>
+                                    <td style={{ padding: 12, textAlign: "right", fontWeight: 800, color: "#1e293b" }}>{formatMoney(g.subtotal)}</td>
                                 </tr>
-                                {g.servicios.map((s, idx) => (
-                                    <tr key={idx} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.85rem" }}>
-                                        <td style={{ padding: "8px 12px", paddingLeft: 30 }}>{s.servicio}</td>
-                                        <td style={{ padding: "8px 12px" }}>{s.descripcion}</td>
-                                        <td style={{ padding: "8px 12px", color: "#64748b" }}>
-                                            {formatMoney(s.precio_u)} x {s.cantidad} (Cant)
-                                            {(() => {
-                                                if (!g.fecha_entrada) return null;
-                                                // g.fecha_entrada is YYYY-MM-DD
-                                                const parts = g.fecha_entrada.split("-");
-                                                if (parts.length < 2) return null;
-                                                const mesNum = Number(parts[1]); // 1-12
-                                                // support both exact service key or general park/pool keys
-                                                let matchingKey = s.servicio_key;
-                                                const override = preciosMensuales.find(pm => {
-                                                    if (pm.mes !== mesNum) return false;
-                                                    if (pm.servicio === matchingKey) return true;
-                                                    if (matchingKey.startsWith("parque") && pm.servicio === "parque") return true;
-                                                    if (matchingKey.startsWith("pool") && pm.servicio === "pool") return true;
-                                                    return false;
-                                                });
-                                                if (override) {
-                                                    return <span style={{ marginLeft: 6, padding: "2px 6px", background: "#dbeafe", color: "#1e40af", borderRadius: 4, fontSize: "0.7rem", fontWeight: 700 }}>Especial {MESES[mesNum - 1]}</span>;
-                                                }
-                                                return null;
-                                            })()} x
-                                            <b style={{ color: "#2563eb", marginLeft: 4 }}>{s.pax} Pagantes</b>
-                                            <span style={{ fontSize: "0.75rem", marginLeft: 4 }}>/ Total: {s.pax_original}</span>
+                                {g.servicios.map((s, idx) => {
+                                    const esBRL = s.moneda === "BRL";
+                                    return (
+                                        <tr key={idx} style={{ borderBottom: "1px solid #f1f5f9", fontSize: "0.85rem" }}>
+                                            <td style={{ padding: "8px 12px", paddingLeft: 30 }}>
+                                                <span style={{
+                                                    padding: "2px 6px",
+                                                    borderRadius: 4,
+                                                    fontSize: "0.7rem",
+                                                    fontWeight: 700,
+                                                    marginRight: 6,
+                                                    background: esBRL ? "#dcfce7" : "#dbeafe",
+                                                    color: esBRL ? "#15803d" : "#1d4ed8"
+                                                }}>
+                                                    {esBRL ? "R$" : "US$"}
+                                                </span>
+                                                <strong>{s.servicio}</strong>
+                                            </td>
+                                            <td style={{ padding: "8px 12px" }}>{s.descripcion}</td>
+                                            <td style={{ padding: "8px 12px", color: "#64748b" }}>
+                                                <span style={{ fontWeight: 700, color: esBRL ? "#15803d" : "#1d4ed8" }}>
+                                                    {formatMoney(s.precio_u, s.moneda)}
+                                                </span> x {s.cantidad} (Cant)
+                                                {(() => {
+                                                    if (!g.fecha_entrada) return null;
+                                                    const parts = g.fecha_entrada.split("-");
+                                                    if (parts.length < 2) return null;
+                                                    const mesNum = Number(parts[1]);
+                                                    let matchingKey = s.servicio_key;
+                                                    const override = preciosMensuales.find(pm => {
+                                                        if (pm.mes !== mesNum) return false;
+                                                        if (pm.servicio === matchingKey) return true;
+                                                        if (matchingKey.startsWith("parque") && pm.servicio === "parque") return true;
+                                                        if (matchingKey.startsWith("pool") && pm.servicio === "pool") return true;
+                                                        return false;
+                                                    });
+                                                    if (override) {
+                                                        return <span style={{ marginLeft: 6, padding: "2px 6px", background: "#dbeafe", color: "#1e40af", borderRadius: 4, fontSize: "0.7rem", fontWeight: 700 }}>Especial {MESES[mesNum - 1]}</span>;
+                                                    }
+                                                    return null;
+                                                })()} x
+                                                <b style={{ color: "#2563eb", marginLeft: 4 }}>{s.pax} Pagantes</b>
+                                                <span style={{ fontSize: "0.75rem", marginLeft: 4 }}>/ Total: {s.pax_original}</span>
 
-                                            {s.servicio_key && (
-                                                <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                                                    <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.75rem", color: "#475569" }}>
-                                                        Pagantes finales:
-                                                        <input
-                                                            type="text" inputMode="decimal"
-                                                            min="0"
-                                                            value={pagantesFinalesForm[g.id]?.[s.servicio_key] ?? ""}
-                                                            onChange={(e) => {
-                                                                const nextValue = e.target.value;
-                                                                setPagantesFinalesForm((prev) => ({
-                                                                    ...prev,
-                                                                    [g.id]: {
-                                                                        ...(prev[g.id] || {}),
-                                                                        [s.servicio_key]: nextValue
-                                                                    }
-                                                                }));
-                                                            }}
-                                                            style={{ width: 80, padding: "3px 6px", borderRadius: 6, border: "1px solid #cbd5e1" }}
-                                                        />
-                                                    </label>
-                                                    <button
-                                                        onClick={() => guardarPagantesFinales(g.id, s.servicio_key)}
-                                                        style={{ padding: "4px 10px", background: "#0f172a", color: "white", border: "none", borderRadius: 4, fontSize: "0.75rem", cursor: "pointer" }}
-                                                    >
-                                                        Guardar
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td style={{ padding: "8px 12px", textAlign: "right", color: "#64748b" }}>{formatMoney(s.subtotal)}</td>
-                                    </tr>
-                                ))}
+                                                {s.servicio_key && (
+                                                    <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                                                        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.75rem", color: "#475569" }}>
+                                                            Pagantes finales:
+                                                            <input
+                                                                type="text" inputMode="decimal"
+                                                                min="0"
+                                                                value={pagantesFinalesForm[g.id]?.[s.servicio_key] ?? ""}
+                                                                onChange={(e) => {
+                                                                    const nextValue = e.target.value;
+                                                                    setPagantesFinalesForm((prev) => ({
+                                                                        ...prev,
+                                                                        [g.id]: {
+                                                                            ...(prev[g.id] || {}),
+                                                                            [s.servicio_key]: nextValue
+                                                                        }
+                                                                    }));
+                                                                }}
+                                                                style={{ width: 80, padding: "3px 6px", borderRadius: 6, border: "1px solid #cbd5e1" }}
+                                                            />
+                                                        </label>
+                                                        <button
+                                                            onClick={() => guardarPagantesFinales(g.id, s.servicio_key)}
+                                                            style={{ padding: "4px 10px", background: "#0f172a", color: "white", border: "none", borderRadius: 4, fontSize: "0.75rem", cursor: "pointer" }}
+                                                        >
+                                                            Guardar
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td style={{ padding: "8px 12px", textAlign: "right" }}>
+                                                {esBRL ? (
+                                                    <div>
+                                                        <div style={{ fontWeight: 700, color: "#166534" }}>
+                                                            {formatMoney(s.subtotal_original || s.subtotal, "BRL")}
+                                                        </div>
+                                                        <div style={{ fontSize: "0.72rem", color: "#64748b" }}>
+                                                            ≈ {formatMoney(s.subtotal, "USD")} (tasa {s.tasa_cambio || tasaEmpresa})
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div>
+                                                        <div style={{ fontWeight: 700, color: "#1e293b" }}>
+                                                            {formatMoney(s.subtotal, "USD")}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </React.Fragment>
                         ))}
                     </tbody>
                 </table>
 
-                <div style={{ marginTop: 30, borderTop: "2px solid #e2e8f0", paddingTop: 20, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 15 }}>
-                        <span style={{ fontSize: "0.9rem", color: "#64748b" }}>Subtotal General:</span>
-                        <span style={{ fontSize: "1.2rem", fontWeight: 600 }}>{formatMoney(resumen.total_venta)}</span>
-                    </div>
+                {/* TARJETA DE CIERRE DE CUENTA Y LIQUIDACIÓN MULTIDIVISA */}
+                <div style={{
+                    marginTop: 30,
+                    padding: 24,
+                    background: "#f8fafc",
+                    borderRadius: 12,
+                    border: "1px solid #e2e8f0"
+                }}>
+                    <h4 style={{ margin: "0 0 16px 0", color: "#0f172a", fontSize: "1.05rem", fontWeight: 800 }}>
+                        💱 Cierre y Liquidación de Finanzas de la Empresa
+                    </h4>
 
-                    <div style={{ display: "flex", alignItems: "center", gap: 15 }}>
-                        <span style={{ fontSize: "0.9rem", color: "#64748b" }}>Aplicar Descuento:</span>
-                        <div style={{ display: "flex", gap: 5 }}>
-                            {[0, 10, 15, 20].map(d => (
-                                <button
-                                    key={d}
-                                    onClick={() => setDescuento(d)}
-                                    style={{
-                                        padding: "4px 8px",
-                                        borderRadius: 4,
-                                        border: "1px solid #cbd5e1",
-                                        background: d === descuento ? "#2563eb" : "white",
-                                        color: d === descuento ? "white" : "#1e293b",
-                                        cursor: "pointer",
-                                        fontSize: "0.75rem"
-                                    }}
-                                >
-                                    {d}%
-                                </button>
-                            ))}
+                    {/* DESGLOSE POR MONEDAS */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 15, marginBottom: 20 }}>
+                        <div style={{ background: "white", padding: 14, borderRadius: 8, border: "1px solid #cbd5e1" }}>
+                            <span style={{ fontSize: "0.75rem", color: "#1e40af", fontWeight: 700, textTransform: "uppercase" }}>
+                                💵 Facturación en Dólares
+                            </span>
+                            <p style={{ margin: "6px 0 0 0", fontSize: "1.25rem", fontWeight: 800, color: "#1d4ed8" }}>
+                                {formatMoney(resumen.total_venta_usd, "USD")}
+                            </p>
+                            <span style={{ fontSize: "0.72rem", color: "#64748b" }}>Servicios cobrados en USD</span>
+                        </div>
+
+                        <div style={{ background: "white", padding: 14, borderRadius: 8, border: "1px solid #cbd5e1" }}>
+                            <span style={{ fontSize: "0.75rem", color: "#15803d", fontWeight: 700, textTransform: "uppercase" }}>
+                                🇧🇷 Facturación en Reales
+                            </span>
+                            <p style={{ margin: "6px 0 0 0", fontSize: "1.25rem", fontWeight: 800, color: "#15803d" }}>
+                                {formatMoney(resumen.total_venta_brl, "BRL")}
+                            </p>
+                            <span style={{ fontSize: "0.72rem", color: "#64748b" }}>
+                                ≈ {formatMoney((resumen.total_venta_brl || 0) / tasaEmpresa, "USD")} (tasa {tasaEmpresa})
+                            </span>
+                        </div>
+
+                        <div style={{ background: "white", padding: 14, borderRadius: 8, border: "1px solid #cbd5e1" }}>
+                            <span style={{ fontSize: "0.75rem", color: "#475569", fontWeight: 700, textTransform: "uppercase" }}>
+                                🔄 Tasa de Cambio Pactada
+                            </span>
+                            <p style={{ margin: "6px 0 0 0", fontSize: "1.25rem", fontWeight: 800, color: "#0f172a" }}>
+                                1 USD = {tasaEmpresa} BRL
+                            </p>
+                            <span style={{ fontSize: "0.72rem", color: "#64748b" }}>
+                                Liquidación en: <strong>{resumen.moneda_liquidacion || "USD"}</strong>
+                            </span>
                         </div>
                     </div>
 
-                    <div style={{ display: "flex", alignItems: "center", gap: 15, marginTop: 10 }}>
-                        <span style={{ fontSize: "1.1rem", fontWeight: 700 }}>Total Final:</span>
-                        <span style={{ fontSize: "1.8rem", fontWeight: 800, color: "#1e293b" }}>{formatMoney(totalConDescuento)}</span>
-                    </div>
+                    <div style={{ borderTop: "1px solid #cbd5e1", paddingTop: 18, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 15 }}>
+                            <span style={{ fontSize: "0.95rem", color: "#475569", fontWeight: 600 }}>Total Venta Consolidado:</span>
+                            <span style={{ fontSize: "1.3rem", fontWeight: 700, color: "#0f172a" }}>{formatMoney(resumen.total_venta)}</span>
+                        </div>
 
-                    <div style={{ display: "flex", alignItems: "center", gap: 15, color: "#059669" }}>
-                        <span style={{ fontSize: "0.9rem" }}>Total Cobrado:</span>
-                        <span style={{ fontSize: "1.1rem", fontWeight: 600 }}>{formatMoney(resumen.total_pagado)}</span>
-                    </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 15 }}>
+                            <span style={{ fontSize: "0.9rem", color: "#64748b" }}>Aplicar Descuento:</span>
+                            <div style={{ display: "flex", gap: 5 }}>
+                                {[0, 10, 15, 20].map(d => (
+                                    <button
+                                        key={d}
+                                        onClick={() => setDescuento(d)}
+                                        style={{
+                                            padding: "4px 8px",
+                                            borderRadius: 4,
+                                            border: "1px solid #cbd5e1",
+                                            background: d === descuento ? "#2563eb" : "white",
+                                            color: d === descuento ? "white" : "#1e293b",
+                                            cursor: "pointer",
+                                            fontSize: "0.75rem",
+                                            fontWeight: d === descuento ? 700 : 400
+                                        }}
+                                    >
+                                        {d}%
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
 
-                    <div style={{ display: "flex", alignItems: "center", gap: 15, color: saldoFinal > 0 ? "#ef4444" : "#059669", background: saldoFinal > 0 ? "#fef2f2" : "#f0fdf4", padding: "10px 20px", borderRadius: 8, marginTop: 10 }}>
-                        <span style={{ fontSize: "1.1rem", fontWeight: 700 }}>{saldoFinal > 0 ? "Saldo Pendiente:" : "Saldo a Favor:"}</span>
-                        <span style={{ fontSize: "1.6rem", fontWeight: 800 }}>{formatMoney(Math.abs(saldoFinal))}</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 15, marginTop: 5 }}>
+                            <span style={{ fontSize: "1.1rem", fontWeight: 700 }}>Total Contrato Final:</span>
+                            <span style={{ fontSize: "1.8rem", fontWeight: 900, color: "#1e293b" }}>{formatMoney(totalConDescuento)}</span>
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "center", gap: 15, color: "#059669" }}>
+                            <span style={{ fontSize: "0.95rem", fontWeight: 600 }}>Total Cobrado / Pagos Recibidos:</span>
+                            <span style={{ fontSize: "1.3rem", fontWeight: 800 }}>{formatMoney(resumen.total_pagado)}</span>
+                        </div>
+                        {(resumen.total_pagado_usd > 0 || resumen.total_pagado_brl > 0) && (
+                            <div style={{ fontSize: "0.8rem", color: "#64748b" }}>
+                                (Cobrado en USD: {formatMoney(resumen.total_pagado_usd, "USD")} · Cobrado en BRL: {formatMoney(resumen.total_pagado_brl, "BRL")})
+                            </div>
+                        )}
+
+                        <div style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "flex-end",
+                            background: saldoFinal > 0 ? "#fef2f2" : "#f0fdf4",
+                            border: saldoFinal > 0 ? "1px solid #fecaca" : "1px solid #bbf7d0",
+                            padding: "14px 24px",
+                            borderRadius: 10,
+                            marginTop: 10
+                        }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 15 }}>
+                                <span style={{ fontSize: "1.15rem", fontWeight: 700, color: saldoFinal > 0 ? "#dc2626" : "#16a34a" }}>
+                                    {saldoFinal > 0 ? "Saldo Pendiente a Cobrar:" : "Saldo a Favor de la Empresa:"}
+                                </span>
+                                <span style={{ fontSize: "1.9rem", fontWeight: 900, color: saldoFinal > 0 ? "#b91c1c" : "#15803d" }}>
+                                    {formatMoney(Math.abs(saldoFinal))}
+                                </span>
+                            </div>
+                            <span style={{ fontSize: "0.85rem", color: "#475569", marginTop: 4 }}>
+                                Equivalente en Reales a tasa {tasaEmpresa}: <strong style={{ color: "#0f172a" }}>{formatMoney(Math.abs(saldoFinal) * tasaEmpresa, "BRL")}</strong>
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -904,30 +1183,57 @@ export default function FinanzasDetalle() {
             <div style={{ background: "white", padding: 30, borderRadius: 12, boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)" }}>
                 <h3 style={{ marginTop: 0, marginBottom: 20 }}>📑 Historial de Pagos</h3>
                 {pagos.length === 0 ? (
-                    <p style={{ color: "#94a3b8" }}>No hay pagos registrados.</p>
+                    <p style={{ color: "#94a3b8" }}>No hay pagos registrados para esta empresa.</p>
                 ) : (
                     <table style={{ width: "100%", borderCollapse: "collapse" }}>
                         <thead>
                             <tr style={{ background: "#f8fafc", textAlign: "left" }}>
                                 <th style={{ padding: 12, borderBottom: "1px solid #e2e8f0" }}>Fecha</th>
-                                <th style={{ padding: 12, borderBottom: "1px solid #e2e8f0" }}>Monto</th>
+                                <th style={{ padding: 12, borderBottom: "1px solid #e2e8f0" }}>Monto Recibido</th>
+                                <th style={{ padding: 12, borderBottom: "1px solid #e2e8f0" }}>Tasa Cambio</th>
+                                <th style={{ padding: 12, borderBottom: "1px solid #e2e8f0" }}>Equivalente Liquidado (USD)</th>
                                 <th style={{ padding: 12, borderBottom: "1px solid #e2e8f0" }}>Método</th>
                                 <th style={{ padding: 12, borderBottom: "1px solid #e2e8f0" }}>Nota</th>
-                                <th style={{ padding: 12, borderBottom: "1px solid #e2e8f0" }}></th>
+                                <th style={{ padding: 12, borderBottom: "1px solid #e2e8f0", textAlign: "right" }}>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {pagos.map(p => (
-                                <tr key={p.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                                    <td style={{ padding: 12 }}>{p.fecha}</td>
-                                    <td style={{ padding: 12, fontWeight: 700, color: "#059669" }}>{formatMoney(p.monto)}</td>
-                                    <td style={{ padding: 12 }}>{p.metodo}</td>
-                                    <td style={{ padding: 12, color: "#64748b", fontSize: "0.85rem" }}>{p.nota}</td>
-                                    <td style={{ padding: 12, textAlign: "right" }}>
-                                        <button onClick={() => eliminarPago(p.id)} style={{ color: "red", background: "none", border: "none", cursor: "pointer" }}>Eliminar</button>
-                                    </td>
-                                </tr>
-                            ))}
+                            {pagos.map(p => {
+                                const mPago = p.moneda || "USD";
+                                const tPago = p.tasa_cambio || tasaEmpresa;
+                                const conv = p.monto_convertido !== null && p.monto_convertido !== undefined
+                                    ? p.monto_convertido
+                                    : (mPago === "BRL" ? (p.monto / tPago) : p.monto);
+                                return (
+                                    <tr key={p.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                                        <td style={{ padding: 12 }}>{p.fecha}</td>
+                                        <td style={{ padding: 12, fontWeight: 700 }}>
+                                            <span style={{
+                                                padding: "2px 6px",
+                                                borderRadius: 4,
+                                                fontSize: "0.72rem",
+                                                marginRight: 6,
+                                                background: mPago === "BRL" ? "#dcfce7" : "#dbeafe",
+                                                color: mPago === "BRL" ? "#15803d" : "#1d4ed8"
+                                            }}>
+                                                {mPago}
+                                            </span>
+                                            {formatMoney(p.monto, mPago)}
+                                        </td>
+                                        <td style={{ padding: 12, color: "#64748b", fontSize: "0.85rem" }}>
+                                            {mPago === "BRL" ? `1 USD = ${tPago}` : "-"}
+                                        </td>
+                                        <td style={{ padding: 12, fontWeight: 700, color: "#059669" }}>
+                                            {formatMoney(conv, "USD")}
+                                        </td>
+                                        <td style={{ padding: 12 }}>{p.metodo}</td>
+                                        <td style={{ padding: 12, color: "#64748b", fontSize: "0.85rem" }}>{p.nota}</td>
+                                        <td style={{ padding: 12, textAlign: "right" }}>
+                                            <button onClick={() => eliminarPago(p.id)} style={{ color: "#ef4444", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>Eliminar</button>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 )}

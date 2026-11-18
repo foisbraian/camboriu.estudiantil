@@ -353,24 +353,19 @@ def exportar_finanzas_todas(background_tasks: BackgroundTasks, db: Session = Dep
     for e in empresas:
         res = get_resumen_empresa(e.id, db)
         total_pax = sum(g.get("pax", 0) for g in res.get("grupos", []))
-        config = res.get("config")
-        moneda = getattr(config, "moneda", None) or "USD"
-        moneda = "USD" if moneda == "ARS" else moneda
-        total_pagado = res["total_pagado"]
-        saldo = res["saldo"]
-        total_venta = res["total_venta"]
-        usd_vals = (total_pagado, saldo, total_venta) if moneda == "USD" else (0, 0, 0)
-        brl_vals = (total_pagado, saldo, total_venta) if moneda == "BRL" else (0, 0, 0)
-
+        total_pagado = res.get("total_pagado", 0)
+        saldo = res.get("saldo", 0)
+        total_venta = res.get("total_venta", 0)
+        
         ws.append([
             e.nombre,
             total_pax,
-            usd_vals[0],
-            usd_vals[1],
-            usd_vals[2],
-            brl_vals[0],
-            brl_vals[1],
-            brl_vals[2]
+            res.get("total_pagado_usd", 0),
+            res.get("saldo_usd_equivalente", saldo),
+            res.get("total_venta_usd", 0),
+            res.get("total_pagado_brl", 0),
+            res.get("saldo_brl_equivalente", 0),
+            res.get("total_venta_brl", 0)
         ])
 
     filename = f"reporte_financiero_todas_{datetime.now().strftime('%Y%m%d')}.xlsx"
@@ -401,15 +396,16 @@ def exportar_finanzas(empresa_id: int, background_tasks: BackgroundTasks, db: Se
     ws.append([])
     
     # Detalle de grupos
-    ws.append(["Grupo", "Servicio", "Detalle", "Precio Unit.", "Cant.", "Estud.", "Padres", "Guias", "Total PAX", "Pagantes", "Subtotal"])
+    ws.append(["Grupo", "Servicio", "Moneda", "Detalle", "Precio Unit.", "Cant.", "Estud.", "Padres", "Guias", "Total PAX", "Pagantes", "Subtotal Orig.", "Subtotal (USD)"])
     for g in res["grupos"]:
         # Fila de encabezado de grupo
-        ws.append([g["nombre"], "", "", "", "", g["estudiantes"], g["padres"], g["guias"], g["pax"], "", g["subtotal"]])
+        ws.append([g["nombre"], "", "", "", "", "", g["estudiantes"], g["padres"], g["guias"], g["pax"], "", "", g["subtotal"]])
         # Filas de detalles de servicios
         for s in g["servicios"]:
             ws.append([
                 "", 
                 s["servicio"], 
+                s.get("moneda", "USD"),
                 s["descripcion"], 
                 s["precio_u"], 
                 s["cantidad"], 
@@ -418,21 +414,32 @@ def exportar_finanzas(empresa_id: int, background_tasks: BackgroundTasks, db: Se
                 s["guias"],
                 s["pax_original"],
                 s["pax"], # Este es el 'pax_cobrar'
+                s.get("subtotal_original", s["subtotal"]),
                 s["subtotal"]
             ])
     
     ws.append([])
-    ws.append(["TOTAL VENTA", res["total_venta"]])
-    ws.append(["TOTAL COBRADO", res["total_pagado"]])
-    ws.append(["SALDO", res["saldo"]])
+    ws.append(["TASA DE CAMBIO PACTADA (1 USD = X BRL)", res.get("tasa_cambio", 5.3)])
+    ws.append(["TOTAL SERVICIOS EN DÓLARES (USD)", res.get("total_venta_usd", 0)])
+    ws.append(["TOTAL SERVICIOS EN REALES (BRL)", res.get("total_venta_brl", 0)])
+    ws.append(["TOTAL VENTA CONSOLIDADO (USD)", res["total_venta"]])
+    ws.append(["TOTAL COBRADO EN DÓLARES (USD)", res.get("total_pagado_usd", 0)])
+    ws.append(["TOTAL COBRADO EN REALES (BRL)", res.get("total_pagado_brl", 0)])
+    ws.append(["TOTAL COBRADO CONSOLIDADO (USD)", res["total_pagado"]])
+    ws.append(["SALDO PENDIENTE (USD)", res["saldo"]])
+    ws.append(["SALDO PENDIENTE EQUIVALENTE (BRL)", res.get("saldo_brl_equivalente", 0)])
     
     ws.append([])
     ws.append(["HISTORIAL DE PAGOS"])
-    ws.append(["Fecha", "Monto", "Método", "Nota"])
+    ws.append(["Fecha", "Monto Orig.", "Moneda", "Tasa Cambio", "Monto Eq. (USD)", "Método", "Nota"])
     
     pagos = db.query(models.Pago).filter(models.Pago.empresa_id == empresa_id).all()
+    tasa_def = res.get("tasa_cambio", 5.3)
     for p in pagos:
-        ws.append([p.fecha, p.monto, p.metodo, p.nota])
+        m_pago = getattr(p, "moneda", "USD") or "USD"
+        t_pago = p.tasa_cambio or tasa_def
+        conv = p.monto_convertido if p.monto_convertido is not None else (round(p.monto / t_pago, 2) if m_pago == "BRL" else p.monto)
+        ws.append([p.fecha, p.monto, m_pago, t_pago, conv, p.metodo, p.nota])
         
     filename = f"reporte_financiero_{res['empresa']}_{datetime.now().strftime('%Y%m%d')}.xlsx"
     with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:

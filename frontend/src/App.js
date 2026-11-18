@@ -27,6 +27,7 @@ import GastosDashboard from "./pages/GastosDashboard";
 import CardapioPublico from "./pages/CardapioPublico";
 import CardapioSinAlcohol from "./pages/CardapioSinAlcohol";
 import AdminCardapio from "./pages/AdminCardapio";
+import ControlConsumosEmpresa from "./pages/ControlConsumosEmpresa";
 
 const hasStoredRole = (role) => {
   const storedRole = localStorage.getItem("auth_role");
@@ -122,6 +123,8 @@ export default function App() {
         <Route path="/cardapio-sin-alcohol" element={<CardapioSinAlcohol />} />
         <Route path="/portal/:codigo" element={<PortalEmpresa />} />
         <Route path="/vouchers/:codigo" element={<VouchersEmpresa />} />
+        <Route path="/control-consumos/:codigo" element={<ControlConsumosEmpresa />} />
+        <Route path="/acta-consumos/:codigo" element={<ControlConsumosEmpresa />} />
 
         {/* Catch-all to root */}
         <Route path="*" element={<Navigate to="/" replace />} />

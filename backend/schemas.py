@@ -1,6 +1,6 @@
 from pydantic import BaseModel, model_validator, field_validator
 from datetime import date, datetime
-from typing import Union
+from typing import Union, Optional
 
 
 # ========= EMPRESA =========
@@ -160,6 +160,9 @@ class AsignacionCreate(BaseModel):
 class FinanzasEmpresaCreate(BaseModel):
     empresa_id: int
     moneda: str = "ARS"
+    tasa_cambio: float = 5.3
+    servicios_monedas: Optional[str] = "{}"
+    moneda_liquidacion: Optional[str] = "USD"
     precio_disco_individual: float = 0
     precio_disco_opcional: float = 0
     precio_parque_individual: float = 0
@@ -235,6 +238,7 @@ class PrecioServicioMensualCreate(BaseModel):
     servicio: str
     mes: int
     precio: float
+    moneda: Optional[str] = "USD"
 
 class PrecioServicioMensualOut(PrecioServicioMensualCreate):
     id: int
@@ -253,6 +257,9 @@ class PagoCreate(BaseModel):
     fecha: date
     metodo: str
     nota: Union[str, None] = None
+    moneda: Optional[str] = "USD"
+    tasa_cambio: Optional[float] = 5.3
+    monto_convertido: Optional[float] = None
 
 class PagoOut(PagoCreate):
     id: int

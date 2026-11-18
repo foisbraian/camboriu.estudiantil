@@ -962,3 +962,348 @@ def exportar_reporte_vouchers_excel(
         filename=filename,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
+
+# ==========================================================
+# CONTROL FORMAL DE CONSUMOS Y VOUCHERS QUEMADOS POR EMPRESA
+# ==========================================================
+
+def _resolver_empresas_consumos(codigo_acceso: str, db: Session):
+    from sqlalchemy import func as sqlfunc
+    codigo_norm = codigo_acceso.strip().lower()
+    empresa = db.query(models.Empresa).filter(
+        sqlfunc.lower(models.Empresa.codigo_acceso) == codigo_norm
+    ).first()
+
+    link_personalizado = None
+    empresas = []
+
+    if empresa:
+        empresas = [empresa]
+    else:
+        link_personalizado = db.query(models.LinkPersonalizado).filter(
+            sqlfunc.lower(models.LinkPersonalizado.token) == codigo_norm,
+            models.LinkPersonalizado.activo == True
+        ).first()
+        if link_personalizado:
+            if not link_personalizado.incluir_vouchers:
+                raise HTTPException(403, "Este link personalizado no tiene acceso a los vouchers")
+            
+            if link_personalizado.empresas_ids:
+                if link_personalizado.empresas_ids.strip() == "*":
+                    empresas = db.query(models.Empresa).order_by(models.Empresa.nombre.asc()).all()
+                else:
+                    emp_ids = [int(x.strip()) for x in link_personalizado.empresas_ids.split(",") if x.strip().isdigit()]
+                    if emp_ids:
+                        empresas = db.query(models.Empresa).filter(models.Empresa.id.in_(emp_ids)).order_by(models.Empresa.nombre.asc()).all()
+            if not empresas and link_personalizado.empresa_id:
+                emp = db.get(models.Empresa, link_personalizado.empresa_id)
+                if emp:
+                    empresas = [emp]
+
+    if not empresas:
+        raise HTTPException(404, "Código de acceso inválido")
+
+    grupos_permitidos_ids = None
+    servicios_permitidos = None
+    if link_personalizado:
+        if link_personalizado.grupos_permitidos:
+            grupos_permitidos_ids = set(int(x.strip()) for x in link_personalizado.grupos_permitidos.split(",") if x.strip().isdigit())
+        if link_personalizado.servicios_permitidos:
+            servicios_permitidos = set(s.strip().upper() for s in link_personalizado.servicios_permitidos.split(",") if s.strip())
+
+    return empresas, link_personalizado, grupos_permitidos_ids, servicios_permitidos
+
+
+def _obtener_datos_consumos_empresa(codigo_acceso: str, db: Session):
+    empresas, link_personalizado, grupos_permitidos_ids, servicios_permitidos = _resolver_empresas_consumos(codigo_acceso, db)
+
+    vouchers_consumidos = []
+    total_pax = 0
+    resumen_tipos = {}
+
+    for emp in empresas:
+        # 1. Vouchers de Eventos
+        query = (
+            db.query(models.Voucher)
+            .join(models.Asignacion, models.Voucher.asignacion_id == models.Asignacion.id)
+            .join(models.Grupo, models.Asignacion.grupo_id == models.Grupo.id)
+            .join(models.FechaEvento, models.Asignacion.fecha_evento_id == models.FechaEvento.id)
+            .join(models.Evento, models.FechaEvento.evento_id == models.Evento.id)
+            .filter(models.Grupo.empresa_id == emp.id)
+            .filter(models.Voucher.usado == True)
+        )
+
+        for voucher in query.all():
+            asig = voucher.asignacion
+            if not asig or not asig.fecha_evento or not asig.grupo:
+                continue
+            
+            grupo = asig.grupo
+            if grupos_permitidos_ids and grupo.id not in grupos_permitidos_ids:
+                continue
+
+            evento = asig.fecha_evento.evento
+            tipo_upper = (evento.tipo or "EVENTO").upper()
+            if servicios_permitidos and tipo_upper not in servicios_permitidos:
+                continue
+
+            scan_dt = parse_fecha_uso(voucher.fecha_uso)
+            scan_fecha_str = scan_dt.strftime("%d/%m/%Y") if scan_dt else (voucher.fecha_uso[:10] if voucher.fecha_uso else "-")
+            scan_hora_str = scan_dt.strftime("%H:%M:%S") if scan_dt else (voucher.fecha_uso[11:19] if voucher.fecha_uso and len(voucher.fecha_uso) >= 19 else "-")
+
+            pax_val = obtener_pax_voucher(asig)
+            es_opc = bool(getattr(asig, "es_opcional", False))
+
+            resumen_tipos[tipo_upper] = resumen_tipos.get(tipo_upper, 0) + pax_val
+            total_pax += pax_val
+
+            vouchers_consumidos.append({
+                "id": voucher.id,
+                "token": voucher.token,
+                "token_corto": voucher.token[:8].upper() if voucher.token else "",
+                "tipo": "EVENTO",
+                "servicio": evento.nombre if evento else "Evento",
+                "tipo_servicio": tipo_upper,
+                "fecha_evento": str(asig.fecha_evento.fecha) if asig.fecha_evento.fecha else "-",
+                "fecha_uso_raw": voucher.fecha_uso or "",
+                "scan_fecha": scan_fecha_str,
+                "scan_hora": scan_hora_str,
+                "scan_timestamp": f"{scan_fecha_str} {scan_hora_str}",
+                "empresa": emp.nombre,
+                "empresa_id": emp.id,
+                "grupo": grupo.nombre,
+                "grupo_id": grupo.id,
+                "pax": pax_val,
+                "estudiantes": pax_val if es_opc else (grupo.cantidad_estudiantes or 0),
+                "padres": 0 if es_opc else (grupo.cantidad_padres or 0),
+                "guias": 0 if es_opc else (grupo.cantidad_guias or 0),
+                "es_opcional": es_opc,
+                "estado": "VALIDADO EN PUERTA",
+            })
+
+        # 2. Vouchers de Comida en Restaurantes
+        grupos_a_procesar = emp.grupos
+        if grupos_permitidos_ids:
+            grupos_a_procesar = [g for g in grupos_a_procesar if g.id in grupos_permitidos_ids]
+
+        for grupo in grupos_a_procesar:
+            anotacion = db.query(models.AnotacionGrupo).filter(
+                models.AnotacionGrupo.grupo_id == grupo.id
+            ).first()
+            if not anotacion:
+                continue
+            for comida in anotacion.comidas:
+                if not comida.usado:
+                    continue
+
+                v_comida = db.query(models.Voucher).filter(models.Voucher.comida_id == comida.id).first()
+                token_val = comida.token or (v_comida.token if v_comida else "")
+                fecha_uso_val = comida.fecha_uso or (v_comida.fecha_uso if v_comida else None)
+
+                scan_dt = parse_fecha_uso(fecha_uso_val)
+                scan_fecha_str = scan_dt.strftime("%d/%m/%Y") if scan_dt else (fecha_uso_val[:10] if fecha_uso_val else "-")
+                scan_hora_str = scan_dt.strftime("%H:%M:%S") if scan_dt else (fecha_uso_val[11:19] if fecha_uso_val and len(fecha_uso_val) >= 19 else "-")
+
+                pax_comida = comida.cant_pax or (grupo.cantidad_estudiantes or 0)
+                resumen_tipos["COMIDA"] = resumen_tipos.get("COMIDA", 0) + pax_comida
+                total_pax += pax_comida
+
+                vouchers_consumidos.append({
+                    "id": v_comida.id if v_comida else comida.id,
+                    "token": token_val,
+                    "token_corto": token_val[:8].upper() if token_val else "",
+                    "tipo": "COMIDA",
+                    "servicio": f"Comida ({comida.tipo_comida.capitalize()}) - {comida.lugar or 'Restaurante'}",
+                    "tipo_servicio": "COMIDA",
+                    "fecha_evento": str(comida.fecha) if comida.fecha else "-",
+                    "fecha_uso_raw": fecha_uso_val or "",
+                    "scan_fecha": scan_fecha_str,
+                    "scan_hora": scan_hora_str,
+                    "scan_timestamp": f"{scan_fecha_str} {scan_hora_str}",
+                    "empresa": emp.nombre,
+                    "empresa_id": emp.id,
+                    "grupo": grupo.nombre,
+                    "grupo_id": grupo.id,
+                    "pax": pax_comida,
+                    "estudiantes": pax_comida,
+                    "padres": 0,
+                    "guias": 0,
+                    "es_opcional": False,
+                    "estado": "VALIDADO EN RESTAURANTE",
+                })
+
+    # Ordenar por fecha y hora de quema descendente (los más recientes primero)
+    vouchers_consumidos.sort(key=lambda x: x["fecha_uso_raw"] or "", reverse=True)
+
+    nombre_display = empresas[0].nombre if len(empresas) == 1 else (
+        "Todas las empresas" if (link_personalizado and link_personalizado.empresas_ids == "*")
+        else f"{len(empresas)} Empresas"
+    )
+
+    return {
+        "empresa": nombre_display,
+        "empresa_id": empresas[0].id if len(empresas) == 1 else None,
+        "codigo_acceso": codigo_acceso,
+        "fecha_emision": datetime.now(BALNEARIO_TZ).strftime("%d/%m/%Y %H:%M:%S"),
+        "total_vouchers": len(vouchers_consumidos),
+        "total_pax": total_pax,
+        "resumen_tipos": resumen_tipos,
+        "consumos": vouchers_consumidos
+    }
+
+
+@router.get("/empresa/{codigo_acceso}/consumos")
+def consumos_empresa_publico(codigo_acceso: str, db: Session = Depends(get_db)):
+    """Devuelve el historial formal de vouchers ya quemados para una empresa, accesible mediante su código público."""
+    return _obtener_datos_consumos_empresa(codigo_acceso, db)
+
+
+@router.get("/empresa/{codigo_acceso}/consumos/excel")
+def exportar_consumos_empresa_excel(
+    codigo_acceso: str,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """Genera planilla Excel con el reporte formal de vouchers quemados para la empresa."""
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    data = _obtener_datos_consumos_empresa(codigo_acceso, db)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Control de Consumos"
+    ws.views.sheetView[0].showGridLines = True
+
+    # Estilos
+    font_titulo = Font(name="Calibri", size=14, bold=True, color="1E293B")
+    font_subtitulo = Font(name="Calibri", size=11, bold=True, color="475569")
+    font_header = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    font_data = Font(name="Calibri", size=10, color="0F172A")
+    font_bold = Font(name="Calibri", size=10, bold=True, color="0F172A")
+    font_token = Font(name="Consolas", size=9, color="334155")
+    font_estado = Font(name="Calibri", size=9, bold=True, color="15803D")
+
+    fill_header = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
+    fill_zebra = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
+    fill_total = PatternFill(start_color="E2E8F0", end_color="E2E8F0", fill_type="solid")
+
+    thin_border_side = Side(border_style="thin", color="CBD5E1")
+    border_cell = Border(left=thin_border_side, right=thin_border_side, top=thin_border_side, bottom=thin_border_side)
+    thick_top = Border(top=Side(border_style="medium", color="1E293B"), bottom=Side(border_style="double", color="1E293B"))
+
+    align_center = Alignment(horizontal="center", vertical="center")
+    align_left = Alignment(horizontal="left", vertical="center")
+    align_right = Alignment(horizontal="right", vertical="center")
+
+    # Encabezado formal del reporte
+    ws["A1"] = "CONTROL FORMAL DE CONSUMOS Y VOUCHERS QUEMADOS"
+    ws["A1"].font = font_titulo
+
+    ws["A2"] = f"Empresa: {data['empresa']}"
+    ws["A2"].font = font_subtitulo
+
+    ws["A3"] = f"Fecha de Emisión: {data['fecha_emision']} hs  |  Total Vouchers: {data['total_vouchers']}  |  Total PAX: {data['total_pax']}"
+    ws["A3"].font = Font(name="Calibri", size=10, italic=True, color="64748B")
+
+    # Espacio
+    row_idx = 5
+    headers = [
+        "N°",
+        "Fecha de Quema",
+        "Hora Exacta",
+        "Servicio / Evento",
+        "Tipo",
+        "Fecha Programada",
+        "Grupo / Colegio",
+        "PAX Total",
+        "Estudiantes",
+        "Padres",
+        "Guías",
+        "Token / Código QR",
+        "Estado"
+    ]
+
+    for col_idx, h in enumerate(headers, start=1):
+        cell = ws.cell(row=row_idx, column=col_idx, value=h)
+        cell.font = font_header
+        cell.fill = fill_header
+        cell.alignment = align_center
+        cell.border = border_cell
+
+    ws.row_dimensions[row_idx].height = 26
+
+    # Datos
+    for i, item in enumerate(data["consumos"], start=1):
+        row_idx += 1
+        ws.row_dimensions[row_idx].height = 20
+        use_zebra = (i % 2 == 0)
+
+        row_values = [
+            (i, align_center, font_data),
+            (item["scan_fecha"], align_center, font_data),
+            (item["scan_hora"], align_center, font_bold),
+            (item["servicio"], align_left, font_data),
+            (item["tipo_servicio"], align_center, font_data),
+            (item["fecha_evento"], align_center, font_data),
+            (item["grupo"], align_left, font_data),
+            (item["pax"], align_right, font_bold),
+            (item["estudiantes"], align_right, font_data),
+            (item["padres"], align_right, font_data),
+            (item["guias"], align_right, font_data),
+            (item["token_corto"] or item["token"][:8], align_center, font_token),
+            (item["estado"], align_center, font_estado),
+        ]
+
+        for col_idx, (val, alignment, font_style) in enumerate(row_values, start=1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=val)
+            cell.font = font_style
+            cell.alignment = alignment
+            cell.border = border_cell
+            if use_zebra:
+                cell.fill = fill_zebra
+
+    # Fila de totales
+    row_idx += 1
+    ws.row_dimensions[row_idx].height = 24
+    ws.cell(row=row_idx, column=1, value="")
+    total_label_cell = ws.cell(row=row_idx, column=4, value="TOTALES")
+    total_label_cell.font = Font(name="Calibri", size=11, bold=True, color="0F172A")
+    total_label_cell.alignment = align_left
+
+    pax_total_cell = ws.cell(row=row_idx, column=8, value=data["total_pax"])
+    pax_total_cell.font = Font(name="Calibri", size=11, bold=True, color="0F172A")
+    pax_total_cell.alignment = align_right
+
+    for c in range(1, len(headers) + 1):
+        cell = ws.cell(row=row_idx, column=c)
+        cell.fill = fill_total
+        cell.border = thick_top
+
+    # Ajustar anchos automáticos
+    for col in ws.columns:
+        col_letter = get_column_letter(col[0].column)
+        max_len = 0
+        for cell in col:
+            val_str = str(cell.value or "")
+            if cell.row < 5:
+                continue
+            max_len = max(max_len, len(val_str))
+        ws.column_dimensions[col_letter].width = max(max_len + 4, 12)
+
+    emp_slug = "".join(c for c in data["empresa"] if c.isalnum() or c in ("-", "_")).strip() or "Empresa"
+    filename = f"Control_Consumos_{emp_slug}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
+        filepath = tmp.name
+
+    wb.save(filepath)
+    background_tasks.add_task(_cleanup_file, filepath)
+
+    return FileResponse(
+        filepath,
+        filename=filename,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+

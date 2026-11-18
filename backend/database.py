@@ -5,9 +5,10 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 # PostgreSQL para producción (Render), SQLite para desarrollo
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Si la variable está vacía o no existe, usamos SQLite
+# Si la variable está vacía o no existe, usamos SQLite apuntando a app.db en este directorio
 if not DATABASE_URL or not DATABASE_URL.strip():
-    DATABASE_URL = "sqlite:///./app.db"
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    DATABASE_URL = f"sqlite:///{os.path.join(base_dir, 'app.db')}"
 
 # ⭐ FIX para Render: SQLAlchemy requiere 'postgresql://' en lugar de 'postgres://'
 if DATABASE_URL.startswith("postgres://") or DATABASE_URL.startswith("postgresql://"):

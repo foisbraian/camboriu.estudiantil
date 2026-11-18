@@ -57,6 +57,13 @@ def upgrade_db():
         "ALTER TABLE comidas_grupo ADD COLUMN fecha_uso VARCHAR",
         "ALTER TABLE comidas_grupo ADD COLUMN hora VARCHAR",
         "ALTER TABLE vouchers ADD COLUMN comida_id INTEGER REFERENCES comidas_grupo(id) ON DELETE CASCADE",
+        "ALTER TABLE finanzas_empresa ADD COLUMN tasa_cambio FLOAT DEFAULT 5.3",
+        "ALTER TABLE finanzas_empresa ADD COLUMN servicios_monedas VARCHAR DEFAULT '{}'",
+        "ALTER TABLE finanzas_empresa ADD COLUMN moneda_liquidacion VARCHAR DEFAULT 'USD'",
+        "ALTER TABLE pagos ADD COLUMN moneda VARCHAR DEFAULT 'USD'",
+        "ALTER TABLE pagos ADD COLUMN tasa_cambio FLOAT DEFAULT 5.3",
+        "ALTER TABLE pagos ADD COLUMN monto_convertido FLOAT",
+        "ALTER TABLE precios_servicios_mensuales ADD COLUMN moneda VARCHAR DEFAULT 'USD'",
     ]
     for sql in migraciones:
         try:

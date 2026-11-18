@@ -716,6 +716,38 @@ export default function EmpresaDetalle() {
                     </div>
                   </div>
 
+                  <div style={{ padding: "8px 12px", background: "#fdf4ff", borderRadius: 8, border: "1px solid #f0abfc", display: "inline-block" }}>
+                    <p style={{ margin: 0, fontSize: "0.85rem", color: "#a21caf", fontWeight: 600, marginBottom: 4 }}>📋 Acta Formal de Consumos (Vouchers Quemados)</p>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      <a 
+                        href={`/control-consumos/${empresa.codigo_acceso}`} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        style={{ color: "#c026d3", fontSize: "0.9rem", textDecoration: "none", fontWeight: 600 }}
+                      >
+                        {window.location.origin}/control-consumos/{empresa.codigo_acceso}
+                      </a>
+                      <button 
+                        type="button"
+                        onClick={() => navigator.clipboard.writeText(`${window.location.origin}/control-consumos/${empresa.codigo_acceso}`).then(() => alert("¡Link de acta de consumos copiado!"))}
+                        style={{ background: "#c026d3", color: "white", border: "none", padding: "4px 8px", borderRadius: 4, cursor: "pointer", fontSize: "0.8rem", fontWeight: "bold" }}
+                      >
+                        Copiar
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          const tel = (empresa.numero_contacto || "").replace(/\D/g, "");
+                          const texto = `Hola ${empresa.nombre}, les compartimos el Acta Formal de Control de Vouchers y Consumos utilizados en destino para su auditoría y conformidad: ${window.location.origin}/control-consumos/${empresa.codigo_acceso}`;
+                          window.open(`https://wa.me/${tel ? tel : ""}?text=${encodeURIComponent(texto)}`, "_blank");
+                        }}
+                        style={{ background: "#16a34a", color: "white", border: "none", padding: "4px 8px", borderRadius: 4, cursor: "pointer", fontSize: "0.8rem", fontWeight: "bold" }}
+                      >
+                        📲 WhatsApp
+                      </button>
+                    </div>
+                  </div>
+
                   <div style={{ padding: "8px 12px", background: "#faf5ff", borderRadius: 8, border: "1px solid #e9d5ff", display: "inline-block" }}>
                     <p style={{ margin: 0, fontSize: "0.85rem", color: "#7e22ce", fontWeight: 600, marginBottom: 4 }}>
                       🔒 Links Personalizados (Terceros / Proveedores)

@@ -223,6 +223,9 @@ class FinanzasEmpresa(Base):
     id = Column(Integer, primary_key=True)
     empresa_id = Column(Integer, ForeignKey("empresas.id"), unique=True)
     moneda = Column(String, default="ARS")
+    tasa_cambio = Column(Float, default=5.3)
+    servicios_monedas = Column(String, default="{}")
+    moneda_liquidacion = Column(String, default="USD")
 
     precio_disco_individual = Column(Float, default=0)
     precio_disco_opcional = Column(Float, default=0)
@@ -315,6 +318,7 @@ class PrecioServicioMensual(Base):
     servicio = Column(String)  # ej: "parque_con_comida", "parque_sin_comida", "disco", "pool_con_comida", etc.
     mes = Column(Integer)  # 1 a 12
     precio = Column(Float, default=0)
+    moneda = Column(String, default="USD")
 
     finanzas_empresa = relationship("FinanzasEmpresa", back_populates="precios_mensuales")
 
@@ -333,6 +337,9 @@ class Pago(Base):
     fecha = Column(Date)
     metodo = Column(String)  # Transferencia, Efectivo, etc.
     nota = Column(String, nullable=True)
+    moneda = Column(String, default="USD")
+    tasa_cambio = Column(Float, default=5.3)
+    monto_convertido = Column(Float, nullable=True)
 
     empresa = relationship("Empresa")
 

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import api, { BASE_URL } from "../api";
 
 const TIPO_META = {
@@ -573,6 +573,28 @@ export default function VouchersEmpresa() {
           {disponibles.length} voucher{disponibles.length !== 1 ? "s" : ""} disponible{disponibles.length !== 1 ? "s" : ""}
           {comidasDisponibles.length > 0 && ` · ${comidasDisponibles.length} comida${comidasDisponibles.length !== 1 ? "s" : ""}`}
         </p>
+        <div style={{ marginTop: 14 }}>
+          <Link
+            to={`/control-consumos/${codigo}`}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              background: "linear-gradient(135deg, rgba(56,189,248,0.15) 0%, rgba(99,102,241,0.15) 100%)",
+              border: "1px solid rgba(56,189,248,0.35)",
+              borderRadius: 999,
+              padding: "8px 18px",
+              color: "#38bdf8",
+              fontSize: "0.85rem",
+              fontWeight: 700,
+              textDecoration: "none",
+              boxShadow: "0 4px 16px rgba(56,189,248,0.1)",
+              transition: "transform 0.15s ease",
+            }}
+          >
+            📋 Ver Acta Formal de Consumos / Vouchers Quemados ›
+          </Link>
+        </div>
       </div>
 
       {/* Cards */}
@@ -606,6 +628,37 @@ export default function VouchersEmpresa() {
                   {usados.map((v) => (
                     <VoucherCard key={v.voucher_id} voucher={v} onClick={() => setSelected(v)} />
                   ))}
+                </div>
+                <div style={{
+                  marginTop: 14,
+                  padding: "12px 16px",
+                  borderRadius: 14,
+                  background: "rgba(15,23,42,0.6)",
+                  border: "1px solid rgba(148,163,184,0.15)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  flexWrap: "wrap"
+                }}>
+                  <div style={{ fontSize: "0.8rem", color: "#94a3b8" }}>
+                    ¿Necesitás el reporte formal de consumos con horario exacto?
+                  </div>
+                  <Link
+                    to={`/control-consumos/${codigo}`}
+                    style={{
+                      background: "#38bdf8",
+                      color: "#0f172a",
+                      fontWeight: 700,
+                      fontSize: "0.75rem",
+                      padding: "6px 14px",
+                      borderRadius: 8,
+                      textDecoration: "none",
+                      whiteSpace: "nowrap"
+                    }}
+                  >
+                    Ver Acta Formal
+                  </Link>
                 </div>
               </section>
             )}
