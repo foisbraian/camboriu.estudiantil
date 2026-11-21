@@ -466,16 +466,51 @@ export default function VouchersEmpresa() {
   const { codigo } = useParams();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [errorInfo, setErrorInfo] = useState(null);
   const [selected, setSelected] = useState(null);
   const [selectedComida, setSelectedComida] = useState(null);
+  const [countdown, setCountdown] = useState(null);
 
   const cargar = useCallback(async () => {
     try {
+      setLoading(true);
+      setErrorInfo(null);
+      setCountdown(null);
       const res = await api.get("/vouchers/empresa/" + codigo);
       setData(res.data);
     } catch (err) {
-      setError(err.response?.data?.detail || "No se pudo cargar tus vouchers.");
+      const status = err.response?.status;
+      const detail = err.response?.data?.detail;
+
+      if (!err.response || status === 502 || status === 503 || status === 504) {
+        setErrorInfo({
+          type: "network",
+          title: "Iniciando conexión con el servidor",
+          message: "El servidor puede estar despertando tras unos minutos de inactividad o tu conexión móvil tuvo una intermitencia.",
+          canRetry: true,
+        });
+      } else if (status === 404) {
+        setErrorInfo({
+          type: "notFound",
+          title: "Código no encontrado",
+          message: typeof detail === "string" ? detail : "El código de acceso no existe o el enlace está incompleto.",
+          canRetry: false,
+        });
+      } else if (status === 403) {
+        setErrorInfo({
+          type: "forbidden",
+          title: "Acceso no disponible",
+          message: typeof detail === "string" ? detail : "Este enlace no tiene permisos para ver los vouchers.",
+          canRetry: false,
+        });
+      } else {
+        setErrorInfo({
+          type: "server",
+          title: "Error temporal",
+          message: typeof detail === "string" ? detail : "No se pudo cargar la información en este momento.",
+          canRetry: true,
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -483,9 +518,31 @@ export default function VouchersEmpresa() {
 
   useEffect(() => { cargar(); }, [cargar]);
 
+  // Auto-reintento cuando es error de red (servidor despertando)
+  useEffect(() => {
+    if (errorInfo?.type === "network") {
+      setCountdown(5);
+    } else {
+      setCountdown(null);
+    }
+  }, [errorInfo]);
+
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown <= 0) {
+      setCountdown(null);
+      cargar();
+      return;
+    }
+    const timer = setTimeout(() => {
+      setCountdown((prev) => (prev !== null && prev > 0 ? prev - 1 : null));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [countdown, cargar]);
+
   if (loading) return (
     <div style={fullScreen}>
-      <div style={{ textAlign: "center" }}>
+      <div style={{ textAlign: "center", padding: "0 24px" }}>
         <div style={{
           width: 48, height: 48, borderRadius: "50%",
           border: "3px solid rgba(236,72,153,0.3)",
@@ -493,18 +550,60 @@ export default function VouchersEmpresa() {
           animation: "spin 0.8s linear infinite",
           margin: "0 auto 16px",
         }} />
-        <p style={{ color: "#64748b", fontSize: "0.95rem" }}>Cargando tus vouchers...</p>
+        <p style={{ color: "#f8fafc", fontSize: "1rem", fontWeight: 600, margin: "0 0 6px" }}>Cargando tus vouchers...</p>
+        <p style={{ color: "#64748b", fontSize: "0.82rem", margin: 0 }}>Conectando con el sistema</p>
         <style>{"@keyframes spin { to { transform: rotate(360deg); } }"}</style>
       </div>
     </div>
   );
 
-  if (error) return (
+  if (errorInfo) return (
     <div style={fullScreen}>
-      <div style={{ textAlign: "center", padding: "0 24px" }}>
-        <div style={{ fontSize: "3rem", marginBottom: 16 }}>&#128274;</div>
-        <h2 style={{ color: "white", fontWeight: 800, margin: "0 0 8px" }}>Acceso no disponible</h2>
-        <p style={{ color: "#64748b", fontSize: "0.95rem" }}>{error}</p>
+      <div style={{ textAlign: "center", padding: "0 24px", maxWidth: 400 }}>
+        <div style={{ fontSize: "3.2rem", marginBottom: 16 }}>
+          {errorInfo.type === "network" ? "⏳" : errorInfo.type === "notFound" ? "🔍" : "🔒"}
+        </div>
+        <h2 style={{ color: "white", fontWeight: 800, margin: "0 0 8px", fontSize: "1.35rem" }}>
+          {errorInfo.title}
+        </h2>
+        <p style={{ color: "#94a3b8", fontSize: "0.92rem", lineHeight: 1.5, margin: "0 0 16px" }}>
+          {errorInfo.message}
+        </p>
+
+        {countdown !== null && (
+          <p style={{ color: "#38bdf8", fontSize: "0.85rem", fontWeight: 600, margin: "0 0 16px" }}>
+            Reintentando automáticamente en {countdown}s...
+          </p>
+        )}
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+          <button
+            onClick={() => cargar()}
+            style={{
+              background: "linear-gradient(135deg, #ec4899 0%, #a855f7 100%)",
+              border: "none",
+              borderRadius: 999,
+              color: "white",
+              padding: "12px 28px",
+              fontSize: "0.95rem",
+              fontWeight: 700,
+              cursor: "pointer",
+              boxShadow: "0 4px 16px rgba(236,72,153,0.3)",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              transition: "transform 0.15s ease",
+            }}
+          >
+            <span>🔄</span> Reintentar ahora
+          </button>
+
+          {codigo && (
+            <span style={{ color: "#64748b", fontSize: "0.75rem", marginTop: 8 }}>
+              Código ingresado: <code style={{ color: "#cbd5e1" }}>{codigo}</code>
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

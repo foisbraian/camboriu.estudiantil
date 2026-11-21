@@ -812,8 +812,11 @@ export default function ModalLinksPersonalizados({ empresa, isOpen, onClose }) {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
               {links.map((link) => {
-                const urlPortal = `${window.location.origin}/portal/${link.token}`;
-                const urlVouchers = `${window.location.origin}/vouchers/${link.token}`;
+                const originUrl = window.location.origin.includes("localhost")
+                  ? "https://camboriu-estudiantil-front.vercel.app"
+                  : window.location.origin;
+                const urlPortal = `${originUrl}/portal/${link.token}`;
+                const urlVouchers = `${originUrl}/vouchers/${link.token}`;
 
                 return (
                   <div

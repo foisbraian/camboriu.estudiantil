@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import api, { BASE_URL } from "../api";
 
@@ -23,27 +23,49 @@ export default function ControlConsumosEmpresa() {
   const { codigo } = useParams();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [errorInfo, setErrorInfo] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("TODOS");
   const [copiado, setCopiado] = useState(false);
 
-  useEffect(() => {
-    async function loadConsumos() {
-      try {
-        setLoading(true);
-        setError(null);
-        const res = await api.get(`/vouchers/empresa/${codigo}/consumos`);
-        setData(res.data);
-      } catch (err) {
-        console.error("Error al cargar consumos:", err);
-        setError(err.response?.data?.detail || "No se pudo acceder al control de consumos de esta empresa.");
-      } finally {
-        setLoading(false);
+  const loadConsumos = useCallback(async () => {
+    try {
+      setLoading(true);
+      setErrorInfo(null);
+      const res = await api.get(`/vouchers/empresa/${codigo}/consumos`);
+      setData(res.data);
+    } catch (err) {
+      console.error("Error al cargar consumos:", err);
+      const status = err.response?.status;
+      const detail = err.response?.data?.detail;
+
+      if (!err.response || status === 502 || status === 503 || status === 504) {
+        setErrorInfo({
+          type: "network",
+          title: "Iniciando conexión con el servidor",
+          message: "El servidor puede estar iniciando o la conexión tuvo una intermitencia temporal.",
+        });
+      } else if (status === 404) {
+        setErrorInfo({
+          type: "notFound",
+          title: "Código no encontrado",
+          message: typeof detail === "string" ? detail : "El código de acceso no existe o el enlace está incompleto.",
+        });
+      } else {
+        setErrorInfo({
+          type: "generic",
+          title: "Acceso no disponible",
+          message: typeof detail === "string" ? detail : "No se pudo acceder al control de consumos de esta empresa.",
+        });
       }
+    } finally {
+      setLoading(false);
     }
-    loadConsumos();
   }, [codigo]);
+
+  useEffect(() => {
+    loadConsumos();
+  }, [loadConsumos]);
 
   const consumos = useMemo(() => data?.consumos || [], [data]);
 
@@ -96,13 +118,33 @@ export default function ControlConsumosEmpresa() {
     );
   }
 
-  if (error) {
+  if (errorInfo) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#0f172a", color: "#f8fafc", padding: 24, fontFamily: "'Inter', sans-serif" }}>
-        <div style={{ fontSize: "3rem", marginBottom: 12 }}>🔒</div>
-        <h2 style={{ margin: "0 0 8px", color: "#f87171" }}>Acceso no disponible</h2>
-        <p style={{ color: "#94a3b8", textAlign: "center", maxWidth: 460 }}>{error}</p>
-        <Link to={`/vouchers/${codigo}`} style={{ marginTop: 16, color: "#38bdf8", textDecoration: "underline" }}>
+        <div style={{ fontSize: "3rem", marginBottom: 12 }}>
+          {errorInfo.type === "network" ? "⏳" : errorInfo.type === "notFound" ? "🔍" : "🔒"}
+        </div>
+        <h2 style={{ margin: "0 0 8px", color: errorInfo.type === "network" ? "#38bdf8" : "#f87171" }}>
+          {errorInfo.title}
+        </h2>
+        <p style={{ color: "#94a3b8", textAlign: "center", maxWidth: 460, margin: "0 0 20px" }}>{errorInfo.message}</p>
+        <button
+          onClick={() => loadConsumos()}
+          style={{
+            background: "#38bdf8",
+            border: "none",
+            borderRadius: 999,
+            color: "#0f172a",
+            padding: "10px 24px",
+            fontSize: "0.9rem",
+            fontWeight: 700,
+            cursor: "pointer",
+            marginBottom: 16,
+          }}
+        >
+          🔄 Reintentar conexión
+        </button>
+        <Link to={`/vouchers/${codigo}`} style={{ color: "#38bdf8", textDecoration: "underline", fontSize: "0.88rem" }}>
           Ir a mis Vouchers
         </Link>
       </div>

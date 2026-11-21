@@ -663,6 +663,10 @@ export default function EmpresaDetalle() {
 
   if (!empresa) return <p>Cargando...</p>;
 
+  const originUrl = window.location.origin.includes("localhost")
+    ? "https://camboriu-estudiantil-front.vercel.app"
+    : window.location.origin;
+
   return (
     <div style={{ padding: 20, maxWidth: 900 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
@@ -683,11 +687,11 @@ export default function EmpresaDetalle() {
                         rel="noreferrer" 
                         style={{ color: "#0284c7", fontSize: "0.9rem", textDecoration: "none" }}
                       >
-                        {window.location.origin}/vouchers/{empresa.codigo_acceso}
+                        {originUrl}/vouchers/{empresa.codigo_acceso}
                       </a>
                       <button 
                         type="button"
-                        onClick={() => navigator.clipboard.writeText(`${window.location.origin}/vouchers/${empresa.codigo_acceso}`).then(() => alert("¡Link de vouchers copiado!"))}
+                        onClick={() => navigator.clipboard.writeText(`${originUrl}/vouchers/${empresa.codigo_acceso}`).then(() => alert("¡Link de vouchers copiado!"))}
                         style={{ background: "#0ea5e9", color: "white", border: "none", padding: "4px 8px", borderRadius: 4, cursor: "pointer", fontSize: "0.8rem", fontWeight: "bold" }}
                       >
                         Copiar
@@ -704,11 +708,11 @@ export default function EmpresaDetalle() {
                         rel="noreferrer" 
                         style={{ color: "#15803d", fontSize: "0.9rem", textDecoration: "none" }}
                       >
-                        {window.location.origin}/portal/{empresa.codigo_acceso}
+                        {originUrl}/portal/{empresa.codigo_acceso}
                       </a>
                       <button 
                         type="button"
-                        onClick={() => navigator.clipboard.writeText(`${window.location.origin}/portal/${empresa.codigo_acceso}`).then(() => alert("¡Link del portal copiado!"))}
+                        onClick={() => navigator.clipboard.writeText(`${originUrl}/portal/${empresa.codigo_acceso}`).then(() => alert("¡Link del portal copiado!"))}
                         style={{ background: "#22c55e", color: "white", border: "none", padding: "4px 8px", borderRadius: 4, cursor: "pointer", fontSize: "0.8rem", fontWeight: "bold" }}
                       >
                         Copiar
@@ -725,11 +729,11 @@ export default function EmpresaDetalle() {
                         rel="noreferrer" 
                         style={{ color: "#c026d3", fontSize: "0.9rem", textDecoration: "none", fontWeight: 600 }}
                       >
-                        {window.location.origin}/control-consumos/{empresa.codigo_acceso}
+                        {originUrl}/control-consumos/{empresa.codigo_acceso}
                       </a>
                       <button 
                         type="button"
-                        onClick={() => navigator.clipboard.writeText(`${window.location.origin}/control-consumos/${empresa.codigo_acceso}`).then(() => alert("¡Link de acta de consumos copiado!"))}
+                        onClick={() => navigator.clipboard.writeText(`${originUrl}/control-consumos/${empresa.codigo_acceso}`).then(() => alert("¡Link de acta de consumos copiado!"))}
                         style={{ background: "#c026d3", color: "white", border: "none", padding: "4px 8px", borderRadius: 4, cursor: "pointer", fontSize: "0.8rem", fontWeight: "bold" }}
                       >
                         Copiar
@@ -738,7 +742,7 @@ export default function EmpresaDetalle() {
                         type="button"
                         onClick={() => {
                           const tel = (empresa.numero_contacto || "").replace(/\D/g, "");
-                          const texto = `Hola ${empresa.nombre}, les compartimos el Acta Formal de Control de Vouchers y Consumos utilizados en destino para su auditoría y conformidad: ${window.location.origin}/control-consumos/${empresa.codigo_acceso}`;
+                          const texto = `Hola ${empresa.nombre}, les compartimos el Acta Formal de Control de Vouchers y Consumos utilizados en destino para su auditoría y conformidad: ${originUrl}/control-consumos/${empresa.codigo_acceso}`;
                           window.open(`https://wa.me/${tel ? tel : ""}?text=${encodeURIComponent(texto)}`, "_blank");
                         }}
                         style={{ background: "#16a34a", color: "white", border: "none", padding: "4px 8px", borderRadius: 4, cursor: "pointer", fontSize: "0.8rem", fontWeight: "bold" }}
